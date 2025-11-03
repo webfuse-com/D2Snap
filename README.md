@@ -36,13 +36,13 @@ type Options = {
 #### Browser
 
 ``` html
-<script src="https://cdn.jsdelivr.net/gh/surfly/D2Snap@main/dist/D2Snap.browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist/D2Snap.browser.js"></script>
 ```
 
 #### Module
 
 ``` console
-npm install surfly/D2Snap
+npm install webfuse-com/D2Snap
 ```
 
 > Install [jsdom](https://github.com/jsdom/jsdom) to use the library with Node.js:
@@ -51,7 +51,7 @@ npm install surfly/D2Snap
 > ```
 
 ``` js
-import D2Snap from "@surfly/d2snap";
+import * as D2Snap from "@webfuse-com/d2snap";
 ```
 
 ##

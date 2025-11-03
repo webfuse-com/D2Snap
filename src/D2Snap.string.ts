@@ -12,7 +12,7 @@ const FILTER_CONTENT_TAG_NAMES = [
 ];
 
 
-function estimateDomTreeHeight(html: string): number {
+function estimateDOMTreeHeight(html: string): number {
     const tagRegex = /<\/?([a-zA-Z0-9\-]+)(\s[^>]*)?>/g;
 
     let currentDepth = 0;
@@ -133,7 +133,7 @@ export async function d2Snap(
 
     const optionsWithDefaults = d2SnapUtil.getOptionsWithDefaults<typeof OMITTED_OPTION_KEYS>(options);
 
-    const domTreeHeight = estimateDomTreeHeight(dom);
+    const domTreeHeight = estimateDOMTreeHeight(dom);
     const mergeLevels: number = Math.max(Math.round(domTreeHeight * (Math.min(1, k))), 1);
 
     const parserTransformer = new HTMLParserTransformer({

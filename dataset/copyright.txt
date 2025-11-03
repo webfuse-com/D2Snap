@@ -1,3 +1,3 @@
-[1] T. M. Schiepanski et al., 'D2Snap: DOM Downsampling for Web Agents', 2025.
+[1] T. M. Schiepanski et al., 'Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents', 2025.
 [2] T. Xue et al., 'An Illusion of Progress? Assessing the Current State of Web Agents', 2025.
 [3] X. Deng et al., 'Mind2Web: Towards a Generalist Agent for the Web', 2023.
