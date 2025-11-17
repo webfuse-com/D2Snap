@@ -69,6 +69,8 @@ var ground_truth_default = {
         "div",
         "footer",
         "header",
+        "html",
+        "iframe",
         "main",
         "nav",
         "section"
@@ -80,6 +82,8 @@ var ground_truth_default = {
         div: 0.3,
         footer: 0.7,
         header: 0.75,
+        html: 0.1,
+        iframe: 0.5,
         main: 0.85,
         nav: 0.8,
         section: 0.9
@@ -748,7 +752,7 @@ var FILTER_CONTENT_TAG_NAMES = [
   "TBODY",
   "LI"
 ];
-function estimateDomTreeHeight(html) {
+function estimateDOMTreeHeight(html) {
   const tagRegex = /<\/?([a-zA-Z0-9\-]+)(\s[^>]*)?>/g;
   let currentDepth = 0;
   let maxDepth = 0;
@@ -817,9 +821,10 @@ function dissolveParentHTMLTag(html) {
   return match ? match[3].trim() : html;
 }
 async function d2Snap2(dom, k, l, m, options = {}) {
+  dom = dom.trim().replace(/^<!DOCTYPE +[a-z]+ *>\s*/i, "");
   validateParams(k, l, m);
   const optionsWithDefaults = getOptionsWithDefaults(options);
-  const domTreeHeight = estimateDomTreeHeight(dom);
+  const domTreeHeight = estimateDOMTreeHeight(dom);
   const mergeLevels = Math.max(Math.round(domTreeHeight * Math.min(1, k)), 1);
   const parserTransformer = new HTMLParserTransformer({
     onText(text) {

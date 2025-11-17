@@ -8,6 +8,8 @@
                 "div",
                 "footer",
                 "header",
+                "html",
+                "iframe",
                 "main",
                 "nav",
                 "section"
@@ -19,6 +21,8 @@
                 "div": 0.30,
                 "footer": 0.70,
                 "header": 0.75,
+                "html": 0.10,
+                "iframe": 0.50,
                 "main": 0.85,
                 "nav": 0.80,
                 "section": 0.90

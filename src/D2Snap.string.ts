@@ -129,6 +129,8 @@ export async function d2Snap(
     k: number, l: number, m: number,
     options: Omit<D2SnapOptions, typeof OMITTED_OPTION_KEYS> = {}
 ): Promise<Snapshot> {
+    dom = dom.trim().replace(/^<!DOCTYPE +[a-z]+ *>\s*/i, "");
+
     d2SnapUtil.validateParams(k, l, m);
 
     const optionsWithDefaults = d2SnapUtil.getOptionsWithDefaults<typeof OMITTED_OPTION_KEYS>(options);

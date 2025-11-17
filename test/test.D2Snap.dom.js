@@ -46,7 +46,12 @@ await test("Take adaptive DOM snapshot (4096) [DOM]", async () => {
     assertLess(
         snapshot.serializedHtml.length / 4,
         4096,
-        "Invalid adaptive DOM snapshot size"
+        "Invalid adaptive DOM snapshot size (4096; max)"
+    );
+    assertLess(
+        200,
+        snapshot.serializedHtml.length,
+        "Invalid adaptive DOM snapshot size (4096; min)"
     );
 
     assertIn(
@@ -66,7 +71,12 @@ await test("Take adaptive DOM snapshot (2048) [DOM]", async() => {
     assertLess(
         snapshot.serializedHtml.length / 4,
         2048,
-        "Invalid adaptive DOM snapshot size"
+        "Invalid adaptive DOM snapshot size (2048; max)"
+    );
+    assertLess(
+        200,
+        snapshot.serializedHtml.length,
+        "Invalid adaptive DOM snapshot size (2048; min)"
     );
 });
 

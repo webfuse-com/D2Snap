@@ -4,11 +4,12 @@
 
 import { DOM, D2SnapOptions, Snapshot } from "./types.ts";
 import { resolveRoot } from "./util.ts";
-import { type d2Snap } from "./D2Snap.dom.ts";
+import { type d2Snap as D2SnapDOM } from "./D2Snap.dom.ts";
+import { type d2Snap as D2SnapString } from "./D2Snap.string.ts";
 
 
 export async function adaptiveD2Snap(
-    d2SnapFn: typeof d2Snap,
+    d2SnapFn: typeof D2SnapDOM & typeof D2SnapString,
     dom: DOM | string,
     maxTokens: number = 4096,
     maxIterations: number = 5,
