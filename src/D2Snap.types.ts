@@ -1,3 +1,6 @@
+import { TextRankOptions } from "./TextRank.ts";
+
+
 export enum NodeFilter {
     SHOW_ALL = 4294967295,
     SHOW_ATTRIBUTE = 2,
@@ -18,6 +21,7 @@ export type TextNode = Node & {
 
     innerText?: string;
 };
+
 export type HTMLElementDepth = HTMLElement & {
     depth: number;
 };
@@ -29,6 +33,7 @@ export type D2SnapOptions = {
     debug?: boolean;
     keepUnknownElements?: boolean;
     skipMarkdownTranslation?: boolean;
+    textRankOptions?: Partial<TextRankOptions>;
 };
 
 export type Snapshot = {

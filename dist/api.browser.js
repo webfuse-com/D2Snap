@@ -253,9 +253,10 @@
     const optionsWithDefaults = {
       damping: 0.75,
       maxIterations: 20,
+      maxSentences: Infinity,
       ...options
     };
-    const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim()));
+    const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim())).slice(0, optionsWithDefaults.maxSentences);
     const n = sentences.length;
     const similarityMatrix = initMatrix(n);
     for (let i = 0; i < n; i++) {
@@ -1190,6 +1191,7 @@
       debug: false,
       keepUnknownElements: false,
       skipMarkdownTranslation: false,
+      textRankOptions: {},
       ...options
     };
   }
@@ -1282,7 +1284,7 @@
     function snapTextNode(textNode, l2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
       const text = textNode?.innerText ?? textNode.textContent;
-      textNode.textContent = relativeTextRank(text, 1 - l2, void 0, true);
+      textNode.textContent = relativeTextRank(text, 1 - l2, optionsWithDefaults.textRankOptions, true);
     }
     function snapAttributeNode(elementNode, m2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
@@ -1720,7 +1722,7 @@
     const mergeLevels = Math.max(Math.round(domTreeHeight * Math.min(1, k)), 1);
     const parserTransformer = new HTMLParserTransformer({
       onText(text) {
-        text.textContent = relativeTextRank(text.textContent, 1 - l, void 0, true);
+        text.textContent = relativeTextRank(text.textContent, 1 - l, optionsWithDefaults.textRankOptions, true);
         return text;
       },
       onElement(element) {

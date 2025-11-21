@@ -1,4 +1,4 @@
-import { TextNode, HTMLElementDepth, DOM, D2SnapOptions, Snapshot, NodeFilter, Node } from "./types.ts";
+import { TextNode, HTMLElementDepth, DOM, D2SnapOptions, Snapshot, NodeFilter, Node } from "./D2Snap.types.ts";
 import { formatHtml, traverseDom, resolveDocument, resolveRoot } from "./util.ts";
 import { getAttributeSemantics, getContainerSemantics, isElementType } from "./ground-truth.ts";
 import { relativeTextRank } from "./TextRank.ts";
@@ -143,7 +143,7 @@ export async function d2Snap(
 
         const text: string = (textNode?.innerText ?? textNode.textContent);
 
-        textNode.textContent = relativeTextRank(text, (1 - l), undefined, true);
+        textNode.textContent = relativeTextRank(text, (1 - l), optionsWithDefaults.textRankOptions, true);
     }
 
     function snapAttributeNode(elementNode: HTMLElement, m: number) {

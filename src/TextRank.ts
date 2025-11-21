@@ -5,10 +5,13 @@
 type Vector = number[];
 type Matrix = number[][];
 
-type TextRankOptions = {
+
+export type TextRankOptions = {
     damping: number;
     maxIterations: number;
+    maxSentences: number;
 }
+
 
 function initArray(n: number, value: number = 0): number[] {
     return Array.from({ length: n }, () => value);
@@ -29,23 +32,29 @@ export function tokenizeSentences(text: string): string[] {
 
 
 export function textRank(textOrSentences: string|string[], k: number = 3, options: Partial<TextRankOptions> = {}): string {
-    const optionsWithDefaults: TextRankOptions = {
-        damping: 0.75,
-        maxIterations: 20,
-
-        ...options
-    };
-
+    if(!textOrSentences.length) return "";
 
     const sentences: string[] = !Array.isArray(textOrSentences)
         ? tokenizeSentences(textOrSentences)
         : textOrSentences;
+
+    if(sentences.length <= k) return sentences.join("\n");
+
+    const optionsWithDefaults: TextRankOptions = {
+        damping: 0.75,
+        maxIterations: 20,
+        maxSentences: Infinity,
+
+        ...options
+    };
+
     const sentenceTokens: string[][] = sentences
         .map((sentence: string) => sentence
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
             .split(/\s+/)
-            .filter(token => !!token.trim()));
+            .filter(token => !!token.trim()))
+            .slice(0, optionsWithDefaults.maxSentences);
     const n: number = sentences.length;
 
     const similarityMatrix: Matrix = initMatrix(n);

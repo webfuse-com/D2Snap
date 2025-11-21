@@ -2,7 +2,7 @@
 // Copyright (c) Thassilo M. Schiepanski
 // -------------------------------------
 
-import { DOM, D2SnapOptions, Snapshot } from "./types.ts";
+import { DOM, D2SnapOptions, Snapshot } from "./D2Snap.types.ts";
 import { resolveRoot } from "./util.ts";
 import { type d2Snap as D2SnapDOM } from "./D2Snap.dom.ts";
 import { type d2Snap as D2SnapString } from "./D2Snap.string.ts";

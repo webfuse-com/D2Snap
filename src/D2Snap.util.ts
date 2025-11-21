@@ -1,4 +1,4 @@
-import { D2SnapOptions } from "./types";
+import { D2SnapOptions } from "./D2Snap.types.ts";
 
 
 export async function validateParams(k: number, l: number, m: number) {
@@ -25,6 +25,7 @@ export function getOptionsWithDefaults<
         debug: false,
         keepUnknownElements: false,
         skipMarkdownTranslation: false,
+        textRankOptions: {},
 
         ...options
     }

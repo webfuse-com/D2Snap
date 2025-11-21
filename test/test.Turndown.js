@@ -7,7 +7,7 @@ function flattenCode(code) {
         .trim();
 }
 
-await test("Turndown markup to markdown", async () => {
+await test("Translate markup to markdown via Turndown", async () => {
     const markdown = turndown(
         flattenCode(`
             <h1>Amsterdam</h1>

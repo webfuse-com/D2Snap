@@ -1,4 +1,4 @@
-import { D2SnapOptions, Snapshot } from "./types.ts";
+import { D2SnapOptions, Snapshot } from "./D2Snap.types.ts";
 import { formatHtml } from "./util.ts";
 import { getAttributeSemantics, getContainerSemantics, isElementType } from "./ground-truth.ts";
 import { relativeTextRank } from "./TextRank.ts";
@@ -146,7 +146,7 @@ export async function d2Snap(
 
     const parserTransformer = new HTMLParserTransformer({
         onText(text) {
-            text.textContent = relativeTextRank(text.textContent, (1 - l), undefined, true);
+            text.textContent = relativeTextRank(text.textContent, (1 - l), optionsWithDefaults.textRankOptions, true);
 
             return text;
         },

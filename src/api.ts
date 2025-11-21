@@ -3,7 +3,7 @@
 // -------------------------------------
 
 
-import { DOM } from "./types.ts";
+import { DOM } from "./D2Snap.types.ts";
 import { d2Snap as _d2SnapDOM} from "./D2Snap.dom.ts";
 import { d2Snap as _d2SnapString} from "./D2Snap.string.ts";
 import { adaptiveD2Snap  as _adaptiveD2Snap} from "./AdaptiveD2Snap.ts";
