@@ -46,9 +46,9 @@ await test("Take adaptive DOM snapshot (4096) [string]", async () => {
         4096,
         "Invalid adaptive DOM snapshot size (4096; max)"
     );
-    assertLess(
-        200,
+    assertMore(
         snapshot.serializedHtml.length,
+        200,
         "Invalid adaptive DOM snapshot size (4096; min)"
     );
 });
@@ -65,9 +65,9 @@ await test("Take adaptive DOM snapshot (2048) [string]", async() => {
         2048,
         "Invalid adaptive DOM snapshot size (2048; max)"
     );
-    assertLess(
-        200,
+    assertMore(
         snapshot.serializedHtml.length,
+        200,
         "Invalid adaptive DOM snapshot size (2048; min)"
     );
 });

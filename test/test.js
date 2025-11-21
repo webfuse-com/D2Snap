@@ -28,6 +28,10 @@ global.assertLess = function(a, b, message) {
     wrapAssertion(() => ok(a < b, message), a, b, "<");
 }
 
+global.assertMore = function(a, b, message) {
+    wrapAssertion(() => ok(a > b, message), a, b, ">");
+}
+
 global.assertIn = function(a, b, message) {
     wrapAssertion(() => ok(b.includes(a), message), a, b, "in");
 }

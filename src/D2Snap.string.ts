@@ -7,6 +7,12 @@ import { NodeType, AttributeNode, ElementNode, HTMLParserTransformer } from "./H
 import * as d2SnapUtil from "./D2Snap.util.ts";
 
 
+const FILTER_TAG_NAMES = [
+    "SCRIPT",
+    "STYLE",
+    "LINK"
+];
+
 const FILTER_CONTENT_TAG_NAMES = [
     "TH", "TR", "TD", "THEAD", "TBODY", "LI"
 ];
@@ -176,7 +182,7 @@ export async function d2Snap(
 
             return null;
         }
-    });
+    }, FILTER_TAG_NAMES);
 
     let snapshot = (await parserTransformer.parse(dom))
         .html

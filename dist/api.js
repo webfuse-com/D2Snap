@@ -246,12 +246,14 @@ function tokenizeSentences(text) {
   return text.replace(/[^\w\s.?!:]+/g, "").split(/[.?!:]\s|\n|\r/g).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
 }
 function textRank(textOrSentences, k = 3, options = {}) {
+  if (!textOrSentences.length) return "";
+  const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
+  if (sentences.length <= k) return sentences.join("\n");
   const optionsWithDefaults = {
     damping: 0.75,
     maxIterations: 20,
     ...options
   };
-  const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
   const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim()));
   const n = sentences.length;
   const similarityMatrix = initMatrix(n);
@@ -600,16 +602,19 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
     return dom[0] ?? null;
   }
   transformCallbacks;
+  skipTagNames;
   index = 0;
   depth = 0;
+  ignoreDepth = 0;
   #html = "";
-  constructor(transformCallbacks = {}) {
+  constructor(transformCallbacks = {}, skipTagNames = []) {
     const idFn = (o) => o;
     this.transformCallbacks = {
       onElement: idFn,
       onText: idFn,
       ...transformCallbacks
     };
+    this.skipTagNames = skipTagNames.map((tagName) => tagName.toUpperCase());
   }
   async parse(html) {
     this.#html = html;
@@ -665,6 +670,12 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       const { tagName: rawTagName, attributes, selfClosing } = this.parseTag();
       const tagName = rawTagName.toUpperCase();
       const isVoid = _HTMLParserTransformer.singletonTagNames.includes(tagName);
+      if (this.skipTagNames.includes(tagName)) {
+        if (!isVoid && !selfClosing) {
+          this.skipIgnoredTag(tagName);
+        }
+        continue;
+      }
       const elementNode = {
         attributes,
         children: [],
@@ -690,6 +701,38 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       dom,
       html: _HTMLParserTransformer.outerHTML(dom)
     };
+  }
+  skipIgnoredTag(tagName) {
+    let depth = 1;
+    while (this.index < this.#html.length && depth > 0) {
+      const openingIndex = this.#html.indexOf("<", this.index);
+      if (openingIndex === -1) {
+        this.index = this.#html.length;
+        return;
+      }
+      this.index = openingIndex;
+      if (this.#html.startsWith("<!--", this.index)) {
+        const end = this.#html.indexOf("-->", this.index + 4);
+        this.index = end === -1 ? this.#html.length : end + 3;
+        continue;
+      }
+      const htmlHead = this.#html.slice(this.index + 1, this.index + 1 + tagName.length + 1).toUpperCase();
+      let closingIndex;
+      if (htmlHead.startsWith("/" + tagName) && (htmlHead.length === tagName.length + 1 || /[\s>]/.test(htmlHead[tagName.length + 1]))) {
+        depth--;
+        closingIndex = this.#html.indexOf(">", this.index);
+        this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+        continue;
+      }
+      if (htmlHead.startsWith(tagName) && (htmlHead.length === tagName.length || /[\s/>]/.test(htmlHead[tagName.length]))) {
+        depth++;
+        closingIndex = this.#html.indexOf(">", this.index);
+        this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+        continue;
+      }
+      closingIndex = this.#html.indexOf(">", this.index);
+      this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+    }
   }
   skipComment() {
     const end = this.#html.indexOf("-->", this.index + 4);
@@ -744,6 +787,11 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
 };
 
 // src/D2Snap.string.ts
+var FILTER_TAG_NAMES2 = [
+  "SCRIPT",
+  "STYLE",
+  "LINK"
+];
 var FILTER_CONTENT_TAG_NAMES = [
   "TH",
   "TR",
@@ -853,7 +901,7 @@ async function d2Snap2(dom, k, l, m, options = {}) {
       if (optionsWithDefaults.keepUnknownElements) return element;
       return null;
     }
-  });
+  }, FILTER_TAG_NAMES2);
   let snapshot = (await parserTransformer.parse(dom)).html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
   if (k === Infinity) {
     snapshot = dissolveParentHTMLTag(snapshot);

@@ -119,13 +119,15 @@ export class HTMLParserTransformer {
     }
 
     private readonly transformCallbacks: TransformCallbacks;
+    private readonly skipTagNames: string[];
 
     private index: number = 0;
     private depth: number = 0;
+    private ignoreDepth: number = 0;
 
     #html: string = "";
 
-    constructor(transformCallbacks: Partial<TransformCallbacks> = {}) {
+    constructor(transformCallbacks: Partial<TransformCallbacks> = {}, skipTagNames: string[] = []) {
         const idFn = <T>(o: T): T => o;
 
         this.transformCallbacks = {
@@ -133,6 +135,8 @@ export class HTMLParserTransformer {
             onText: idFn,
             ...transformCallbacks
         };
+        this.skipTagNames = skipTagNames
+            .map((tagName: string) => tagName.toUpperCase());
     }
 
     public async parse(html: string): Promise<{ dom: DOM; html: string; }> {
@@ -209,6 +213,15 @@ export class HTMLParserTransformer {
             const { tagName: rawTagName, attributes, selfClosing } = this.parseTag();
             const tagName: string = rawTagName.toUpperCase();
             const isVoid: boolean = HTMLParserTransformer.singletonTagNames.includes(tagName);
+
+            if(this.skipTagNames.includes(tagName)) {
+                if(!isVoid && !selfClosing) {
+                    this.skipIgnoredTag(tagName);
+                }
+
+                continue;
+            }
+
             const elementNode: ElementNode = {
                 attributes,
                 children: [],
@@ -240,6 +253,59 @@ export class HTMLParserTransformer {
             dom,
             html: HTMLParserTransformer.outerHTML(dom)
         };
+    }
+
+    private skipIgnoredTag(tagName: string): void {
+        let depth: number = 1;
+        while(this.index < this.#html.length && depth > 0) {
+            const openingIndex: number = this.#html.indexOf("<", this.index);
+            if(openingIndex === -1) {
+                this.index = this.#html.length;
+                return;
+            }
+
+            this.index = openingIndex;
+
+            if( this.#html.startsWith("<!--", this.index)) {
+                const end = this.#html.indexOf("-->", this.index + 4);
+                this.index = (end === -1 ? this.#html.length : end + 3);
+
+                continue;
+            }
+
+            const htmlHead: string = this.#html
+                .slice(this.index + 1, this.index + 1 + tagName.length + 1)
+                .toUpperCase();
+
+            let closingIndex: number;
+
+            if(
+                htmlHead.startsWith("/" + tagName)
+                && (htmlHead.length === tagName.length + 1 || /[\s>]/.test(htmlHead[tagName.length + 1]))
+            ) {
+                depth--;
+
+                closingIndex = this.#html.indexOf(">", this.index);
+                this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
+
+                continue;
+            }
+
+            if(
+                htmlHead.startsWith(tagName)
+                && (htmlHead.length === tagName.length || /[\s/>]/.test(htmlHead[tagName.length]))
+            ) {
+                depth++;
+
+                closingIndex = this.#html.indexOf(">", this.index);
+                this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
+
+                continue;
+            }
+
+            closingIndex = this.#html.indexOf(">", this.index);
+            this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
+        }
     }
 
     private skipComment(): void {

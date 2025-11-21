@@ -70,6 +70,8 @@
           "div",
           "footer",
           "header",
+          "html",
+          "iframe",
           "main",
           "nav",
           "section"
@@ -81,6 +83,8 @@
           div: 0.3,
           footer: 0.7,
           header: 0.75,
+          html: 0.1,
+          iframe: 0.5,
           main: 0.85,
           nav: 0.8,
           section: 0.9
@@ -243,12 +247,14 @@
     return text.replace(/[^\w\s.?!:]+/g, "").split(/[.?!:]\s|\n|\r/g).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
   }
   function textRank(textOrSentences, k = 3, options = {}) {
+    if (!textOrSentences.length) return "";
+    const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
+    if (sentences.length <= k) return sentences.join("\n");
     const optionsWithDefaults = {
       damping: 0.75,
       maxIterations: 20,
       ...options
     };
-    const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
     const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim()));
     const n = sentences.length;
     const similarityMatrix = initMatrix(n);
@@ -1440,16 +1446,19 @@
       return dom[0] ?? null;
     }
     transformCallbacks;
+    skipTagNames;
     index = 0;
     depth = 0;
+    ignoreDepth = 0;
     #html = "";
-    constructor(transformCallbacks = {}) {
+    constructor(transformCallbacks = {}, skipTagNames = []) {
       const idFn = (o) => o;
       this.transformCallbacks = {
         onElement: idFn,
         onText: idFn,
         ...transformCallbacks
       };
+      this.skipTagNames = skipTagNames.map((tagName) => tagName.toUpperCase());
     }
     async parse(html) {
       this.#html = html;
@@ -1505,6 +1514,12 @@
         const { tagName: rawTagName, attributes, selfClosing } = this.parseTag();
         const tagName = rawTagName.toUpperCase();
         const isVoid2 = _HTMLParserTransformer.singletonTagNames.includes(tagName);
+        if (this.skipTagNames.includes(tagName)) {
+          if (!isVoid2 && !selfClosing) {
+            this.skipIgnoredTag(tagName);
+          }
+          continue;
+        }
         const elementNode = {
           attributes,
           children: [],
@@ -1530,6 +1545,38 @@
         dom,
         html: _HTMLParserTransformer.outerHTML(dom)
       };
+    }
+    skipIgnoredTag(tagName) {
+      let depth = 1;
+      while (this.index < this.#html.length && depth > 0) {
+        const openingIndex = this.#html.indexOf("<", this.index);
+        if (openingIndex === -1) {
+          this.index = this.#html.length;
+          return;
+        }
+        this.index = openingIndex;
+        if (this.#html.startsWith("<!--", this.index)) {
+          const end = this.#html.indexOf("-->", this.index + 4);
+          this.index = end === -1 ? this.#html.length : end + 3;
+          continue;
+        }
+        const htmlHead = this.#html.slice(this.index + 1, this.index + 1 + tagName.length + 1).toUpperCase();
+        let closingIndex;
+        if (htmlHead.startsWith("/" + tagName) && (htmlHead.length === tagName.length + 1 || /[\s>]/.test(htmlHead[tagName.length + 1]))) {
+          depth--;
+          closingIndex = this.#html.indexOf(">", this.index);
+          this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+          continue;
+        }
+        if (htmlHead.startsWith(tagName) && (htmlHead.length === tagName.length || /[\s/>]/.test(htmlHead[tagName.length]))) {
+          depth++;
+          closingIndex = this.#html.indexOf(">", this.index);
+          this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+          continue;
+        }
+        closingIndex = this.#html.indexOf(">", this.index);
+        this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+      }
     }
     skipComment() {
       const end = this.#html.indexOf("-->", this.index + 4);
@@ -1584,6 +1631,11 @@
   };
 
   // src/D2Snap.string.ts
+  var FILTER_TAG_NAMES2 = [
+    "SCRIPT",
+    "STYLE",
+    "LINK"
+  ];
   var FILTER_CONTENT_TAG_NAMES = [
     "TH",
     "TR",
@@ -1592,7 +1644,7 @@
     "TBODY",
     "LI"
   ];
-  function estimateDomTreeHeight(html) {
+  function estimateDOMTreeHeight(html) {
     const tagRegex = /<\/?([a-zA-Z0-9\-]+)(\s[^>]*)?>/g;
     let currentDepth = 0;
     let maxDepth = 0;
@@ -1661,9 +1713,10 @@
     return match ? match[3].trim() : html;
   }
   async function d2Snap2(dom, k, l, m, options = {}) {
+    dom = dom.trim().replace(/^<!DOCTYPE +[a-z]+ *>\s*/i, "");
     validateParams(k, l, m);
     const optionsWithDefaults = getOptionsWithDefaults(options);
-    const domTreeHeight = estimateDomTreeHeight(dom);
+    const domTreeHeight = estimateDOMTreeHeight(dom);
     const mergeLevels = Math.max(Math.round(domTreeHeight * Math.min(1, k)), 1);
     const parserTransformer = new HTMLParserTransformer({
       onText(text) {
@@ -1692,7 +1745,7 @@
         if (optionsWithDefaults.keepUnknownElements) return element;
         return null;
       }
-    });
+    }, FILTER_TAG_NAMES2);
     let snapshot = (await parserTransformer.parse(dom)).html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
     if (k === Infinity) {
       snapshot = dissolveParentHTMLTag(snapshot);
