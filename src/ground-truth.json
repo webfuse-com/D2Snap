@@ -157,7 +157,8 @@
             "http-equiv": 0.1,
 
             "data-uid": 1.0,
-            "data-aie": 1.0
+            "data-aie": 1.0,
+            "wf-id": 1.0
         }
     }
 }
