@@ -34,11 +34,13 @@ export type TransformCallbacks = {
 };
 
 
-// Key assumption:
-// DOM is syntactically correct, which holds true for a browser-based DOM stringification
 export class HTMLParserTransformer {
     private static singletonTagNames = [
         "AREA", "BASE", "BR", "COL", "COMMAND", "EMBED", "HR", "IMG", "INPUT", "KEYGEN", "LINK", "MENUITEM", "META", "PARAM", "SOURCE", "TRACK", "WBR"
+    ];
+
+    private static rawTextTagNames = [
+        "SCRIPT", "STYLE", "TEXTAREA", "TITLE"
     ];
 
     public static outerHTML(dom: DOM): string {
@@ -123,7 +125,6 @@ export class HTMLParserTransformer {
 
     private index: number = 0;
     private depth: number = 0;
-    private ignoreDepth: number = 0;
 
     #html: string = "";
 
@@ -194,6 +195,12 @@ export class HTMLParserTransformer {
                 continue;
             }
 
+            if(this.#html.startsWith("<!", this.index)) {
+                this.skipDoctype();
+
+                continue;
+            }
+
             const isClosingTag: boolean = (this.#html[this.index + 1] === "/");
             if(isClosingTag) {
                 const closeTagEnd: number = this.#html.indexOf(">", this.index);
@@ -213,6 +220,7 @@ export class HTMLParserTransformer {
             const { tagName: rawTagName, attributes, selfClosing } = this.parseTag();
             const tagName: string = rawTagName.toUpperCase();
             const isVoid: boolean = HTMLParserTransformer.singletonTagNames.includes(tagName);
+            const isRaw: boolean = HTMLParserTransformer.rawTextTagNames.includes(tagName);
 
             if(this.skipTagNames.includes(tagName)) {
                 if(!isVoid && !selfClosing) {
@@ -241,9 +249,30 @@ export class HTMLParserTransformer {
             }
 
             if(!selfClosing && !isVoid) {
-                stack.push(elementNode);
+                if(isRaw) {
+                    const rawText: string = this.readRawText(tagName);
 
-                this.depth++;
+                    if(rawText.length) {
+                        const rawTxtNode: TextNode = {
+                            type: NodeType.TEXT,
+                            textContent: rawText
+                        };
+
+                        const writeTxtNode = await this.transformCallbacks.onText(rawTxtNode);
+                        if(writeTxtNode) {
+                            elementNode.children.push(writeTxtNode);
+                        }
+                    }
+
+                    const closeTagEnd: number = this.#html.indexOf(">", this.index);
+                    this.index = (closeTagEnd === -1) ? this.#html.length : closeTagEnd + 1;
+
+                    await finalizeElement(elementNode, dom);
+                } else {
+                    stack.push(elementNode);
+
+                    this.depth++;
+                }
             } else {
                 await finalizeElement(elementNode, dom);
             }
@@ -255,9 +284,46 @@ export class HTMLParserTransformer {
         };
     }
 
+    private readRawText(tagName: string): string {
+        const lower: string = this.#html.toLowerCase();
+        const closeTag: string = `</${tagName.toLowerCase()}`;
+        let i: number = this.index;
+
+        while(i < this.#html.length) {
+            const closeIndex: number = lower.indexOf(closeTag, i);
+            if(closeIndex === -1) {
+                const text: string = this.#html.slice(this.index, this.#html.length);
+                this.index = this.#html.length;
+                return text;
+            }
+
+            const afterClose: string = this.#html[closeIndex + closeTag.length];
+            if(afterClose === ">" || afterClose === "/" || /\s/.test(afterClose)) {
+                const text: string = this.#html.slice(this.index, closeIndex);
+                this.index = closeIndex + closeTag.length;
+                return text;
+            }
+
+            i = closeIndex + 1;
+        }
+
+        const text: string = this.#html.slice(this.index);
+        this.index = this.#html.length;
+        return text;
+    }
+
     private skipIgnoredTag(tagName: string): void {
         let depth: number = 1;
+        const lower: string = tagName.toLowerCase();
+
         while(this.index < this.#html.length && depth > 0) {
+            if(HTMLParserTransformer.rawTextTagNames.includes(tagName)) {
+                this.readRawText(tagName);
+                const closeTagEnd: number = this.#html.indexOf(">", this.index);
+                this.index = (closeTagEnd === -1) ? this.#html.length : closeTagEnd + 1;
+                return;
+            }
+
             const openingIndex: number = this.#html.indexOf("<", this.index);
             if(openingIndex === -1) {
                 this.index = this.#html.length;
@@ -266,44 +332,47 @@ export class HTMLParserTransformer {
 
             this.index = openingIndex;
 
-            if( this.#html.startsWith("<!--", this.index)) {
-                const end = this.#html.indexOf("-->", this.index + 4);
-                this.index = (end === -1 ? this.#html.length : end + 3);
+            if(this.#html.startsWith("<!--", this.index)) {
+                this.skipComment();
 
                 continue;
             }
 
-            const htmlHead: string = this.#html
-                .slice(this.index + 1, this.index + 1 + tagName.length + 1)
-                .toUpperCase();
+            if(this.#html.startsWith("<!", this.index)) {
+                this.skipDoctype();
 
-            let closingIndex: number;
+                continue;
+            }
+
+            const slice: string = this.#html.slice(this.index + 1, this.index + 1 + lower.length + 2).toLowerCase();
 
             if(
-                htmlHead.startsWith("/" + tagName)
-                && (htmlHead.length === tagName.length + 1 || /[\s>]/.test(htmlHead[tagName.length + 1]))
+                slice.startsWith("/" + lower)
+                && (slice.length <= lower.length + 1 || /[\s>]/.test(slice[lower.length + 1]))
             ) {
                 depth--;
 
-                closingIndex = this.#html.indexOf(">", this.index);
+                if(depth === 0) return;
+
+                const closingIndex: number = this.#html.indexOf(">", this.index);
                 this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
 
                 continue;
             }
 
             if(
-                htmlHead.startsWith(tagName)
-                && (htmlHead.length === tagName.length || /[\s/>]/.test(htmlHead[tagName.length]))
+                slice.startsWith(lower)
+                && (slice.length <= lower.length || /[\s/>]/.test(slice[lower.length]))
             ) {
                 depth++;
 
-                closingIndex = this.#html.indexOf(">", this.index);
+                const closingIndex: number = this.#html.indexOf(">", this.index);
                 this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
 
                 continue;
             }
 
-            closingIndex = this.#html.indexOf(">", this.index);
+            const closingIndex: number = this.#html.indexOf(">", this.index);
             this.index = (closingIndex === -1) ? this.#html.length : closingIndex + 1;
         }
     }
@@ -311,6 +380,11 @@ export class HTMLParserTransformer {
     private skipComment(): void {
         const end: number = this.#html!.indexOf("-->", this.index + 4);
         this.index = end === -1 ? this.#html.length : end + 3;
+    }
+
+    private skipDoctype(): void {
+        const end: number = this.#html.indexOf(">", this.index);
+        this.index = end === -1 ? this.#html.length : end + 1;
     }
 
     private parseTag(): { tagName: string; attributes: AttributeNode[]; selfClosing: boolean } {
@@ -321,21 +395,21 @@ export class HTMLParserTransformer {
         }
 
         const attributes: AttributeNode[] = [];
-        while(i < this.#html.length && this.#html[i] !== ">" && this.#html[i] !== "/") {
-            while(/\s/.test(this.#html[i])) i++;
+        while(i < this.#html.length && this.#html[i] !== ">" && !(this.#html[i] === "/" && this.#html[i + 1] === ">")) {
+            while(i < this.#html.length && /\s/.test(this.#html[i])) i++;
 
-            if(this.#html[i] === ">" || this.#html[i] === "/") break;
+            if(this.#html[i] === ">" || (this.#html[i] === "/" && this.#html[i + 1] === ">")) break;
 
             let attributeName: string = "";
             while(i < this.#html.length && /[^\s=/>]/.test(this.#html[i])) {
                 attributeName += this.#html[i++];
             }
-            while(/\s/.test(this.#html[i])) i++;
+            while(i < this.#html.length && /\s/.test(this.#html[i])) i++;
 
             let value: string = "";
             if(this.#html[i] === "=") {
                 i++;
-                while(/\s/.test(this.#html[i])) i++;
+                while(i < this.#html.length && /\s/.test(this.#html[i])) i++;
 
                 const quote: string = (this.#html[i] === "\"" || this.#html[i] === "'")
                     ? this.#html[i++]
@@ -352,13 +426,16 @@ export class HTMLParserTransformer {
                 i += +!!quote;
             }
 
-            attributes.push({
-                type: NodeType.ATTRIBUTE,
-                name: attributeName,
-                value
-            });
+            if(attributeName) {
+                attributes.push({
+                    type: NodeType.ATTRIBUTE,
+                    name: attributeName,
+                    value
+                });
+            }
         }
 
+        const selfClosing: boolean = (this.#html[i] === "/" && this.#html[i + 1] === ">");
         const endTagIndex: number = this.#html.indexOf(">", i);
         this.index = (endTagIndex === -1)
             ? this.#html.length
@@ -366,7 +443,7 @@ export class HTMLParserTransformer {
 
         return {
             attributes,
-            selfClosing: (this.#html[i] === "/"),
+            selfClosing,
             tagName: tagName.toUpperCase()
         };
     }

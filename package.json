@@ -27,7 +27,8 @@
     "eval:bu": "npm run eval-util -- ./eval/subjects/bu.js",
     "eval:bu:single": "npm run eval:bu -- --split 1 --verbose",
     "eval": "npm run eval:gui && npm run eval:dom && npm run eval:bu && npm run eval:D2Snap",
-    "summarize": "node --no-warnings ./eval/summarize.js"
+    "summarize": "node --no-warnings ./eval/summarize.js",
+    "demo": "node ./demo/demo.js"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.55.0",

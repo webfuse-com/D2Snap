@@ -13,14 +13,20 @@ D2Snap.d2Snap(
   dom: DOM,
   k: number, l: number, m: number,
   options?: Options
-): Promise<string>
+): Promise<{
+  serializedHtml: string;
+  meta: {};
+}>
 
 D2Snap.adaptiveD2Snap(
   dom: DOM,
   maxTokens: number = 4096,
   maxIterations: number = 5,
   options?: Options
-): Promise<string>
+): Promise<{
+  serializedHtml: string;
+  meta: {};
+}>
 ```
 
 ``` ts

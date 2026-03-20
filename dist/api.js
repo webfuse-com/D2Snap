@@ -217,7 +217,8 @@ var ground_truth_default = {
       content: 0.1,
       "http-equiv": 0.1,
       "data-uid": 1,
-      "data-aie": 1
+      "data-aie": 1,
+      "wf-id": 1
     }
   }
 };
@@ -555,6 +556,12 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
     "TRACK",
     "WBR"
   ];
+  static rawTextTagNames = [
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "TITLE"
+  ];
   static outerHTML(dom) {
     const buffer = [];
     const stack = [];
@@ -607,7 +614,6 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
   skipTagNames;
   index = 0;
   depth = 0;
-  ignoreDepth = 0;
   #html = "";
   constructor(transformCallbacks = {}, skipTagNames = []) {
     const idFn = (o) => o;
@@ -658,6 +664,10 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
         this.skipComment();
         continue;
       }
+      if (this.#html.startsWith("<!", this.index)) {
+        this.skipDoctype();
+        continue;
+      }
       const isClosingTag = this.#html[this.index + 1] === "/";
       if (isClosingTag) {
         const closeTagEnd = this.#html.indexOf(">", this.index);
@@ -672,6 +682,7 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       const { tagName: rawTagName, attributes, selfClosing } = this.parseTag();
       const tagName = rawTagName.toUpperCase();
       const isVoid = _HTMLParserTransformer.singletonTagNames.includes(tagName);
+      const isRaw = _HTMLParserTransformer.rawTextTagNames.includes(tagName);
       if (this.skipTagNames.includes(tagName)) {
         if (!isVoid && !selfClosing) {
           this.skipIgnoredTag(tagName);
@@ -693,8 +704,25 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
         dom.push(elementNode);
       }
       if (!selfClosing && !isVoid) {
-        stack.push(elementNode);
-        this.depth++;
+        if (isRaw) {
+          const rawText = this.readRawText(tagName);
+          if (rawText.length) {
+            const rawTxtNode = {
+              type: 2 /* TEXT */,
+              textContent: rawText
+            };
+            const writeTxtNode = await this.transformCallbacks.onText(rawTxtNode);
+            if (writeTxtNode) {
+              elementNode.children.push(writeTxtNode);
+            }
+          }
+          const closeTagEnd = this.#html.indexOf(">", this.index);
+          this.index = closeTagEnd === -1 ? this.#html.length : closeTagEnd + 1;
+          await finalizeElement(elementNode, dom);
+        } else {
+          stack.push(elementNode);
+          this.depth++;
+        }
       } else {
         await finalizeElement(elementNode, dom);
       }
@@ -704,9 +732,39 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       html: _HTMLParserTransformer.outerHTML(dom)
     };
   }
+  readRawText(tagName) {
+    const lower = this.#html.toLowerCase();
+    const closeTag = `</${tagName.toLowerCase()}`;
+    let i = this.index;
+    while (i < this.#html.length) {
+      const closeIndex = lower.indexOf(closeTag, i);
+      if (closeIndex === -1) {
+        const text2 = this.#html.slice(this.index, this.#html.length);
+        this.index = this.#html.length;
+        return text2;
+      }
+      const afterClose = this.#html[closeIndex + closeTag.length];
+      if (afterClose === ">" || afterClose === "/" || /\s/.test(afterClose)) {
+        const text2 = this.#html.slice(this.index, closeIndex);
+        this.index = closeIndex + closeTag.length;
+        return text2;
+      }
+      i = closeIndex + 1;
+    }
+    const text = this.#html.slice(this.index);
+    this.index = this.#html.length;
+    return text;
+  }
   skipIgnoredTag(tagName) {
     let depth = 1;
+    const lower = tagName.toLowerCase();
     while (this.index < this.#html.length && depth > 0) {
+      if (_HTMLParserTransformer.rawTextTagNames.includes(tagName)) {
+        this.readRawText(tagName);
+        const closeTagEnd = this.#html.indexOf(">", this.index);
+        this.index = closeTagEnd === -1 ? this.#html.length : closeTagEnd + 1;
+        return;
+      }
       const openingIndex = this.#html.indexOf("<", this.index);
       if (openingIndex === -1) {
         this.index = this.#html.length;
@@ -714,31 +772,38 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       }
       this.index = openingIndex;
       if (this.#html.startsWith("<!--", this.index)) {
-        const end = this.#html.indexOf("-->", this.index + 4);
-        this.index = end === -1 ? this.#html.length : end + 3;
+        this.skipComment();
         continue;
       }
-      const htmlHead = this.#html.slice(this.index + 1, this.index + 1 + tagName.length + 1).toUpperCase();
-      let closingIndex;
-      if (htmlHead.startsWith("/" + tagName) && (htmlHead.length === tagName.length + 1 || /[\s>]/.test(htmlHead[tagName.length + 1]))) {
+      if (this.#html.startsWith("<!", this.index)) {
+        this.skipDoctype();
+        continue;
+      }
+      const slice = this.#html.slice(this.index + 1, this.index + 1 + lower.length + 2).toLowerCase();
+      if (slice.startsWith("/" + lower) && (slice.length <= lower.length + 1 || /[\s>]/.test(slice[lower.length + 1]))) {
         depth--;
-        closingIndex = this.#html.indexOf(">", this.index);
-        this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+        if (depth === 0) return;
+        const closingIndex2 = this.#html.indexOf(">", this.index);
+        this.index = closingIndex2 === -1 ? this.#html.length : closingIndex2 + 1;
         continue;
       }
-      if (htmlHead.startsWith(tagName) && (htmlHead.length === tagName.length || /[\s/>]/.test(htmlHead[tagName.length]))) {
+      if (slice.startsWith(lower) && (slice.length <= lower.length || /[\s/>]/.test(slice[lower.length]))) {
         depth++;
-        closingIndex = this.#html.indexOf(">", this.index);
-        this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
+        const closingIndex2 = this.#html.indexOf(">", this.index);
+        this.index = closingIndex2 === -1 ? this.#html.length : closingIndex2 + 1;
         continue;
       }
-      closingIndex = this.#html.indexOf(">", this.index);
+      const closingIndex = this.#html.indexOf(">", this.index);
       this.index = closingIndex === -1 ? this.#html.length : closingIndex + 1;
     }
   }
   skipComment() {
     const end = this.#html.indexOf("-->", this.index + 4);
     this.index = end === -1 ? this.#html.length : end + 3;
+  }
+  skipDoctype() {
+    const end = this.#html.indexOf(">", this.index);
+    this.index = end === -1 ? this.#html.length : end + 1;
   }
   parseTag() {
     let i = this.index + 1;
@@ -747,35 +812,38 @@ var HTMLParserTransformer = class _HTMLParserTransformer {
       tagName += this.#html[i++];
     }
     const attributes = [];
-    while (i < this.#html.length && this.#html[i] !== ">" && this.#html[i] !== "/") {
-      while (/\s/.test(this.#html[i])) i++;
-      if (this.#html[i] === ">" || this.#html[i] === "/") break;
+    while (i < this.#html.length && this.#html[i] !== ">" && !(this.#html[i] === "/" && this.#html[i + 1] === ">")) {
+      while (i < this.#html.length && /\s/.test(this.#html[i])) i++;
+      if (this.#html[i] === ">" || this.#html[i] === "/" && this.#html[i + 1] === ">") break;
       let attributeName = "";
       while (i < this.#html.length && /[^\s=/>]/.test(this.#html[i])) {
         attributeName += this.#html[i++];
       }
-      while (/\s/.test(this.#html[i])) i++;
+      while (i < this.#html.length && /\s/.test(this.#html[i])) i++;
       let value = "";
       if (this.#html[i] === "=") {
         i++;
-        while (/\s/.test(this.#html[i])) i++;
+        while (i < this.#html.length && /\s/.test(this.#html[i])) i++;
         const quote = this.#html[i] === '"' || this.#html[i] === "'" ? this.#html[i++] : "";
         const startIndex = i;
         while (i < this.#html.length && (quote ? this.#html[i] !== quote : /[^\s>]/.test(this.#html[i]))) i++;
         value = this.#html.slice(startIndex, i);
         i += +!!quote;
       }
-      attributes.push({
-        type: 0 /* ATTRIBUTE */,
-        name: attributeName,
-        value
-      });
+      if (attributeName) {
+        attributes.push({
+          type: 0 /* ATTRIBUTE */,
+          name: attributeName,
+          value
+        });
+      }
     }
+    const selfClosing = this.#html[i] === "/" && this.#html[i + 1] === ">";
     const endTagIndex = this.#html.indexOf(">", i);
     this.index = endTagIndex === -1 ? this.#html.length : endTagIndex + 1;
     return {
       attributes,
-      selfClosing: this.#html[i] === "/",
+      selfClosing,
       tagName: tagName.toUpperCase()
     };
   }

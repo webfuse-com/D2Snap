@@ -12,9 +12,7 @@ async function benchmark(cb, iterations) {
     const t0 = performance.now();
 
     for(let i = 0; i < iterations; i++) {
-        /* const result =  */await cb();
-
-        // console.debug(i, result.meta.sizeRatio);
+        await cb();
     }
 
     const totalTime = performance.now() - t0;
