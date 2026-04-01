@@ -1,7 +1,7 @@
 import { NodeFilter, Node, TextNode, HTMLElementWithDepth, DOM, D2SnapOptions, D2SnapResult } from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
-import { isElementType, getContainerRating, getAttributeRating } from "./ground-truth.js";
+import { GroundTruth, createDefaultGroundTruth } from "./GroundTruth.js";
 import { relativeTextRank } from "./TextRank.js";
 import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
 
@@ -35,6 +35,7 @@ export async function d2Snap(
 
     const optionsWithDefaults: D2SnapOptions = {
         debug: false,
+        groundTruth: undefined,
         textRankOptions: {},
         skipMarkdown: false,
         uniqueIDs: false,
@@ -42,13 +43,17 @@ export async function d2Snap(
         ...options
     }
 
-    function snapElementNode(elementNode: HTMLElement) {
-        if(isElementType("container", elementNode.tagName)) return;
+    const groundTruth: GroundTruth = optionsWithDefaults.groundTruth
+        ? new GroundTruth(optionsWithDefaults.groundTruth)  // Merge with default?
+        : await createDefaultGroundTruth();
 
-        if(isElementType("textFormatting", elementNode.tagName)) {
+    function snapElementNode(elementNode: HTMLElement) {
+        if(groundTruth.isElementType("container", elementNode.tagName)) return;
+
+        if(groundTruth.isElementType("textFormatting", elementNode.tagName)) {
             return snapElementContentNode(elementNode);
         }
-        if(isElementType("actionable", elementNode.tagName)) {
+        if(groundTruth.isElementType("actionable", elementNode.tagName)) {
             snapElementInteractiveNode(elementNode);
 
             return;
@@ -61,8 +66,8 @@ export async function d2Snap(
 
     function snapElementContainerNode(elementNode: HTMLElementWithDepth, k: number, domTreeHeight: number) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("container", elementNode.tagName)) return;
-        if(!elementNode.parentElement || !isElementType("container", elementNode.parentElement.tagName)) return;
+        if(!groundTruth.isElementType("container", elementNode.tagName)) return;
+        if(!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
 
         // merge
         const mergeLevels: number = Math.max(
@@ -77,8 +82,8 @@ export async function d2Snap(
         ];
 
         const isTopdownMerge = (
-            getContainerRating(elements[0].tagName)
-            < getContainerRating(elements[1].tagName)
+            groundTruth.getContainerRating(elements[0].tagName)
+            < groundTruth.getContainerRating(elements[1].tagName)
         );
         isTopdownMerge && elements.reverse();
 
@@ -136,7 +141,7 @@ export async function d2Snap(
 
     function snapElementContentNode(elementNode: HTMLElement) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("textFormatting", elementNode.tagName)) return;
+        if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
         if(optionsWithDefaults.skipMarkdown) return;
 
         // markdown
@@ -151,7 +156,7 @@ export async function d2Snap(
 
     function snapElementInteractiveNode(elementNode: HTMLElement) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("actionable", elementNode.tagName)) return;
+        if(!groundTruth.isElementType("actionable", elementNode.tagName)) return;
 
         // pass
     }
@@ -168,7 +173,7 @@ export async function d2Snap(
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 
         for(const attr of Array.from(elementNode.attributes)) {
-            if(getAttributeRating(attr.name) >= m) continue;
+            if(groundTruth.getAttributeRating(attr.name) >= m) continue;
 
             elementNode.removeAttribute(attr.name);
         }
@@ -188,8 +193,8 @@ export async function d2Snap(
             NodeFilter.SHOW_ELEMENT,
             elementNode => {
                 if(
-                    !isElementType("container", elementNode.tagName)
-                    && !isElementType("actionable", elementNode.tagName)                    
+                    !groundTruth.isElementType("container", elementNode.tagName)
+                    && !groundTruth.isElementType("actionable", elementNode.tagName)                    
                 ) return;
 
                 elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
@@ -256,7 +261,7 @@ export async function d2Snap(
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         (node: HTMLElementWithDepth) => {
-            if(!isElementType("container", node.tagName)) return;
+            if(!groundTruth.isElementType("container", node.tagName)) return;
 
             return snapElementContainerNode(node, rE, domTreeHeight);
         }
@@ -271,25 +276,25 @@ export async function d2Snap(
     );
 
     const snapshot = virtualDom.innerHTML;
-    let serializedHTML = optionsWithDefaults.debug
+    let html = optionsWithDefaults.debug
         ? formatHTML(snapshot)
         : snapshot;
-    serializedHTML = serializedHTML
+    html = html
         .replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n")
         .replace(/\n *(\n|$)/g, "");
-    serializedHTML = (
+    html = (
         virtualDom.children.length === 1
         && (rE === Infinity)
         && virtualDom.children.length
     )
-        ? serializedHTML
+        ? html
             .trim()
             .replace(/^<[^>]+>\s*/, "")
             .replace(/\s*<\/[^<]+>$/, "")
-        : serializedHTML;
+        : html;
 
     return {
-        serializedHTML,
+        html,
         meta: {
             originalSize,
             snapshotSize: snapshot.length,

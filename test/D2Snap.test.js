@@ -35,22 +35,22 @@ await test("Take adaptive DOM snapshot (4096)", async () => {
         uniqueIDs: true
     });
 
-    writeActual("agents.4096", snapshot.serializedHTML);
+    writeActual("agents.4096", snapshot.html);
 
     assertLess(
-        snapshot.serializedHTML.length / 4,
+        snapshot.html.length / 4,
         4096,
         "Invalid adaptive DOM snapshot size (4096; max)"
     );
     assertMore(
-        snapshot.serializedHTML.length,
+        snapshot.html.length,
         200,
         "Invalid adaptive DOM snapshot size (4096; min)"
     );
 
     assertIn(
         flattenDOMSnapshot("<a href=\"/about\" data-uid=\"9\">About</a>"),
-        flattenDOMSnapshot(snapshot.serializedHTML),
+        flattenDOMSnapshot(snapshot.html),
         "Interactive element not preserved"
     );
 });
@@ -60,15 +60,15 @@ await test("Take adaptive DOM snapshot (2048)", async() => {
         debug: true
     });
 
-    writeActual("agents.2048", snapshot.serializedHTML);
+    writeActual("agents.2048", snapshot.html);
 
     assertLess(
-        snapshot.serializedHTML.length / 4,
+        snapshot.html.length / 4,
         2048,
         "Invalid adaptive DOM snapshot size (2048; max)"
     );
     assertMore(
-        snapshot.serializedHTML.length,
+        snapshot.html.length,
         200,
         "Invalid adaptive DOM snapshot size (2048; min)"
     );
@@ -79,7 +79,7 @@ await test("Take DOM snapshot (L)", async () => {
         debug: true
     });
 
-    writeActual("pizza.l", snapshot.serializedHTML);
+    writeActual("pizza.l", snapshot.html);
     const expected = readExpected("pizza.l");
 
     assertAlmostEqual(
@@ -97,7 +97,7 @@ await test("Take DOM snapshot (L)", async () => {
     );
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.serializedHTML),
+        flattenDOMSnapshot(snapshot.html),
         flattenDOMSnapshot(expected),
         "Invalid DOM snapshot"
     );
@@ -108,7 +108,7 @@ await test("Take DOM snapshot (M)", async() => {
         debug: true
     });
 
-    writeActual("pizza.m", snapshot.serializedHTML);
+    writeActual("pizza.m", snapshot.html);
     const expected = readExpected("pizza.m");
 
     assertAlmostEqual(
@@ -119,7 +119,7 @@ await test("Take DOM snapshot (M)", async() => {
     );
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.serializedHTML),
+        flattenDOMSnapshot(snapshot.html),
         flattenDOMSnapshot(expected),
         "Invalid DOM snapshot"
     );
@@ -130,7 +130,7 @@ await test("Take DOM snapshot (S)", async () => {
         debug: true
     });
 
-    writeActual("pizza.s", snapshot.serializedHTML);
+    writeActual("pizza.s", snapshot.html);
     const expected = readExpected("pizza.s");
 
     assertAlmostEqual(
@@ -141,7 +141,7 @@ await test("Take DOM snapshot (S)", async () => {
     );
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.serializedHTML),
+        flattenDOMSnapshot(snapshot.html),
         flattenDOMSnapshot(expected),
         "Invalid DOM snapshot"
     );
@@ -152,7 +152,7 @@ await test("Take DOM snapshot (linearized)", async () => {
         debug: true
     });
 
-    writeActual("pizza.lin", snapshot.serializedHTML);
+    writeActual("pizza.lin", snapshot.html);
     const expected = readExpected("pizza.lin");
 
     assertAlmostEqual(
@@ -163,7 +163,78 @@ await test("Take DOM snapshot (linearized)", async () => {
     );
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.serializedHTML),
+        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(expected),
+        "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.groundTruth default)", async () => {
+    const snapshot = await d2Snap(await readFile("options.gt"), 0.5, 0.5, 0.0, {
+        debug: true
+    });
+
+    writeActual("options.gt.0", snapshot.html);
+    const expected = readExpected("options.gt.0");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(expected),
+        "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.groundTruth custom)", async () => {
+    const snapshot = await d2Snap(await readFile("options.gt"), 0.5, 0.5, 0.0, {
+        debug: true,
+        groundTruth: {
+            "typeElement": {
+                "container": {
+                    "tagNames": [
+                        "div"
+                    ],
+                    "ratings": {
+                        "div": 0.5
+                    },
+                    "fallbackRating": 1.0
+                },
+                "textFormatting": {
+                    "tagNames": [
+                        "h1",
+                        "h2"
+                    ]
+                }
+            },
+            "typeAttribute": {
+                "ratings": {
+                    "id": 0.1
+                },
+                "fallbackRating": 1.0
+            }
+        }
+    });
+
+    writeActual("options.gt.1", snapshot.html);
+    const expected = readExpected("options.gt.1");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(expected),
+        "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.skipMarkdown = true)", async () => {
+    const snapshot = await d2Snap(await readFile("options.sm"), Infinity, 1.0, 0, {
+        debug: true,
+        skipMarkdown: true
+    });
+
+    writeActual("options.sm.true", snapshot.html);
+    const expected = readExpected("options.sm.true");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshot.html),
         flattenDOMSnapshot(expected),
         "Invalid DOM snapshot"
     );

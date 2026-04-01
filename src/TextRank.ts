@@ -2,13 +2,13 @@
 // Copyright (c) Rada Mihalcea and Paul Tarau
 // ------------------------------------------
 
+
+import { TextRankOptions } from "./types.js";
+
+
 type Vector = number[];
 type Matrix = number[][];
 
-type TextRankOptions = {
-    damping: number;
-    maxIterations: number;
-}
 
 function initArray(n: number, value: number = 0): number[] {
     return Array.from({ length: n }, () => value);
@@ -29,23 +29,29 @@ export function tokenizeSentences(text: string): string[] {
 
 
 export function textRank(textOrSentences: string|string[], k: number = 3, options: Partial<TextRankOptions> = {}): string {
-    const optionsWithDefaults: TextRankOptions = {
-        damping: 0.75,
-        maxIterations: 20,
-
-        ...options
-    };
-
+    if(!textOrSentences.length) return "";
 
     const sentences: string[] = !Array.isArray(textOrSentences)
         ? tokenizeSentences(textOrSentences)
         : textOrSentences;
+
+    if(sentences.length <= k) return sentences.join("\n");
+
+    const optionsWithDefaults: TextRankOptions = {
+        damping: 0.75,
+        maxIterations: 20,
+        maxSentences: Infinity,
+
+        ...options
+    };
+
     const sentenceTokens: string[][] = sentences
         .map((sentence: string) => sentence
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
             .split(/\s+/)
-            .filter(token => !!token.trim()));
+            .filter(token => !!token.trim()))
+            .slice(0, optionsWithDefaults.maxSentences);    // or split into chunks and apply for each chunk
     const n: number = sentences.length;
 
     const similarityMatrix: Matrix = initMatrix(n);
@@ -102,7 +108,7 @@ export function textRank(textOrSentences: string|string[], k: number = 3, option
         .slice(0, Math.min(k, sentences.length))
         .sort((a, b) => a.index - b.index)
         .map(obj => obj.sentence)
-        .join(" ");
+        .join("\n");
 }
 
 export function relativeTextRank(

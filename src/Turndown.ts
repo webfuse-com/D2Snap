@@ -3,7 +3,7 @@
 // --------------------------
 
 import TurndownService from "turndown";
-import * as turndownPluginGfm from "turndown-plugin-gfm"
+import { gfm } from "turndown-plugin-gfm"
 
 
 const KEEP_TAG_NAMES = [ "a" ];
@@ -13,11 +13,13 @@ const SERVICE = new TurndownService({
     bulletListMarker: "-",
     codeBlockStyle: "fenced",
 });
+
 SERVICE.addRule("keep", {
     filter: KEEP_TAG_NAMES,
-    replacement: (_, node) => node.outerHTML
+    replacement: (_, node: Node) => ("outerHTML" in node) ? node.outerHTML : ""
 });
-SERVICE.use(turndownPluginGfm.gfm)
+
+SERVICE.use(gfm);
 
 
 export const KEEP_LINE_BREAK_MARK = "@@@";
@@ -27,5 +29,5 @@ export function turndown(markup: string): string {
     return SERVICE
         .turndown(markup)
         .trim()
-        .replace(/\n|$/g, KEEP_LINE_BREAK_MARK);
+        .replace(/\n/g, KEEP_LINE_BREAK_MARK);
 }
