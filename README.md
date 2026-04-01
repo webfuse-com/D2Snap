@@ -1,6 +1,6 @@
 <h1 align="center">D2Snap</h1>
 
-![Example of downsampling on an image (top) and a DOM (bottom) instance](./.github/downsampling.png)
+![Example of downsampling on an image (top) and a DOM (bottom)](./.github/downsampling.png)
 
 **D2Snap** is a first-of-its-kind DOM downsampling algorithm, designed for use with LLM-based web agents.
 
@@ -11,36 +11,45 @@
 ``` ts
 D2Snap.d2Snap(
   dom: DOM,
-  k: number, l: number, m: number,
+  r_e: number, r_a: number, r_t: number,
   options?: Options
-): Promise<string>
+): Promise<{
+  html: string;
+  meta: {};
+}>
 
 D2Snap.adaptiveD2Snap(
   dom: DOM,
   maxTokens: number = 4096,
   maxIterations: number = 5,
   options?: Options
-): Promise<string>
+): Promise<{
+  html: string;
+  meta: {};
+}>
 ```
 
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  assignUniqueIDs?: boolean; // false
-  debug?: boolean;           // true
+  debug?: boolean;                // false
+  groundTruth: object;            // see variables/ground-truth.json
+  keepUnknownElements?: boolean;  // false
+  skipMarkdown?: boolean;         // false
+  uniqueIDs?: boolean;            // false
 };
 ```
 
 #### Browser
 
 ``` html
-<script src="https://cdn.jsdelivr.net/gh/surfly/D2Snap@main/dist/D2Snap.browser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
 ```
 
 #### Module
 
 ``` console
-npm install surfly/D2Snap
+npm install webfuse-com/D2Snap
 ```
 
 > Install [jsdom](https://github.com/jsdom/jsdom) to use the library with Node.js:
@@ -49,7 +58,55 @@ npm install surfly/D2Snap
 > ```
 
 ``` js
-import D2Snap from "@surfly/d2snap";
+import * as D2Snap from "@webfuse-com/d2snap";
+```
+
+##
+
+### Example
+
+``` html
+<section tabindex="3" class="container" required="true">
+  # Our Pizza
+  <div class="shadow-lg">
+    ## Margherita
+    A simple classic mozzarela tomatoes and basil
+    <button type="button">Add</button>
+    ## Capricciosa
+    A rich taste A true favourite
+    <button type="button">Add</button>
+  </div>
+</section>
+```
+
+<p align="center">↓ D2Snap ↓</p>
+
+``` html
+<section class="container" required="true">
+  # Our Pizza
+  <div class="shadow-lg">
+    ## Margherita
+    A simple classic
+    <button>Add</button>
+    ## Capricciosa
+    A rich taste
+    <button>Add</button>
+  </div>
+</section>
+```
+
+<p align="center">↓ D2Snap ↓</p>
+
+``` html
+<section>
+  # Our Pizza
+  ## Margherita
+  A simple classic
+  <button>Add</button>
+  ## Capricciosa
+  A rich taste
+  <button>Add</button>
+</section>
 ```
 
 ##

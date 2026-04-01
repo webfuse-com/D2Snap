@@ -4,10 +4,13 @@
 
 node_modules/
 
-test/*.actual.html
+test/files/*.actual.html
+test/files/*.actual.serial.html
 
 snapshots/candidates
 
 eval/summary.json
 eval/results/
 eval/logs/
+
+tmp/
