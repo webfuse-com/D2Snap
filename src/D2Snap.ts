@@ -1,61 +1,54 @@
-// -------------------------------------
-// Copyright (c) Thassilo M. Schiepanski
-// -------------------------------------
+import { NodeFilter, Node, TextNode, HTMLElementWithDepth, DOM, D2SnapOptions, D2SnapResult } from "./types.js";
+import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
+import { formatHTML } from "./util.html.js";
+import { isElementType, getContainerRating, getAttributeRating } from "./ground-truth.js";
+import { relativeTextRank } from "./TextRank.js";
+import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
+
+import CONFIG from "../variables/config.json" with { type: "json" };
 
 
-import { TextNode, HTMLElementDepth, DOM, D2SnapOptions, Snapshot, NodeFilter, Node } from "./D2Snap.types.ts";
-import { formatHtml, findDownsamplingRoot, traverseDom, resolveDocument } from "./util.ts";
-import { relativeTextRank } from "./TextRank.ts";
-import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.ts";
-
-import CONFIG from "./config.json" with { type: "json" };
-import RATING from "./rating.json" with { type: "json" };
-
-
-const FILTER_TAG_NAMES = [
+const PRE_FILTER_TAG_NAMES = [
     "SCRIPT",
     "STYLE",
     "LINK"
 ];
 
 
-function validateParam(param: number, allowInfinity: boolean = false) {
-    if(allowInfinity && param === Infinity) return;
+async function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
+    if(allowInfinity && value === Infinity) return;
 
-    if(param < 0 || param > 1)
-            throw new RangeError(`Invalid parameter ${param}, expects value in [0, 1]`);
-}
-
-function isElementType(type, elementNode: HTMLElement) {
-    return RATING.typeElement[type]
-        .tagNames
-        .includes(elementNode.tagName.toLowerCase());
+    if(value < 0 || value > 1) {
+        throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
+    }
 }
 
 
 export async function d2Snap(
     dom: DOM,
-    k: number = 0.4, l: number = 0.5, m: number = 0.6,
+    rE: number, rA: number, rT: number,
     options: D2SnapOptions = {}
-): Promise<Snapshot> {
-    validateParam(k, true);
-    validateParam(l);
-    validateParam(m);
+): Promise<D2SnapResult> {
+    validateParameter("rE", rE, true);
+    validateParameter("rA", rA);
+    validateParameter("rT", rT);
 
-    const optionsWithDefaults = {
+    const optionsWithDefaults: D2SnapOptions = {
         debug: false,
-        assignUniqueIDs: false,
+        textRankOptions: {},
+        skipMarkdown: false,
+        uniqueIDs: false,
 
         ...options
     }
 
     function snapElementNode(elementNode: HTMLElement) {
-        if(isElementType("container", elementNode)) return;
+        if(isElementType("container", elementNode.tagName)) return;
 
-        if(isElementType("content", elementNode)) {
+        if(isElementType("textFormatting", elementNode.tagName)) {
             return snapElementContentNode(elementNode);
         }
-        if(isElementType("interactive", elementNode)) {
+        if(isElementType("actionable", elementNode.tagName)) {
             snapElementInteractiveNode(elementNode);
 
             return;
@@ -66,9 +59,10 @@ export async function d2Snap(
             ?.removeChild(elementNode);
     }
 
-    function snapElementContainerNode(elementNode: HTMLElementDepth, k: number, domTreeHeight: number) {
+    function snapElementContainerNode(elementNode: HTMLElementWithDepth, k: number, domTreeHeight: number) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("container", elementNode)) return;
+        if(!isElementType("container", elementNode.tagName)) return;
+        if(!elementNode.parentElement || !isElementType("container", elementNode.parentElement.tagName)) return;
 
         // merge
         const mergeLevels: number = Math.max(
@@ -77,37 +71,35 @@ export async function d2Snap(
         );
         if((elementNode.depth - 1) % mergeLevels === 0) return;
 
-        const getContainerSemantics = tagName => RATING.typeElement
-            .container
-            .semantics[tagName.toLowerCase()];
-
         const elements = [
-            elementNode.parentElement as HTMLElementDepth,
+            elementNode.parentElement as HTMLElementWithDepth,
             elementNode
         ];
 
-        const mergeUpwards = (
-                getContainerSemantics(elements[0].tagName)
-            >= getContainerSemantics(elements[1].tagName)
+        const isTopdownMerge = (
+            getContainerRating(elements[0].tagName)
+            < getContainerRating(elements[1].tagName)
         );
-        !mergeUpwards && elements.reverse();
+        isTopdownMerge && elements.reverse();
 
         const targetEl = elements[0];
         const sourceEl = elements[1];
 
-        const mergedAttributes = Array.from(targetEl.attributes);
-        for(const attr of sourceEl.attributes) {
-            if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
-            mergedAttributes.push(attr);
-        }
-        for(const attr of targetEl.attributes) {
-            targetEl.removeAttribute(attr.name);
-        }
-        for(const attr of mergedAttributes) {
-            targetEl.setAttribute(attr.name, attr.value);
+        if(isTopdownMerge) {
+            const mergedAttributes = Array.from(targetEl.attributes);
+            for(const attr of sourceEl.attributes) {
+                if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
+                mergedAttributes.push(attr);
+            }
+            for(const attr of targetEl.attributes) {
+                targetEl.removeAttribute(attr.name);
+            }
+            for(const attr of mergedAttributes) {
+                targetEl.setAttribute(attr.name, attr.value);
+            }
         }
 
-        if(mergeUpwards) {
+        if(!isTopdownMerge) {
             while(sourceEl.childNodes.length) {
                 targetEl
                     .insertBefore(sourceEl.childNodes[0], sourceEl);
@@ -144,11 +136,12 @@ export async function d2Snap(
 
     function snapElementContentNode(elementNode: HTMLElement) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("content", elementNode)) return;
+        if(!isElementType("textFormatting", elementNode.tagName)) return;
+        if(optionsWithDefaults.skipMarkdown) return;
 
         // markdown
         const markdown = turndown(elementNode.outerHTML);
-        const markdownNodesFragment = resolveDocument(dom)
+        const markdownNodesFragment = resolveDocument(dom)!
             .createRange()
             .createContextualFragment(markdown);
 
@@ -158,7 +151,7 @@ export async function d2Snap(
 
     function snapElementInteractiveNode(elementNode: HTMLElement) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-        if(!isElementType("interactive", elementNode)) return;
+        if(!isElementType("actionable", elementNode.tagName)) return;
 
         // pass
     }
@@ -168,59 +161,56 @@ export async function d2Snap(
 
         const text: string = (textNode?.innerText ?? textNode.textContent);
 
-        textNode.textContent = relativeTextRank(text, (1 - l), undefined, true);
+        textNode.textContent = relativeTextRank(text, (1 - l), optionsWithDefaults.textRankOptions, true);
     }
 
     function snapAttributeNode(elementNode: HTMLElement, m: number) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 
         for(const attr of Array.from(elementNode.attributes)) {
-            if(RATING.typeAttribute.semantics[attr.name] >= m) continue;
+            if(getAttributeRating(attr.name) >= m) continue;
 
             elementNode.removeAttribute(attr.name);
         }
     }
 
-    const originalSize = (
-        (dom as HTMLElement)?.outerHTML
-        ?? (dom as Document)?.documentElement.outerHTML
-    ).length;
-    const partialDom: HTMLElement = findDownsamplingRoot(dom);
+    const document = resolveDocument(dom);
+    if(!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
+
+    const rootElement: Element = resolveRoot(dom)
+    const originalSize = rootElement.outerHTML.length;
 
     let n = 0;
-    optionsWithDefaults.assignUniqueIDs
+    optionsWithDefaults.uniqueIDs
         && await traverseDom<Element>(
-            dom,
-            partialDom,
+            document,
+            rootElement,
             NodeFilter.SHOW_ELEMENT,
             elementNode => {
                 if(
-                    ![
-                        ...RATING.typeElement.container.tagNames,
-                        ...RATING.typeElement.interactive.tagNames
-                    ]
-                        .includes(elementNode.tagName.toLowerCase())
+                    !isElementType("container", elementNode.tagName)
+                    && !isElementType("actionable", elementNode.tagName)                    
                 ) return;
 
-                elementNode.setAttribute(CONFIG.uniqueIDAttribute, (n++).toString());
+                elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
             }
         );
 
-    const virtualDom = partialDom.cloneNode(true) as HTMLElement;
+    const virtualDom = rootElement.cloneNode(true) as HTMLElement;
 
     // Prepare
     await traverseDom<Comment>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_COMMENT,
         node => node.parentNode?.removeChild(node)
     );
     await traverseDom<Element>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         elementNode => {
-            if(!FILTER_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+            if(!PRE_FILTER_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
 
             elementNode
                 .parentNode
@@ -230,152 +220,81 @@ export async function d2Snap(
 
     let domTreeHeight: number = 0;
     await traverseDom<Element>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         elementNode => {
-            const depth: number = ((elementNode.parentNode as HTMLElementDepth).depth ?? 0) + 1;
+            const depth: number = ((elementNode.parentNode as HTMLElementWithDepth).depth ?? 0) + 1;
 
-            (elementNode as HTMLElementDepth).depth = depth;
+            (elementNode as HTMLElementWithDepth).depth = depth;
 
             domTreeHeight = Math.max(depth, domTreeHeight);
         }
     );
 
-    // D2Snap implementation harnessing the power of the TreeWalkers API:
+    // D2Snap implementation harnessing the TreeWalkers API:
 
     // Text nodes first
     await traverseDom<TextNode>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_TEXT,
-        (node: TextNode) => snapTextNode(node, l)
+        (node: TextNode) => snapTextNode(node, rT)
     );
 
     // Non-container element nodes
     await traverseDom<HTMLElement>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         (node: HTMLElement) => snapElementNode(node)
     );
 
     // Container element nodes
-    await traverseDom<HTMLElementDepth>(
-        dom,
+    await traverseDom<HTMLElementWithDepth>(
+        document,
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
-        (node: HTMLElementDepth) => {
-            if(!isElementType("container", node)) return;
+        (node: HTMLElementWithDepth) => {
+            if(!isElementType("container", node.tagName)) return;
 
-            return snapElementContainerNode(node, k, domTreeHeight);
+            return snapElementContainerNode(node, rE, domTreeHeight);
         }
     );
 
     // Attribute nodes
     await traverseDom<HTMLElement>(
-        dom,
+        document,
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
-        (node: HTMLElement) => snapAttributeNode(node, m)   // work on parent element
+        (node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element
     );
 
     const snapshot = virtualDom.innerHTML;
-    let serializedHtml = optionsWithDefaults.debug
-        ? formatHtml(snapshot)
+    let serializedHTML = optionsWithDefaults.debug
+        ? formatHTML(snapshot)
         : snapshot;
-        serializedHtml = serializedHtml
+    serializedHTML = serializedHTML
         .replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n")
         .replace(/\n *(\n|$)/g, "");
-        serializedHtml = (k === Infinity && virtualDom.children.length)
-        ? serializedHtml
+    serializedHTML = (
+        virtualDom.children.length === 1
+        && (rE === Infinity)
+        && virtualDom.children.length
+    )
+        ? serializedHTML
             .trim()
             .replace(/^<[^>]+>\s*/, "")
             .replace(/\s*<\/[^<]+>$/, "")
-        : serializedHtml;
+        : serializedHTML;
 
     return {
-        serializedHtml,
+        serializedHTML,
         meta: {
             originalSize,
             snapshotSize: snapshot.length,
             sizeRatio: snapshot.length / originalSize,
             estimatedTokens: Math.round(snapshot.length / 4)    // according to https://platform.openai.com/tokenizer
-        }
-    };
-}
-
-export async function adaptiveD2Snap(
-    dom: DOM,
-    maxTokens: number = 4096,
-    maxIterations: number = 5,
-    options: D2SnapOptions = {}
-): Promise<Snapshot & {
-    parameters: {
-        k: number; l: number; m: number;
-        adaptiveIterations: number;
-    }
-}> {
-    const S = findDownsamplingRoot(dom).outerHTML.length;
-    const M = 1e6;
-
-    function* generateHalton() {
-        const halton = (index: number, base: number) => {
-            let result: number = 0;
-            let f: number = 1 / base;
-            let i: number = index;
-            while(i > 0) {
-                result += f * (i % base);
-                i = Math.floor(i / base);
-                f /= base;
-            }
-            return result;
-        };
-
-        let i = 0;
-        while(true) {
-            i++;
-
-            yield [
-                halton(i, 7),
-                halton(i, 3),
-                halton(i, 3)
-            ];
-        }
-    }
-
-
-    let i = 0;
-    let sCalc = S;
-    let parameters, snapshot;
-    const haltonGenerator = generateHalton();
-    while(true) {
-        const haltonPoint = haltonGenerator.next().value;
-
-        const computeParam = (haltonValue: number) => Math.min((sCalc / M) * haltonValue, 1);
-
-        parameters = {
-            k: computeParam(haltonPoint[0]),
-            l: computeParam(haltonPoint[1]),
-            m: computeParam(haltonPoint[2])
-        };
-        snapshot = await d2Snap(dom, parameters.k, parameters.l, parameters.m, options);
-        sCalc = sCalc**1.125;   // stretch
-
-        if(snapshot.meta.estimatedTokens <= maxTokens)
-            break;
-
-        if(i++ === maxIterations)
-            throw new RangeError("Unable to create snapshot below given token threshold");
-    }
-
-    return {
-        ...snapshot,
-
-        parameters: {
-            ...parameters,
-
-            adaptiveIterations: i
         }
     };
 }
