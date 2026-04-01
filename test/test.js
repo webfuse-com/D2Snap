@@ -28,6 +28,10 @@ global.assertLess = function(a, b, message) {
     wrapAssertion(() => ok(a < b, message), a, b, "<");
 }
 
+global.assertMore = function(a, b, message) {
+    wrapAssertion(() => ok(a > b, message), a, b, ">");
+}
+
 global.assertIn = function(a, b, message) {
     wrapAssertion(() => ok(b.includes(a), message), a, b, "in");
 }
@@ -60,10 +64,12 @@ process.on("exit", code => {
 
 
 [
-    "test.Turndown",
-    "test.TextRank",
-    "test.D2Snap"
+    "Turndown",
+    "TextRank",
+    "D2Snap"
 ]
     .forEach(async reference => {
-        await import(join(import.meta.dirname, reference.replace(/(\.js)?$/i, ".js")));
+        await import(
+            join(import.meta.dirname, reference.replace(/(\.test\.js)?$/i, ".test.js"))
+        );
     });

@@ -1,4 +1,4 @@
-import { tokenizeSentences, textRank, relativeTextRank } from "../src/TextRank.ts";
+import { tokenizeSentences, textRank, relativeTextRank } from "../dist.api/TextRank.js";
 
 
 await test("Tokenize sentences", async () => {
@@ -45,7 +45,7 @@ await test("Summarize text via TextRank sentence algorithm (k = 3)", async () =>
             "In the 19th and 20th centuries the city expanded and new neighborhoods and suburbs were built",
             "The city has a long tradition of openness liberalism and tolerance",
             "Cycling is key to the citys modern character and there are numerous biking paths and lanes spread throughout"
-        ].join(" "),
+        ].join("\n"),
         "TextRank returns invalid results"
     );
 });
@@ -62,7 +62,7 @@ await test("Summarize text via relative TextRank sentence algorithm (ratio = 0.6
         [
             "Amsterdam was founded at the mouth of the Amstel River which was dammed to control flooding",
             "Originally a small fishing village in the 12th century Amsterdam became a major world port during the Dutch Golden Age of the 17th century when the Netherlands was an economic powerhouse"
-        ].join(" "),
+        ].join("\n"),
         "TextRank returns invalid results"
     );
 });

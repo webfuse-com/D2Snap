@@ -1,14 +1,13 @@
-import { KEEP_LINE_BREAK_MARK, turndown } from "../src/Turndown.ts";
-
+import { KEEP_LINE_BREAK_MARK, turndown } from "../dist.api/Turndown.js";
 
 
 function flattenCode(code) {
     return code
         .replace(/\n +/g, "\n")
-        .trim()
+        .trim();
 }
 
-await test("Turndown markup to markdown", async () => {
+await test("Translate markup to markdown via Turndown", async () => {
     const markdown = turndown(
         flattenCode(`
             <h1>Amsterdam</h1>
@@ -42,17 +41,17 @@ await test("Turndown markup to markdown", async () => {
         markdown,
         flattenCode(`
             # Amsterdam
-
+            
             **Amsterdam** is the capital and largest city of the Kingdom of the Netherlands.
-
+            
             > Amsterdam has a population of 933,680 in June 2024.
-
+            
             | Landmark | District |
             | --- | --- |
             | Royal Palace | Centrum |
             | Oude Kerk | Centrum |
             | Rijksmuseum | Zuid |
-
+            
             <a href="#stats">Stats</a>
         `),
         "Turndown returns invalid results"
