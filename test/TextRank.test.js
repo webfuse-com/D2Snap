@@ -1,4 +1,4 @@
-import { tokenizeSentences, textRank, relativeTextRank } from "../dist.api/TextRank.js";
+import { tokenizeSentences, textRank, relativeTextRank } from "../dist.lib/TextRank.js";
 
 
 await test("Tokenize sentences", async () => {

@@ -1,7 +1,7 @@
 import { join } from "path";
 import { readFileSync, writeFileSync } from "fs";
 
-import { d2Snap, adaptiveD2Snap } from "../dist.api/api.js";
+import { d2Snap, adaptiveD2Snap } from "../dist.lib/api.js";
 
 
 function path(fileName) {

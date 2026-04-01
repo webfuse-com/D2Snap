@@ -1,4 +1,4 @@
-import { KEEP_LINE_BREAK_MARK, turndown } from "../dist.api/Turndown.js";
+import { KEEP_LINE_BREAK_MARK, turndown } from "../dist.lib/Turndown.js";
 
 
 function flattenCode(code) {
