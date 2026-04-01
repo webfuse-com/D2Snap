@@ -176,7 +176,7 @@ export async function runEvaluation(
             id: record.id,
             snapshotSize: snapshotData
                 .reduce((acc, snapshot) => acc + snapshot.size, 0),
-            estimatedTokens: snapshotData
+            tokenEstimate: snapshotData
                 .reduce((acc, snapshot) => {
                     return acc + (snapshot.type !== "image")
                         ? Math.round(snapshot.size / 4)         // according to https://platform.openai.com/tokenizer

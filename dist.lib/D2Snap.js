@@ -27,7 +27,6 @@ var init_ground_truth = __esm({
             "footer",
             "header",
             "html",
-            "iframe",
             "main",
             "nav",
             "section"
@@ -40,7 +39,6 @@ var init_ground_truth = __esm({
             footer: 0.7,
             header: 0.75,
             html: 0.1,
-            iframe: 0.5,
             main: 0.85,
             nav: 0.8,
             section: 0.9
@@ -487,7 +485,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   const document = resolveDocument(dom);
   if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
   const rootElement = resolveRoot(dom);
-  const originalSize = rootElement.outerHTML.length;
+  const originalSize = rootElement.innerHTML.length;
   let n = 0;
   optionsWithDefaults.uniqueIDs && await traverseDom(
     document,
@@ -563,7 +561,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
       originalSize,
       snapshotSize: snapshot.length,
       sizeRatio: snapshot.length / originalSize,
-      estimatedTokens: Math.round(snapshot.length / 4)
+      tokenEstimate: Math.round(snapshot.length / 4)
       // according to https://platform.openai.com/tokenizer
     }
   };

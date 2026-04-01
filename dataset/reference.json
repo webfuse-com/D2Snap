@@ -4,27 +4,62 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [567, 1], [58, 42] ],
+          "css_selector": "#globalnav-list > li.globalnav-item.globalnav-menu:nth-of-type(2) > div.globalnav-flyout > div.globalnav-menu-list > div.globalnav-item.globalnav-item-mac.globalnav-item-menu.globalnav-item-submenu:nth-of-type(2) > ul.globalnav-submenu-trigger-group > li.globalnav-submenu-trigger-item:nth-of-type(1) > a.globalnav-link.globalnav-submenu-trigger-link.globalnav-link-mac",
+          "bounding_box": [
+            [
+              567,
+              1
+            ],
+            [
+              58,
+              42
+            ]
+          ],
           "bu_identifier": 1
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [393, 2432], [104, 36] ],
+          "css_selector": "body.page-home.ac-nav-overlap.globalnav-scrim.globalheader-light > main.main > section.homepage-section.collection-module:nth-of-type(2) > div:nth-of-type(1) > div.module-content > div.unit-wrapper.split-copy-wrapper > div.unit-copy-wrapper:nth-of-type(1) > div.split-wrapper-top:nth-of-type(1) > div.cta-links > a.button.button-primary:nth-of-type(1)",
+          "bounding_box": [
+            [
+              393,
+              2432
+            ],
+            [
+              104,
+              36
+            ]
+          ],
           "bu_identifier": 22
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [455, 5670], [54, 25] ],
+          "css_selector": "#footer-directory-column-section-products > li.ac-gf-directory-column-section-item:nth-of-type(2)",
+          "bounding_box": [
+            [
+              455,
+              5670
+            ],
+            [
+              54,
+              25
+            ]
+          ],
           "bu_identifier": 76
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ]
+      [
+        {
+          "css_selector": "globalnav-submenu-link-mac > div.globalnav-flyout-scroll-container > div.globalnav-flyout-content.globalnav-submenu-content > div.globalnav-submenu-group.globalnav-submenu-group-elevated:nth-of-type(1) > ul.globalnav-submenu-list > li.globalnav-submenu-list-item-elevated:nth-of-type(1) > a.globalnav-submenu-link"
+        }
+      ],
+      [
+        {
+          "css_selector": "#globalnav-submenu-link-mac > div.globalnav-flyout-scroll-container > div.globalnav-flyout-content.globalnav-submenu-content > div.globalnav-submenu-group.globalnav-submenu-group-elevated:nth-of-type(1) > ul.globalnav-submenu-list > li.globalnav-submenu-list-item-elevated:nth-of-type(2) > a.globalnav-submenu-link"
+        }
+      ]
     ]
   },
   {
@@ -32,27 +67,61 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [315, 66], [112, 92] ],
+          "css_selector": "li.ChapterNav_chapternav-item__T1cQC:nth-of-type(1) > a.ChapterNav_chapternav-link__mewmB",
+          "bounding_box": [
+            [
+              315,
+              66
+            ],
+            [
+              112,
+              92
+            ]
+          ],
           "bu_identifier": 13
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [220, 4288], [131, 44] ],
+          "css_selector": "#\\:r1\\: > div.StickyFooterGallery_scrollContainer__Hfn5S:nth-of-type(1) > ul.StickyFooterGallery_itemContainer__Iir9v > li.StickyFooterGallery_galleryItem__ZGmEN:nth-of-type(1) > div.StaggeredFadeInTween_animationWrapper__Sfw57.StickyFooterGallery_fillParentHeight__JJgW1.StaggeredFadeInTween_enhanced--active__qos7O.StaggeredFadeInTween_overrideAnimateStyle__rpUy9 > div:nth-of-type(1) > div.ProductTile_productTile__P1DTD > div.ProductTile_productTileContent__AcxZH:nth-of-type(1) > div.ProductTile_productTileHeader__XDUDN:nth-of-type(1) > a.BlockLink_blockLink__cF0Fm.ProductTile_elevatedLink__qWwuB.StandardsLink_link__WcJoK",
+          "bounding_box": [
+            [
+              220,
+              4288
+            ],
+            [
+              131,
+              44
+            ]
+          ],
           "bu_identifier": 45
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ]
+      [
+        {
+          "css_selector": "#\\:r1\\: > div.StickyFooterGallery_scrollContainer__Hfn5S:nth-of-type(1) > ul.StickyFooterGallery_itemContainer__Iir9v > li.StickyFooterGallery_galleryItem__ZGmEN:nth-of-type(1) > div.StaggeredFadeInTween_animationWrapper__Sfw57.StickyFooterGallery_fillParentHeight__JJgW1.StaggeredFadeInTween_enhanced--active__qos7O.StaggeredFadeInTween_overrideAnimateStyle__rpUy9 > div:nth-of-type(1) > div.ProductTile_productTile__P1DTD > div:nth-of-type(2) > div.ProductTileLinks_tileFooter__y7zXD > a.ProductTileLinks_button__Ruwpp.Button_button__1bW9X.Button_button-elevated__IfBVW:nth-of-type(1)"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.Index_itemElevated__N6Tte.typography_headline__zZkHA:nth-of-type(2) > a.Index_indexLink__F6sOJ.StandardsLink_link__WcJoK"
+        }
+      ],
+      [
+        {
+          "css_selector": "#globalnav-submenu-link-mac > div.globalnav-flyout-scroll-container > div.globalnav-flyout-content.globalnav-submenu-content > div.globalnav-submenu-group.globalnav-submenu-group-elevated:nth-of-type(1) > ul.globalnav-submenu-list > li.globalnav-submenu-list-item-elevated:nth-of-type(2) > a.globalnav-submenu-link"
+        }
+      ]
     ]
   },
   {
     "id": "apple-2",
     "trajectories": [
-      [ { "css_selector": "[DATA-AIE=\"0\"]" } ]
+      [
+        {
+          "css_selector": "li.ac-ln-menu-item:nth-of-type(2) > a.ac-ln-menu-link"
+        }
+      ]
     ]
   },
   {
@@ -60,20 +129,46 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [913, 32], [185, 33] ],
+          "css_selector": "nav.ddc-header-nav-home:nth-of-type(1) > ul > li:nth-of-type(3) > a",
+          "bounding_box": [
+            [
+              913,
+              32
+            ],
+            [
+              185,
+              33
+            ]
+          ],
           "bu_identifier": 3
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [964, 299], [279, 135] ],
+          "css_selector": "li:nth-of-type(3) > a.ddc-carousel-item",
+          "bounding_box": [
+            [
+              964,
+              299
+            ],
+            [
+              279,
+              135
+            ]
+          ],
           "bu_identifier": 22
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ]
+      [
+        {
+          "css_selector": "li.ddc-header-nav-item:nth-of-type(4) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "#featured-list-3 > li:nth-of-type(1) > a"
+        }
+      ]
     ]
   },
   {
@@ -81,17 +176,39 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [404, 439], [678, 46] ],
+          "css_selector": "#livesearch-interaction-basic",
+          "bounding_box": [
+            [
+              404,
+              439
+            ],
+            [
+              678,
+              46
+            ]
+          ],
           "bu_identifier": 44
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1082, 439], [70, 46] ],
+          "css_selector": "form.interactions-search > div.ddc-input-group-action > button.ddc-btn",
+          "bounding_box": [
+            [
+              1082,
+              439
+            ],
+            [
+              70,
+              46
+            ]
+          ],
           "bu_identifier": 45
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ]
+      [
+        {
+          "css_selector": "form.interactions-search > div.ddc-input-group-action > button.ddc-btn"
+        }
+      ]
     ]
   },
   {
@@ -99,8 +216,17 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [404, 646], [199, 45] ],
+          "css_selector": "div.ddc-mgb-0.ddc-form-actions.ddc-form-actions-stacked > a.ddc-btn",
+          "bounding_box": [
+            [
+              404,
+              646
+            ],
+            [
+              199,
+              45
+            ]
+          ],
           "bu_identifier": 50
         }
       ]
@@ -111,27 +237,62 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [166, 153], [111, 34] ],
+          "css_selector": "li.mobile-show.nav-item.nav-slide-in.desktop-show:nth-of-type(1) > a.nav-item",
+          "bounding_box": [
+            [
+              166,
+              153
+            ],
+            [
+              111,
+              34
+            ]
+          ],
           "bu_identifier": 1
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1426, 66], [116, 53] ],
+          "css_selector": "a.link-button.fs-14:nth-of-type(6)",
+          "bounding_box": [
+            [
+              1426,
+              66
+            ],
+            [
+              116,
+              53
+            ]
+          ],
           "bu_identifier": 16
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [1475, 190], [62, 38] ],
+          "css_selector": "button.pill-comp.more-pill-nav",
+          "bounding_box": [
+            [
+              1475,
+              190
+            ],
+            [
+              62,
+              38
+            ]
+          ],
           "bu_identifier": 26
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ]
+      [
+        {
+          "css_selector": "a.pill-comp.pill-hidden:nth-of-type(10)"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.third-level.entity-list-row-container:nth-of-type(3)"
+        }
+      ]
     ]
   },
   {
@@ -139,14 +300,35 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [455, 525], [383, 61] ],
+          "css_selector": "#explore-sports-nav",
+          "bounding_box": [
+            [
+              455,
+              525
+            ],
+            [
+              383,
+              61
+            ]
+          ],
           "bu_identifier": 19
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ]
+      [
+        {
+          "css_selector": "li.nav-item.mobile-show.desktop-hide:nth-of-type(13) > a.nav-item.mobile-flyout-link"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.third-level.entity-list-row-container:nth-of-type(3)"
+        }
+      ],
+      [
+        {
+          "css_selector": "a.pill-comp.pill-hidden:nth-of-type(10)"
+        }
+      ]
     ]
   },
   {
@@ -154,13 +336,30 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [455, 592], [392, 77] ],
+          "css_selector": "#ssrExploreApp-https\\:\\/\\/api\\.foxsports\\.com\\/bifrost\\/v1\\/explore\\/browse\\/sports\\/soccer > div.explore-slide-in:nth-of-type(2)",
+          "bounding_box": [
+            [
+              455,
+              592
+            ],
+            [
+              392,
+              77
+            ]
+          ],
           "bu_identifier": 18
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.third-level.entity-list-row-container:nth-of-type(3)"
+        }
+      ],
+      [
+        {
+          "css_selector": "a.pill-comp.pill-hidden:nth-of-type(10)"
+        }
+      ]
     ]
   },
   {
@@ -168,13 +367,30 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [459, 292], [392, 77] ],
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.entity-list-row-container:nth-of-type(3) > div.entity-list-row-content:nth-of-type(2) > div.entity-list-row-title.fs-20.fs-sm-18.lh-1.fs-md-18",
+          "bounding_box": [
+            [
+              459,
+              292
+            ],
+            [
+              392,
+              77
+            ]
+          ],
           "bu_identifier": 14
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.third-level.entity-list-row-container:nth-of-type(3)"
+        }
+      ],
+      [
+        {
+          "css_selector": "a.pill-comp.pill-hidden:nth-of-type(10)"
+        }
+      ]
     ]
   },
   {
@@ -182,13 +398,30 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [461, 142], [376, 77] ],
+          "css_selector": "a.entity-list-row-container.arrow-hide.explore-league-header",
+          "bounding_box": [
+            [
+              461,
+              142
+            ],
+            [
+              376,
+              77
+            ]
+          ],
           "bu_identifier": 12
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "div.explore-basic-rows:nth-of-type(2) > a.third-level.entity-list-row-container:nth-of-type(3)"
+        }
+      ],
+      [
+        {
+          "css_selector": "a.pill-comp.pill-hidden:nth-of-type(10)"
+        }
+      ]
     ]
   },
   {
@@ -196,8 +429,17 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1061, 81], [94, 61] ],
+          "css_selector": "a.horizontal-nav-item:nth-of-type(3)",
+          "bounding_box": [
+            [
+              1061,
+              81
+            ],
+            [
+              94,
+              61
+            ]
+          ],
           "bu_identifier": 15
         }
       ]
@@ -208,34 +450,78 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [480, 2473], [609, 108] ],
+          "css_selector": "li.gem-c-cards__list-item:nth-of-type(15) > div.gem-c-cards__list-item-wrapper > h3.gem-c-cards__sub-heading.govuk-heading-s > a.govuk-link.gem-c-cards__link.gem-c-force-print-link-styles",
+          "bounding_box": [
+            [
+              480,
+              2473
+            ],
+            [
+              609,
+              108
+            ]
+          ],
           "bu_identifier": 22
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [810, 4222], [179, 18] ],
+          "css_selector": "li.govuk-footer__list-item:nth-of-type(15) > a.govuk-footer__link",
+          "bounding_box": [
+            [
+              810,
+              4222
+            ],
+            [
+              179,
+              18
+            ]
+          ],
           "bu_identifier": 60
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [480, 376], [581, 50] ],
+          "css_selector": "#search-main-ec8e678d",
+          "bounding_box": [
+            [
+              480,
+              376
+            ],
+            [
+              581,
+              50
+            ]
+          ],
           "bu_identifier": 4
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [1060, 376], [50, 50] ],
+          "css_selector": "div.gem-c-search.govuk-\\!-display-none-print.gem-c-search--large.gem-c-search--homepage.gem-c-search--on-govuk-blue.gem-c-search--separate-label.govuk-\\!-margin-bottom-0 > div.gem-c-search__item-wrapper > div.gem-c-search__item.gem-c-search__submit-wrapper:nth-of-type(2) > button.gem-c-search__submit",
+          "bounding_box": [
+            [
+              1060,
+              376
+            ],
+            [
+              50,
+              50
+            ]
+          ],
           "bu_identifier": 5
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ],
       [
-        { "css_selector": "[DATA-AIE=\"5\"]" },
-        { "css_selector": "[DATA-AIE=\"6\"]" }
+        {
+          "css_selector": "li.gem-c-layout-super-navigation-header__dropdown-list-item:nth-of-type(15) > a.govuk-link.gem-c-layout-super-navigation-header__navigation-second-item-link"
+        }
+      ],
+      [
+        {
+          "css_selector": "a.gem-c-layout-super-navigation-header__search-item-link"
+        },
+        {
+          "css_selector": "div.gem-c-search.govuk-\\!-display-none-print.gem-c-search--large.gem-c-search--on-white.gem-c-search--separate-label.govuk-\\!-margin-bottom-0 > div.gem-c-search__item-wrapper > div.gem-c-search__item.gem-c-search__submit-wrapper:nth-of-type(2) > button.gem-c-search__submit"
+        }
       ]
     ]
   },
@@ -244,15 +530,33 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [480, 1181], [229, 18] ],
+          "css_selector": "li.gem-c-document-list__item:nth-of-type(3) > div.gem-c-document-list__item-title > a.govuk-link.gem-c-force-print-link-styles",
+          "bounding_box": [
+            [
+              480,
+              1181
+            ],
+            [
+              229,
+              18
+            ]
+          ],
           "bu_identifier": 23
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [480, 1600], [216, 18] ],
+          "css_selector": "li.gem-c-document-list__item:nth-of-type(7) > div.gem-c-document-list__item-title > a.govuk-link.gem-c-force-print-link-styles",
+          "bounding_box": [
+            [
+              480,
+              1600
+            ],
+            [
+              216,
+              18
+            ]
+          ],
           "bu_identifier": 27
         }
       ]
@@ -263,8 +567,17 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [480, 366], [158, 45] ],
+          "css_selector": "a.gem-c-button.govuk-button.govuk-button--start",
+          "bounding_box": [
+            [
+              480,
+              366
+            ],
+            [
+              158,
+              45
+            ]
+          ],
           "bu_identifier": 6
         }
       ]
@@ -275,13 +588,31 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [480, 276], [416, 40] ],
+          "css_selector": "#response",
+          "bounding_box": [
+            [
+              480,
+              276
+            ],
+            [
+              416,
+              40
+            ]
+          ],
           "bu_identifier": 4
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [480, 346], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              480,
+              346
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 5
         }
       ]
@@ -292,24 +623,60 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [482, 312], [40, 40] ]
+          "css_selector": "#response-1",
+          "bounding_box": [
+            [
+              482,
+              312
+            ],
+            [
+              40,
+              40
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [480, 782], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              480,
+              782
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 12
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [539, 312], [263, 40] ],
+          "css_selector": "div.gem-c-radio.govuk-radios__item:nth-of-type(2) > label.gem-c-label.govuk-label.govuk-radios__label",
+          "bounding_box": [
+            [
+              539,
+              312
+            ],
+            [
+              263,
+              40
+            ]
+          ],
           "bu_identifier": 4
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [480, 782], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              480,
+              782
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 12
         }
       ]
@@ -320,24 +687,60 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [482, 352], [40, 40] ]
+          "css_selector": "#response-1",
+          "bounding_box": [
+            [
+              482,
+              352
+            ],
+            [
+              40,
+              40
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [480, 424], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              480,
+              424
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 5
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [539, 352], [173, 40] ],
+          "css_selector": "div.gem-c-radio.govuk-radios__item:nth-of-type(2) > label.gem-c-label.govuk-label.govuk-radios__label",
+          "bounding_box": [
+            [
+              539,
+              352
+            ],
+            [
+              173,
+              40
+            ]
+          ],
           "bu_identifier": 4
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [540, 782], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              540,
+              782
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 5
         }
       ]
@@ -348,24 +751,60 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [482, 298], [40, 40] ]
+          "css_selector": "#response-0",
+          "bounding_box": [
+            [
+              482,
+              298
+            ],
+            [
+              40,
+              40
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [480, 540], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              480,
+              540
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 11
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [539, 352], [234, 40] ],
+          "css_selector": "div.gem-c-radio.govuk-radios__item:nth-of-type(1) > label.gem-c-label.govuk-label.govuk-radios__label",
+          "bounding_box": [
+            [
+              539,
+              352
+            ],
+            [
+              234,
+              40
+            ]
+          ],
           "bu_identifier": 3
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [540, 748], [99, 40] ],
+          "css_selector": "button.gem-c-button.govuk-button.gem-c-button--bottom-margin",
+          "bounding_box": [
+            [
+              540,
+              748
+            ],
+            [
+              99,
+              40
+            ]
+          ],
           "bu_identifier": 11
         }
       ]
@@ -376,44 +815,110 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [198, 15], [125, 30] ]
+          "css_selector": "div.e368002:nth-of-type(1) > div._2effd63:nth-of-type(1)",
+          "bounding_box": [
+            [
+              198,
+              15
+            ],
+            [
+              125,
+              30
+            ]
+          ]
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [342, 15], [144, 30] ]
+          "css_selector": "div._9e29cf6:nth-of-type(2) > div._2effd63:nth-of-type(1)",
+          "bounding_box": [
+            [
+              342,
+              15
+            ],
+            [
+              144,
+              30
+            ]
+          ]
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [477, 201], [826, 36] ]
+          "css_selector": "div._145783b",
+          "bounding_box": [
+            [
+              477,
+              201
+            ],
+            [
+              826,
+              36
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [1305, 201], [138, 36] ],
+          "css_selector": "#search-button",
+          "bounding_box": [
+            [
+              1305,
+              201
+            ],
+            [
+              138,
+              36
+            ]
+          ],
           "bu_identifier": 3
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [864, 286], [192, 38] ],
+          "css_selector": "button.cc0ec1a._92a21d6",
+          "bounding_box": [
+            [
+              864,
+              286
+            ],
+            [
+              192,
+              38
+            ]
+          ],
           "bu_identifier": 4
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"5\"]",
-          "bounding_box": [ [965, 842], [349, 330] ],
+          "css_selector": "a._6d1a0cd:nth-of-type(3)",
+          "bounding_box": [
+            [
+              965,
+              842
+            ],
+            [
+              349,
+              330
+            ]
+          ],
           "bu_identifier": 58
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"6\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"7\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"8\"]" } ]
+      [
+        {
+          "css_selector": "div._89daf71:nth-of-type(1) > div.f00c1d6 > div:nth-of-type(3) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "div._89daf71:nth-of-type(2) > div.f00c1d6 > div:nth-of-type(3) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "div._89daf71:nth-of-type(2) > div.f00c1d6 > div:nth-of-type(2) > a"
+        }
+      ]
     ]
   },
   {
@@ -421,18 +926,45 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [336, 2073], [289, 18] ],
+          "css_selector": "div._6bf0dde:nth-of-type(5) > a.d07f113._39d9fdb",
+          "bounding_box": [
+            [
+              336,
+              2073
+            ],
+            [
+              289,
+              18
+            ]
+          ],
           "bu_identifier": 47
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [336, 3532], [289, 18] ],
+          "css_selector": "#expansible12 > div > fieldset._1fbb5ed > div > div._8ed086e:nth-of-type(2) > a.d07f113",
+          "bounding_box": [
+            [
+              336,
+              3532
+            ],
+            [
+              289,
+              18
+            ]
+          ],
           "bu_identifier": 87
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [336, 3822], [288, 35] ],
+          "css_selector": "#Date\\ Listed",
+          "bounding_box": [
+            [
+              336,
+              3822
+            ],
+            [
+              288,
+              35
+            ]
+          ],
           "bu_identifier": 94
         }
       ]
@@ -443,19 +975,41 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1328, 13], [100, 16] ],
+          "css_selector": "li:nth-of-type(1) > a.link-rail-item",
+          "bounding_box": [
+            [
+              1328,
+              13
+            ],
+            [
+              100,
+              16
+            ]
+          ],
           "bu_identifier": 0
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [230, 1854], [100, 36] ],
+          "css_selector": "div.footer-links-group:nth-of-type(1) > ul.grid-y.footer-links-content > li:nth-of-type(2) > a.menu-link.menu-link-sm",
+          "bounding_box": [
+            [
+              230,
+              1854
+            ],
+            [
+              100,
+              36
+            ]
+          ],
           "bu_identifier": 20
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "li.grid-x.align-middle:nth-of-type(1) > a.category-link.grid-x.align-middle.menu-link-body"
+        }
+      ]
     ]
   },
   {
@@ -463,35 +1017,89 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [540, 333], [437, 45] ],
+          "css_selector": "#orderId",
+          "bounding_box": [
+            [
+              540,
+              333
+            ],
+            [
+              437,
+              45
+            ]
+          ],
           "bu_identifier": 52
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [540, 413], [437, 45] ],
+          "css_selector": "#emailId",
+          "bounding_box": [
+            [
+              540,
+              413
+            ],
+            [
+              437,
+              45
+            ]
+          ],
           "bu_identifier": 54
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [673, 493], [154, 40] ],
+          "css_selector": "#trackOrder",
+          "bounding_box": [
+            [
+              673,
+              493
+            ],
+            [
+              154,
+              40
+            ]
+          ],
           "bu_identifier": 56
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [548, 350], [108, 12] ],
+          "css_selector": "#orderIdControlLabel",
+          "bounding_box": [
+            [
+              548,
+              350
+            ],
+            [
+              108,
+              12
+            ]
+          ],
           "bu_identifier": 53
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [548, 430], [108, 12] ],
+          "css_selector": "#emailControlLabel",
+          "bounding_box": [
+            [
+              548,
+              430
+            ],
+            [
+              108,
+              12
+            ]
+          ],
           "bu_identifier": 55
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [673, 493], [154, 40] ],
+          "css_selector": "#trackOrder",
+          "bounding_box": [
+            [
+              673,
+              493
+            ],
+            [
+              154,
+              40
+            ]
+          ],
           "bu_identifier": 56
         }
       ]
@@ -502,41 +1110,94 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [695, 1], [124, 65] ],
+          "css_selector": "nav.menu-items > a.menu-item:nth-of-type(1)",
+          "bounding_box": [
+            [
+              695,
+              1
+            ],
+            [
+              124,
+              65
+            ]
+          ],
           "bu_identifier": 2
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [821, 1], [109, 65] ],
+          "css_selector": "nav.menu-items > a.menu-item:nth-of-type(2)",
+          "bounding_box": [
+            [
+              821,
+              1
+            ],
+            [
+              109,
+              65
+            ]
+          ],
           "bu_identifier": 3
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [1112, 4221], [165, 42] ],
+          "css_selector": "div.feature-block.type-a:nth-of-type(1) > div.container > div.text-pane:nth-of-type(1) > a.text-button.lg",
+          "bounding_box": [
+            [
+              1112,
+              4221
+            ],
+            [
+              165,
+              42
+            ]
+          ],
           "bu_identifier": 16
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [754, 9413], [79, 33] ],
+          "css_selector": "div.accordion-content:nth-of-type(2) > a.light:nth-of-type(10)",
+          "bounding_box": [
+            [
+              754,
+              9413
+            ],
+            [
+              79,
+              33
+            ]
+          ],
           "bu_identifier": 38
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [964, 9344], [69, 33] ],
+          "css_selector": "div.accordion:nth-of-type(4) > div.accordion-content:nth-of-type(2) > a.light:nth-of-type(1)",
+          "bounding_box": [
+            [
+              964,
+              9344
+            ],
+            [
+              69,
+              33
+            ]
+          ],
           "bu_identifier": 47
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"5\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"6\"]" } ]
+      [
+        {
+          "css_selector": "div.column:nth-of-type(2) > div.block:nth-of-type(2) > div.links > a.light:nth-of-type(1)"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.scroll-pane:nth-of-type(1) > a.menu-item:nth-of-type(2)"
+        }
+      ]
     ]
   },
   {
@@ -544,20 +1205,41 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [767, 276], [125, 66] ],
+          "css_selector": "button.tab-button:nth-of-type(4)",
+          "bounding_box": [
+            [
+              767,
+              276
+            ],
+            [
+              125,
+              66
+            ]
+          ],
           "bu_identifier": 12
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"1\"]" },
-        { "css_selector": "[DATA-AIE=\"2\"]" },
-        { "css_selector": "[DATA-AIE=\"3\"]" }
+        {
+          "css_selector": "#number-of-users"
+        },
+        {
+          "css_selector": "#storage"
+        },
+        {
+          "css_selector": "#transfer"
+        }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"4\"]" },
-        { "css_selector": "[DATA-AIE=\"5\"]" },
-        { "css_selector": "[DATA-AIE=\"6\"]" }
+        {
+          "css_selector": "#number-of-users"
+        },
+        {
+          "css_selector": "#storage"
+        },
+        {
+          "css_selector": "#transfer"
+        }
       ]
     ]
   },
@@ -566,35 +1248,89 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [805, 502], [149, 52] ],
+          "css_selector": "#number-of-users",
+          "bounding_box": [
+            [
+              805,
+              502
+            ],
+            [
+              149,
+              52
+            ]
+          ],
           "bu_identifier": 14
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [805, 676], [149, 52] ],
+          "css_selector": "#storage",
+          "bounding_box": [
+            [
+              805,
+              676
+            ],
+            [
+              149,
+              52
+            ]
+          ],
           "bu_identifier": 16
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [676, 850], [149, 52] ],
+          "css_selector": "#transfer",
+          "bounding_box": [
+            [
+              676,
+              850
+            ],
+            [
+              149,
+              52
+            ]
+          ],
           "bu_identifier": 18
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [988, 514], [553, 28] ],
+          "css_selector": "#number-of-users",
+          "bounding_box": [
+            [
+              988,
+              514
+            ],
+            [
+              553,
+              28
+            ]
+          ],
           "bu_identifier": 15
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [988, 688], [553, 28] ],
+          "css_selector": "#storage",
+          "bounding_box": [
+            [
+              988,
+              688
+            ],
+            [
+              553,
+              28
+            ]
+          ],
           "bu_identifier": 17
         },
         {
-          "css_selector": "[DATA-AIE=\"5\"]",
-          "bounding_box": [ [988, 862], [553, 28] ],
+          "css_selector": "#transfer",
+          "bounding_box": [
+            [
+              988,
+              862
+            ],
+            [
+              553,
+              28
+            ]
+          ],
           "bu_identifier": 19
         }
       ]
@@ -605,16 +1341,45 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [917, 1], [48, 53] ],
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(9) > a.Anchor_anchor__cSc3P.NavItem_link__ZBDtq",
+          "bounding_box": [
+            [
+              917,
+              1
+            ],
+            [
+              48,
+              53
+            ]
+          ],
           "bu_identifier": 8
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"5\"]" } ]
+      [
+        {
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(9) > div.NavDropdown_dropdown__HuIep > ul.NavDropdown_list__Phy7G > li.NavDropdownChild_item__k5Oea:nth-of-type(1) > a.Anchor_anchor__cSc3P.NavDropdownChild_link__NSYfR"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(9) > div.NavDropdown_dropdown__HuIep > ul.NavDropdown_list__Phy7G > li.NavDropdownChild_item__k5Oea:nth-of-type(3) > a.Anchor_anchor__cSc3P.NavDropdownChild_link__NSYfR"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(9) > div.NavDropdown_dropdown__HuIep > ul.NavDropdown_list__Phy7G > li.NavDropdownChild_item__k5Oea:nth-of-type(3) > a.Anchor_anchor__cSc3P.NavDropdownChild_link__NSYfR"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(9) > div.NavDropdown_dropdown__HuIep > ul.NavDropdown_list__Phy7G > li.NavDropdownChild_item__k5Oea:nth-of-type(4) > a.Anchor_anchor__cSc3P.NavDropdownChild_link__NSYfR"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.NavItem_item__Gokj_:nth-of-type(12) > div.NavDropdown_dropdown__HuIep > ul.NavDropdown_list__Phy7G > li.NavDropdownChild_item__k5Oea:nth-of-type(3) > a.Anchor_anchor__cSc3P.NavDropdownChild_link__NSYfR"
+        }
+      ]
     ]
   },
   {
@@ -622,22 +1387,49 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [795, 392], [451, 33] ],
+          "css_selector": "section.Block_block__62M07:nth-of-type(1) > div.Block_blockContent__6iJ_n > div.ButtonGroup_bg__4UoZJ.stats_leaderboardWithButtons__pYA5P:nth-of-type(2) > button.ButtonGroup_btn__r075w:nth-of-type(2)",
+          "bounding_box": [
+            [
+              795,
+              392
+            ],
+            [
+              451,
+              33
+            ]
+          ],
           "bu_identifier": 34
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [795, 2070], [451, 33] ],
+          "css_selector": "section.Block_block__62M07:nth-of-type(4) > div.Block_blockContent__6iJ_n > div.ButtonGroup_bg__4UoZJ.stats_leaderboardWithButtons__pYA5P:nth-of-type(2) > button.ButtonGroup_btn__r075w:nth-of-type(2)",
+          "bounding_box": [
+            [
+              795,
+              2070
+            ],
+            [
+              451,
+              33
+            ]
+          ],
           "bu_identifier": 136
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [3112, 1122], [98, 11] ],
+          "css_selector": "div.LeaderBoardCard_lbcWrapper__e4bCZ.stats_moreCardGrid__jA_XQ.LeaderBoardCard_leaderBoardCategory__vWRuZ:nth-of-type(4) > a.Anchor_anchor__cSc3P.LeaderBoardCard_lbcLink__GZTl1.Link_styled__okbXW",
+          "bounding_box": [
+            [
+              3112,
+              1122
+            ],
+            [
+              98,
+              11
+            ]
+          ],
           "bu_identifier": 206
         }
       ]
@@ -648,20 +1440,47 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [655, 346], [560, 50] ],
+          "css_selector": "#search",
+          "bounding_box": [
+            [
+              655,
+              346
+            ],
+            [
+              560,
+              50
+            ]
+          ],
           "bu_identifier": 8
         },
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1215, 346], [50, 50] ],
+          "css_selector": "#search",
+          "bounding_box": [
+            [
+              1215,
+              346
+            ],
+            [
+              50,
+              50
+            ]
+          ],
           "bu_identifier": 9
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [908, 431], [127, 18] ],
+          "css_selector": "p.homepage-banner__browse > a",
+          "bounding_box": [
+            [
+              908,
+              431
+            ],
+            [
+              127,
+              18
+            ]
+          ],
           "bu_identifier": 10
         }
       ]
@@ -672,44 +1491,109 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [407, 329], [191, 42] ],
+          "css_selector": "div.accordion.accordion--closed:nth-of-type(3) > button.accordion__link.-js-accordion-trigger",
+          "bounding_box": [
+            [
+              407,
+              329
+            ],
+            [
+              191,
+              42
+            ]
+          ],
           "bu_identifier": 13
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [407, 373], [102, 42] ],
+          "css_selector": "div.accordion.accordion--closed:nth-of-type(4) > button.accordion__link.-js-accordion-trigger",
+          "bounding_box": [
+            [
+              407,
+              373
+            ],
+            [
+              102,
+              42
+            ]
+          ],
           "bu_identifier": 14
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [407, 416], [214, 42] ],
+          "css_selector": "div.accordion.accordion--closed:nth-of-type(5) > button.accordion__link.-js-accordion-trigger",
+          "bounding_box": [
+            [
+              407,
+              416
+            ],
+            [
+              214,
+              42
+            ]
+          ],
           "bu_identifier": 15
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [407, 502], [142, 42] ],
+          "css_selector": "div.accordion.accordion--closed:nth-of-type(7) > button.accordion__link.-js-accordion-trigger",
+          "bounding_box": [
+            [
+              407,
+              502
+            ],
+            [
+              142,
+              42
+            ]
+          ],
           "bu_identifier": 17
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [407, 547], [181, 42] ],
+          "css_selector": "div.accordion.accordion--closed:nth-of-type(8) > button.accordion__link.-js-accordion-trigger",
+          "bounding_box": [
+            [
+              407,
+              547
+            ],
+            [
+              181,
+              42
+            ]
+          ],
           "bu_identifier": 18
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"5\"]" },
-        { "css_selector": "[DATA-AIE=\"6\"]" },
-        { "css_selector": "[DATA-AIE=\"7\"]" },
-        { "css_selector": "[DATA-AIE=\"8\"]" },
-        { "css_selector": "[DATA-AIE=\"9\"]" }
+        {
+          "css_selector": "#accordion-Development_Status > div.checkbox-tree > ul > li:nth-of-type(4) > label.checkbox-tree__label"
+        },
+        {
+          "css_selector": "#License_\\._OSI_Approved_\\._MIT_License"
+        },
+        {
+          "css_selector": "#Programming_Language_\\._Python_\\._3\\.9"
+        },
+        {
+          "css_selector": "#Environment_\\._Web_Environment"
+        },
+        {
+          "css_selector": "#Intended_Audience_\\._Developers"
+        }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"10\"]" },
-        { "css_selector": "[DATA-AIE=\"11\"]" },
-        { "css_selector": "[DATA-AIE=\"12\"]" },
-        { "css_selector": "[DATA-AIE=\"13\"]" },
-        { "css_selector": "[DATA-AIE=\"14\"]" }
+        {
+          "css_selector": "#Development_Status_\\._5_-_Production\\/Stable"
+        },
+        {
+          "css_selector": "li:nth-of-type(14) > ul > li:nth-of-type(35) > label.checkbox-tree__label"
+        },
+        {
+          "css_selector": "#accordion-Programming_Language > div.checkbox-tree > ul > li:nth-of-type(40) > ul > li:nth-of-type(17) > label.checkbox-tree__label"
+        },
+        {
+          "css_selector": "#accordion-Environment > div.checkbox-tree > ul > li:nth-of-type(9) > label.checkbox-tree__label"
+        },
+        {
+          "css_selector": "#accordion-Intended_Audience > div.checkbox-tree > ul > li:nth-of-type(2) > label.checkbox-tree__label"
+        }
       ]
     ]
   },
@@ -718,55 +1602,145 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [445, 467], [13, 13] ],
+          "css_selector": "#Development_Status_\\._5_-_Production\\/Stable",
+          "bounding_box": [
+            [
+              445,
+              467
+            ],
+            [
+              13,
+              13
+            ]
+          ],
           "bu_identifier": 24
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [467, 2182], [13, 13] ],
+          "css_selector": "#License_\\._OSI_Approved_\\._MIT_License",
+          "bounding_box": [
+            [
+              467,
+              2182
+            ],
+            [
+              13,
+              13
+            ]
+          ],
           "bu_identifier": 124
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [467, 4311], [13, 13] ],
+          "css_selector": "#Programming_Language_\\._Python_\\._3\\.9",
+          "bounding_box": [
+            [
+              467,
+              4311
+            ],
+            [
+              13,
+              13
+            ]
+          ],
           "bu_identifier": 297
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [445, 6077], [13, 13] ],
+          "css_selector": "#Environment_\\._Web_Environment",
+          "bounding_box": [
+            [
+              445,
+              6077
+            ],
+            [
+              13,
+              13
+            ]
+          ],
           "bu_identifier": 443
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [445, 6459], [13, 13] ],
+          "css_selector": "#Intended_Audience_\\._Developers",
+          "bounding_box": [
+            [
+              445,
+              6459
+            ],
+            [
+              13,
+              13
+            ]
+          ],
           "bu_identifier": 474
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"5\"]",
-          "bounding_box": [ [461, 467], [113, 13] ],
+          "css_selector": "#accordion-Development_Status > div.checkbox-tree > ul > li:nth-of-type(5) > label.checkbox-tree__label",
+          "bounding_box": [
+            [
+              461,
+              467
+            ],
+            [
+              113,
+              13
+            ]
+          ],
           "bu_identifier": 23
         },
         {
-          "css_selector": "[DATA-AIE=\"6\"]",
-          "bounding_box": [ [484, 467], [61, 13] ],
+          "css_selector": "li:nth-of-type(14) > ul > li:nth-of-type(35) > label.checkbox-tree__label",
+          "bounding_box": [
+            [
+              484,
+              467
+            ],
+            [
+              61,
+              13
+            ]
+          ],
           "bu_identifier": 123
         },
         {
-          "css_selector": "[DATA-AIE=\"7\"]",
-          "bounding_box": [ [483, 467], [16, 13] ],
+          "css_selector": "#accordion-Programming_Language > div.checkbox-tree > ul > li:nth-of-type(40) > ul > li:nth-of-type(17) > label.checkbox-tree__label",
+          "bounding_box": [
+            [
+              483,
+              467
+            ],
+            [
+              16,
+              13
+            ]
+          ],
           "bu_identifier": 298
         },
         {
-          "css_selector": "[DATA-AIE=\"8\"]",
-          "bounding_box": [ [461, 6078], [96, 13] ],
+          "css_selector": "#accordion-Environment > div.checkbox-tree > ul > li:nth-of-type(9) > label.checkbox-tree__label",
+          "bounding_box": [
+            [
+              461,
+              6078
+            ],
+            [
+              96,
+              13
+            ]
+          ],
           "bu_identifier": 444
         },
         {
-          "css_selector": "[DATA-AIE=\"9\"]",
-          "bounding_box": [ [461, 6459], [59, 13] ],
+          "css_selector": "#accordion-Intended_Audience > div.checkbox-tree > ul > li:nth-of-type(2) > label.checkbox-tree__label",
+          "bounding_box": [
+            [
+              461,
+              6459
+            ],
+            [
+              59,
+              13
+            ]
+          ],
           "bu_identifier": 475
         }
       ]
@@ -777,56 +1751,127 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1308, 15], [64, 32] ],
+          "css_selector": "div.menuItemClickable.verticallyCenterFlexContent.menuItemAlign.clickable.withHoverShim.withHoverBoxShadow:nth-of-type(2) > a.inheritColor.dropdownWidget",
+          "bounding_box": [
+            [
+              1308,
+              15
+            ],
+            [
+              64,
+              32
+            ]
+          ],
           "bu_identifier": 0
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [556, 278], [64, 40] ]
+          "css_selector": "li.TabBarItem.TabBarItem--flexible:nth-of-type(4)",
+          "bounding_box": [
+            [
+              556,
+              278
+            ],
+            [
+              64,
+              40
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [330, 318], [550, 72] ],
+          "css_selector": "#search-box-input",
+          "bounding_box": [
+            [
+              330,
+              318
+            ],
+            [
+              550,
+              72
+            ]
+          ],
           "bu_identifier": 6
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [820, 330], [48, 48] ],
+          "css_selector": "button.inline-block.SearchButton.clickable",
+          "bounding_box": [
+            [
+              820,
+              330
+            ],
+            [
+              48,
+              48
+            ]
+          ],
           "bu_identifier": 7
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [1348, 1599], [182, 48] ],
+          "css_selector": "div.card.bordered-card.linked-card.centered-card:nth-of-type(4) > div.card-cta-container.position-bottom:nth-of-type(3) > button.bp-Button.bp-Button__type--secondary-outlined",
+          "bounding_box": [
+            [
+              1348,
+              1599
+            ],
+            [
+              182,
+              48
+            ]
+          ],
           "bu_identifier": 25
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"5\"]",
-          "bounding_box": [ [580, 4318], [90, 12] ],
+          "css_selector": "div.EigenRegions:nth-of-type(3) > a.full-city-list",
+          "bounding_box": [
+            [
+              580,
+              4318
+            ],
+            [
+              90,
+              12
+            ]
+          ],
           "bu_identifier": 120
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"6\"]",
-          "bounding_box": [ [340, 4550], [94, 12] ],
+          "css_selector": "div.EigenRegions:nth-of-type(1) > button.ExpandableLink.clickable",
+          "bounding_box": [
+            [
+              340,
+              4550
+            ],
+            [
+              94,
+              12
+            ]
+          ],
           "bu_identifier": 151
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"7\"]",
+          "css_selector": "div.card.bordered-card.linked-card.centered-card:nth-of-type(4) > div.copy-container:nth-of-type(2) > a",
           "bu_identifier": 24
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"8\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"9\"]" } ]
+      [
+        {
+          "css_selector": "ul.secondaryItems.redesign:nth-of-type(4) > li:nth-of-type(2) > a.MenuItem"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.EigenRegions:nth-of-type(3) > ul.city-list > li.city:nth-of-type(51) > a"
+        }
+      ]
     ]
   },
   {
@@ -834,21 +1879,57 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [462, 198], [48, 48] ]
+          "css_selector": "div.SearchFormSection.Beds > div.SearchFormSection__container:nth-of-type(2) > div.ItemPickerGroup.flex.justify-between > div.ItemPickerGroup__option.flex.flex-column.justify-center.align-center.ItemPickerGroup__option--unselected:nth-of-type(4)",
+          "bounding_box": [
+            [
+              462,
+              198
+            ],
+            [
+              48,
+              48
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [370, 307], [67, 48] ]
+          "css_selector": "div.SearchFormSection.Baths.spacing-margin-top-medium:nth-of-type(2) > div.SearchFormSection__container:nth-of-type(2) > div.ItemPickerGroup.flex.justify-between > div.ItemPickerGroup__option.flex.flex-column.justify-center.align-center.ItemPickerGroup__option--unselected:nth-of-type(3)",
+          "bounding_box": [
+            [
+              370,
+              307
+            ],
+            [
+              67,
+              48
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [568, 388], [107, 48] ],
+          "css_selector": "button.bp-Button.ExposedSearchFilter__doneBtn.bp-Button__type--primary",
+          "bounding_box": [
+            [
+              568,
+              388
+            ],
+            [
+              107,
+              48
+            ]
+          ],
           "bu_identifier": 8
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [897, 143], [124, 17] ],
+          "css_selector": "a.sortFlyoutButton.clickable.flex.align-center",
+          "bounding_box": [
+            [
+              897,
+              143
+            ],
+            [
+              124,
+              17
+            ]
+          ],
           "bu_identifier": 12
         }
       ]
@@ -859,19 +1940,41 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1134, 151], [95, 30] ],
+          "css_selector": "rt-header-nav-item:nth-of-type(2) > rt-header-nav-item-dropdown > rt-header-nav-item-dropdown-list:nth-of-type(3) > ul > li:nth-of-type(2) > a",
+          "bounding_box": [
+            [
+              1134,
+              151
+            ],
+            [
+              95,
+              30
+            ]
+          ],
           "bu_identifier": 5
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1115, 253], [60, 9] ],
+          "css_selector": "div.ordered-layout__scores-wrap:nth-of-type(2) > div.ordered-layout__list.ordered-layout__list--score:nth-of-type(2) > section.dynamic-text-list > text-list > a.dynamic-text-list__see-all-link.a--short",
+          "bounding_box": [
+            [
+              1115,
+              253
+            ],
+            [
+              60,
+              9
+            ]
+          ],
           "bu_identifier": 208
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "rt-header-nav-item-dropdown-list:nth-of-type(3) > ul > li:nth-of-type(3) > a"
+        }
+      ]
     ]
   },
   {
@@ -879,11 +1982,24 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [426, 307], [81, 34] ]
+          "css_selector": "rt-header-nav-item:nth-of-type(2) > rt-header-nav-item-dropdown > rt-header-nav-item-dropdown-list:nth-of-type(3) > ul > li:nth-of-type(2) > a",
+          "bounding_box": [
+            [
+              426,
+              307
+            ],
+            [
+              81,
+              34
+            ]
+          ]
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ]
+      [
+        {
+          "css_selector": "rt-header-nav-item-dropdown-list:nth-of-type(3) > ul > li:nth-of-type(3) > a"
+        }
+      ]
     ]
   },
   {
@@ -891,8 +2007,17 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [275, 6541], [60, 25] ],
+          "css_selector": "div.l-container-fixed.h-padding-h-x6.h-padding-t-x6.h-display-flex.h-flex-direction-row.h-flex-justify-space-between > div:nth-of-type(1) > a:nth-of-type(2)",
+          "bounding_box": [
+            [
+              275,
+              6541
+            ],
+            [
+              60,
+              25
+            ]
+          ],
           "bu_identifier": 112
         }
       ]
@@ -903,52 +2028,127 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [420, 560], [386, 42] ],
+          "css_selector": "#query-input-1752667711738",
+          "bounding_box": [
+            [
+              420,
+              560
+            ],
+            [
+              386,
+              42
+            ]
+          ],
           "bu_identifier": 8
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [815, 560], [386, 42] ],
+          "css_selector": "#location-autocomplete-input-1752667711738",
+          "bounding_box": [
+            [
+              815,
+              560
+            ],
+            [
+              386,
+              42
+            ]
+          ],
           "bu_identifier": 10
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [1212, 560], [146, 42] ],
+          "css_selector": "div.job-search-quick-form.hidden-xs.hidden-sm.hidden-md > button.job-search-quick-form--button-submit.button",
+          "bounding_box": [
+            [
+              1212,
+              560
+            ],
+            [
+              146,
+              42
+            ]
+          ],
           "bu_identifier": 11
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [750, 562], [38, 38] ],
+          "css_selector": "#query-1752667711738 > button.recommended-keywords--submit.form-search-submit--button.button.button-icon-only:nth-of-type(2)",
+          "bounding_box": [
+            [
+              750,
+              562
+            ],
+            [
+              38,
+              38
+            ]
+          ],
           "bu_identifier": 9
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [815, 560], [386, 42] ],
+          "css_selector": "#location-autocomplete-input-1752667711738",
+          "bounding_box": [
+            [
+              815,
+              560
+            ],
+            [
+              386,
+              42
+            ]
+          ],
           "bu_identifier": 10
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [1212, 560], [146, 42] ],
+          "css_selector": "div.job-search-quick-form.hidden-xs.hidden-sm.hidden-md > button.job-search-quick-form--button-submit.button",
+          "bounding_box": [
+            [
+              1212,
+              560
+            ],
+            [
+              146,
+              42
+            ]
+          ],
           "bu_identifier": 11
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"4\"]" },
-        { "css_selector": "[DATA-AIE=\"5\"]" },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [1212, 560], [146, 42] ],
+          "css_selector": "#query-1752667711738 > label.recommended-keywords--label.sr-only"
+        },
+        {
+          "css_selector": "#location-1752667711738 > label.sr-only"
+        },
+        {
+          "css_selector": "div.job-search-quick-form.hidden-xs.hidden-sm.hidden-md > button.job-search-quick-form--button-submit.button",
+          "bounding_box": [
+            [
+              1212,
+              560
+            ],
+            [
+              146,
+              42
+            ]
+          ],
           "bu_identifier": 11
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"6\"]" },
-        { "css_selector": "[DATA-AIE=\"7\"]" },
-        { "css_selector": "[DATA-AIE=\"8\"]" },
-        { "css_selector": "[DATA-AIE=\"9\"]" }
+        {
+          "css_selector": "#query-input-1752667711735"
+        },
+        {
+          "css_selector": "#query-1752667711735 > button.recommended-keywords--submit.form-search-submit--button.button.button-icon-only:nth-of-type(2)"
+        },
+        {
+          "css_selector": "div.container > div.job-search-quick-widget--form-container:nth-of-type(1) > div.job-search-quick-form > button.job-search-quick-form--button-submit.button"
+        },
+        {
+          "css_selector": "#query-1752667711735 > label.recommended-keywords--label.sr-only"
+        }
       ]
     ]
   },
@@ -957,30 +2157,69 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [523, 490], [670, 54] ],
+          "css_selector": "button.faux-search-input_root__288pC.w-100.bn.pa0.bg-white",
+          "bounding_box": [
+            [
+              523,
+              490
+            ],
+            [
+              670,
+              54
+            ]
+          ],
           "bu_identifier": 5
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1194, 490], [112, 54] ],
+          "css_selector": "input.TextInput_input__piJRN.TextInput_inputSizeLarge__c6G4v.TextInput_inputInnerLeft__CREPe",
+          "bounding_box": [
+            [
+              1194,
+              490
+            ],
+            [
+              112,
+              54
+            ]
+          ],
           "bu_identifier": 6
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [1307, 490], [91, 54] ],
+          "css_selector": "button.themed_themedButton__UKQVj.themed_themedButtonRoundedBordersLeft___blLq.themed_themedButtonRoundedBordersRight__d0G5C.themed_themedButtonThemePrimary__pd6_C.themed_themedButtonWidthFull__vvqNZ",
+          "bounding_box": [
+            [
+              1307,
+              490
+            ],
+            [
+              91,
+              54
+            ]
+          ],
           "bu_identifier": 7
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"3\"]" },
-        { "css_selector": "[DATA-AIE=\"4\"]" },
-        { "css_selector": "[DATA-AIE=\"5\"]" }
+        {
+          "css_selector": "#dropdown-wrapper > div.flex.flex-1.relative.w-100:nth-of-type(1) > input.flex-1.bn.pl3.pr2.br-left.br2.truncate.bg-white.b"
+        },
+        {
+          "css_selector": "#dropdown-wrapper > div.search-bar_zipCodeSectionVariant__UTA_0.flex.relative:nth-of-type(2) > input.search-bar_zipCodeInput__nsU0r.black.w-100.flex-1.bn.bg-white.b"
+        },
+        {
+          "css_selector": "#uniqueId4 > button.submit-button_submitButton__Ppq5h.relative.br-right.pv2.bb.b-gray-300.submit-button_homePage__oUVln"
+        }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"6\"]" },
-        { "css_selector": "[DATA-AIE=\"7\"]" },
-        { "css_selector": "[DATA-AIE=\"8\"]" }
+        {
+          "css_selector": "#dropdown-wrapper > div.search-bar_zipCodeSectionVariant__UTA_0.flex.relative:nth-of-type(2)"
+        },
+        {
+          "css_selector": "#dropdown-wrapper > div.search-bar_zipCodeSectionVariant__UTA_0.flex.relative:nth-of-type(2) > input.search-bar_zipCodeInput__nsU0r.black.w-100.flex-1.bn.bg-white.b"
+        },
+        {
+          "css_selector": "#uniqueId5 > button.submit-button_submitButton__Ppq5h.relative.br-right.pv2.bb.b-gray-300.submit-button_homePage__oUVln"
+        }
       ]
     ]
   },
@@ -988,24 +2227,84 @@
     "id": "thumbtack-1",
     "trajectories": [
       [
-        { "bounding_box": [ [32, 667], [15, 15] ] },
-        { "bounding_box": [ [32, 858], [15, 15] ] },
-        { "bounding_box": [ [32, 1017], [15, 15] ] }
+        {
+          "bounding_box": [
+            [
+              32,
+              667
+            ],
+            [
+              15,
+              15
+            ]
+          ]
+        },
+        {
+          "bounding_box": [
+            [
+              32,
+              858
+            ],
+            [
+              15,
+              15
+            ]
+          ]
+        },
+        {
+          "bounding_box": [
+            [
+              32,
+              1017
+            ],
+            [
+              15,
+              15
+            ]
+          ]
+        }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [56, 667], [30, 15] ],
+          "css_selector": "div._28im2SfWo9THv27WpbOHi:nth-of-type(2) > div:nth-of-type(2) > div.flex.flex-column.QxyNgHXTEgkoYezzW0ksb._3L9JSlFmKEpqWpm0-OsQtW > div._3zbcMBx4xRs61Y0W9pc5Dg:nth-of-type(4) > label._3eA8cUegvBk5_b5VsIOfWs.VbaB79IRzXjxOFrncyANe",
+          "bounding_box": [
+            [
+              56,
+              667
+            ],
+            [
+              30,
+              15
+            ]
+          ],
           "bu_identifier": 15
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [56, 858], [33, 15] ],
+          "css_selector": "div._28im2SfWo9THv27WpbOHi:nth-of-type(3) > div:nth-of-type(2) > div.flex.flex-column.QxyNgHXTEgkoYezzW0ksb._3L9JSlFmKEpqWpm0-OsQtW > div._3zbcMBx4xRs61Y0W9pc5Dg:nth-of-type(3) > label._3eA8cUegvBk5_b5VsIOfWs.VbaB79IRzXjxOFrncyANe",
+          "bounding_box": [
+            [
+              56,
+              858
+            ],
+            [
+              33,
+              15
+            ]
+          ],
           "bu_identifier": 20
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [55, 1017], [94, 15] ],
+          "css_selector": "div._28im2SfWo9THv27WpbOHi:nth-of-type(4) > div:nth-of-type(2) > div.flex.flex-column.QxyNgHXTEgkoYezzW0ksb._3L9JSlFmKEpqWpm0-OsQtW > div._1u2D6Eo1ixGyOl1T6ZV-kP:nth-of-type(1) > label._3QLgZwT3FE2e-HeVdMQVRg._25Ul2pTu7S-xQWZmJkmL_Q",
+          "bounding_box": [
+            [
+              55,
+              1017
+            ],
+            [
+              94,
+              15
+            ]
+          ],
           "bu_identifier": 24
         }
       ]
@@ -1016,24 +2315,56 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1328, 13], [100, 16] ],
+          "css_selector": "#womenTab",
+          "bounding_box": [
+            [
+              1328,
+              13
+            ],
+            [
+              100,
+              16
+            ]
+          ],
           "bu_identifier": 0
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
       [
-        { "css_selector": "[DATA-AIE=\"4\"]" },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [230, 1854], [100, 36] ],
+          "css_selector": "div.navigation-header__gender-tab__center:nth-of-type(3) > div.tab-group-outer-wrapper > div.tab-group.tab-group--fit-content.tabs--with-white-indicator.tabs--not-swipeable.tabs--fit-content-not-swipeable:nth-of-type(1) > a.tab:nth-of-type(2)"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.tab--hide:nth-of-type(2) > div.fr-ec-content-alignment.fr-ec-content-alignment--direction-row.fr-ec-content-alignment--content-center.fr-ec-content-alignment--alignment-stretch.fr-ec-contents-card:nth-of-type(1) > div.fr-ec-layout.fr-ec-layout--gutter-sm.fr-ec-layout--gutter-md.fr-ec-layout--gutter-lg.fr-ec-layout--span-10-lg.fr-ec-layout--span-12-md.fr-ec-layout--span-4-sm > div.fr-ec-class-list__wrapper > div.fr-ec-class-list__category-list-wrapper.fr-ec-hide:nth-of-type(2) > div.fr-ec-hide:nth-of-type(5) > div.fr-ec-category-list > div.fr-ec-category-list__children > a.fr-ec-link.fr-ec-link--default.fr-ec-cursor-pointer:nth-of-type(5)"
+        }
+      ],
+      [
+        {
+          "css_selector": "#search-flyout-input-navi-pc"
+        },
+        {
+          "css_selector": "div.content-alignment.content-alignment--direction-row.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0 > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color",
+          "bounding_box": [
+            [
+              230,
+              1854
+            ],
+            [
+              100,
+              36
+            ]
+          ],
           "bu_identifier": 20
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"6\"]" },
-        { "css_selector": "[DATA-AIE=\"7\"]" }
+        {
+          "css_selector": "#search-flyout-input-sticky"
+        },
+        {
+          "css_selector": "div.navigation-search__content-wrapper > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color"
+        }
       ]
     ]
   },
@@ -1042,27 +2373,62 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [473, 80], [974, 46] ],
+          "css_selector": "#search-flyout-input-navi-pc",
+          "bounding_box": [
+            [
+              473,
+              80
+            ],
+            [
+              974,
+              46
+            ]
+          ],
           "bu_identifier": 24
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [487, 85], [36, 36] ],
+          "css_selector": "div.content-alignment.content-alignment--direction-row.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0 > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color",
+          "bounding_box": [
+            [
+              487,
+              85
+            ],
+            [
+              36,
+              36
+            ]
+          ],
           "bu_identifier": 23
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [1194, 127], [250, 94] ],
+          "css_selector": "div:nth-of-type(2) > div.fr-ec-content-alignment.fr-ec-content-alignment--direction-row.fr-ec-content-alignment--content-center.fr-ec-content-alignment--alignment-stretch.fr-ec-contents-card:nth-of-type(1) > div.fr-ec-layout.fr-ec-layout--gutter-sm.fr-ec-layout--gutter-md.fr-ec-layout--gutter-lg.fr-ec-layout--span-10-lg.fr-ec-layout--span-12-md.fr-ec-layout--span-4-sm > div.fr-ec-class-list__wrapper > div.fr-ec-class-list:nth-of-type(1) > div.fr-ec-class-list__children > button.fr-ec-class-item:nth-of-type(4)",
+          "bounding_box": [
+            [
+              1194,
+              127
+            ],
+            [
+              250,
+              94
+            ]
+          ],
           "bu_identifier": 28
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
       [
-        { "css_selector": "[DATA-AIE=\"4\"]" },
-        { "css_selector": "[DATA-AIE=\"5\"]" }
+        {
+          "css_selector": "div:nth-of-type(2) > div.fr-ec-content-alignment.fr-ec-content-alignment--direction-row.fr-ec-content-alignment--content-center.fr-ec-content-alignment--alignment-stretch.fr-ec-contents-card:nth-of-type(1) > div.fr-ec-layout.fr-ec-layout--gutter-sm.fr-ec-layout--gutter-md.fr-ec-layout--gutter-lg.fr-ec-layout--span-10-lg.fr-ec-layout--span-12-md.fr-ec-layout--span-4-sm > div.fr-ec-class-list__wrapper > div.fr-ec-class-list__category-list-wrapper.fr-ec-hide:nth-of-type(2) > div.fr-ec-hide:nth-of-type(5) > div.fr-ec-category-list > div.fr-ec-category-list__children > a.fr-ec-link.fr-ec-link--default.fr-ec-cursor-pointer:nth-of-type(5)"
+        }
+      ],
+      [
+        {
+          "css_selector": "#search-flyout-input-sticky"
+        },
+        {
+          "css_selector": "div.navigation-search__content-wrapper > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color"
+        }
       ]
     ]
   },
@@ -1071,26 +2437,57 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [473, 80], [974, 46] ],
+          "css_selector": "#search-flyout-input-sticky",
+          "bounding_box": [
+            [
+              473,
+              80
+            ],
+            [
+              974,
+              46
+            ]
+          ],
           "bu_identifier": 24
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [487, 85], [36, 36] ],
+          "css_selector": "div.navigation-search__content-wrapper > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color",
+          "bounding_box": [
+            [
+              487,
+              85
+            ],
+            [
+              36,
+              36
+            ]
+          ],
           "bu_identifier": 23
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [46, 273], [228, 70] ],
+          "css_selector": "div:nth-of-type(2) > div.fr-ec-content-alignment.fr-ec-content-alignment--direction-row.fr-ec-content-alignment--content-center.fr-ec-content-alignment--alignment-stretch.fr-ec-contents-card:nth-of-type(1) > div.fr-ec-layout.fr-ec-layout--gutter-sm.fr-ec-layout--gutter-md.fr-ec-layout--gutter-lg.fr-ec-layout--span-10-lg.fr-ec-layout--span-12-md.fr-ec-layout--span-4-sm > div.fr-ec-class-list__wrapper > div.fr-ec-class-list__category-list-wrapper:nth-of-type(2) > div:nth-of-type(5) > div.fr-ec-category-list > div.fr-ec-category-list__children > a.fr-ec-link.fr-ec-link--default.fr-ec-cursor-pointer:nth-of-type(5)",
+          "bounding_box": [
+            [
+              46,
+              273
+            ],
+            [
+              228,
+              70
+            ]
+          ],
           "bu_identifier": 30
         }
       ],
       [
-        { "css_selector": "[DATA-AIE=\"3\"]" },
-        { "css_selector": "[DATA-AIE=\"4\"]" }
+        {
+          "css_selector": "#search-flyout-input-navi-pc"
+        },
+        {
+          "css_selector": "div.content-alignment.content-alignment--direction-row.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0 > div.content-alignment.content-alignment--direction-column.content-alignment--content-flex-start.content-alignment--alignment-flex-start.content-alignment--flex-wrap-nowrap.content-alignment--spacing-0.ec-search-field > span.ec-search-field.ito-border-radius-999.ito-padding-horizontal-8.text-input.ito-gray200-border.ito-border-width-1.hover-ito-gray100-border > span.text-input__prefix:nth-of-type(1) > button.button-icon.button-icon--medium.ito-border-width-0.ito-transparent-background-color.ito-border-radius-0.ito-hover-transparent-background-color"
+        }
       ]
     ]
   },
@@ -1099,25 +2496,50 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [630, 215], [74, 32] ]
+          "css_selector": "#___0",
+          "bounding_box": [
+            [
+              630,
+              215
+            ],
+            [
+              74,
+              32
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [712, 215], [91, 32] ]
+          "css_selector": "#___1",
+          "bounding_box": [
+            [
+              712,
+              215
+            ],
+            [
+              91,
+              32
+            ]
+          ]
         }
       ]
     ]
   },
-
-
   {
     "id": "ups-0",
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [267, 17], [246, 21] ]
+          "css_selector": "#location-finder",
+          "bounding_box": [
+            [
+              267,
+              17
+            ],
+            [
+              246,
+              21
+            ]
+          ]
         }
       ]
     ]
@@ -1127,25 +2549,61 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [60, 154], [385, 58] ],
+          "css_selector": "#loc-searchbox",
+          "bounding_box": [
+            [
+              60,
+              154
+            ],
+            [
+              385,
+              58
+            ]
+          ],
           "bu_identifier": 65
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [455, 161], [115, 43] ],
+          "css_selector": "#geoCodeLookUp",
+          "bounding_box": [
+            [
+              455,
+              161
+            ],
+            [
+              115,
+              43
+            ]
+          ],
           "bu_identifier": 67
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [70, 170], [106, 22] ],
+          "css_selector": "label.ups-form_label.ups-form_group__label",
+          "bounding_box": [
+            [
+              70,
+              170
+            ],
+            [
+              106,
+              22
+            ]
+          ],
           "bu_identifier": 65
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [455, 161], [115, 43] ],
+          "css_selector": "#geoCodeLookUp",
+          "bounding_box": [
+            [
+              455,
+              161
+            ],
+            [
+              115,
+              43
+            ]
+          ],
           "bu_identifier": 67
         }
       ]
@@ -1156,22 +2614,56 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [112, 933], [396, 18] ],
+          "css_selector": "#location-detail-link167772",
+          "bounding_box": [
+            [
+              112,
+              933
+            ],
+            [
+              396,
+              18
+            ]
+          ],
           "bu_identifier": 77
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [122, 1047], [44, 33] ],
+          "css_selector": "li.each-location:nth-of-type(2) > div.address_block:nth-of-type(2) > div.call_direction_div:nth-of-type(2) > div.ups-icon-container.direction-icon > a.ups-direction-link",
+          "bounding_box": [
+            [
+              122,
+              1047
+            ],
+            [
+              44,
+              33
+            ]
+          ],
           "bu_identifier": 79
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"5\"]" } ]
+      [
+        {
+          "css_selector": "#location-detail-link174848"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.each-location:nth-of-type(3) > div.address_block:nth-of-type(2) > div.call_direction_div:nth-of-type(2) > div.ups-icon-container.direction-icon > a.ups-direction-link"
+        }
+      ],
+      [
+        {
+          "css_selector": "#location-detail-link174382"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.each-location:nth-of-type(15) > div.address_block:nth-of-type(2) > div.call_direction_div:nth-of-type(2) > div.ups-icon-container.direction-icon > a.ups-direction-link"
+        }
+      ]
     ]
   },
   {
@@ -1179,23 +2671,61 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [663, 37], [135, 42] ],
+          "css_selector": "#mail-ship-width",
+          "bounding_box": [
+            [
+              663,
+              37
+            ],
+            [
+              135,
+              42
+            ]
+          ],
           "bu_identifier": 12
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [780, 4332], [91, 13] ],
+          "css_selector": "div.col-12.col-sm-12.col-md-12.col-lg-4.text-left.article:nth-of-type(2) > p:nth-of-type(2) > a.button--link",
+          "bounding_box": [
+            [
+              780,
+              4332
+            ],
+            [
+              91,
+              13
+            ]
+          ],
           "bu_identifier": 47
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"3\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"5\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"6\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"7\"]" } ]
+      [
+        {
+          "css_selector": "li.menuheader:nth-of-type(2) > div.repos > ul:nth-of-type(2) > ul:nth-of-type(1) > li:nth-of-type(2) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.menuheader:nth-of-type(2) > div.repos > ul:nth-of-type(2) > li:nth-of-type(4) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.qt-nav.menuheader:nth-of-type(1) > div > ul > li:nth-of-type(6) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.tool-calc:nth-of-type(4) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "div.col-4.col-md-4.d-lg-none:nth-of-type(2) > div.article.text-center > a"
+        }
+      ]
     ]
   },
   {
@@ -1203,13 +2733,30 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [846, 571], [228, 24] ],
+          "css_selector": "div.col-md-4.col-sm-4.col-xs-12:nth-of-type(2) > div.benefits--3 > h2.header-2.center > a",
+          "bounding_box": [
+            [
+              846,
+              571
+            ],
+            [
+              228,
+              24
+            ]
+          ],
           "bu_identifier": 33
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"1\"]" } ],
-      [ { "css_selector": "[DATA-AIE=\"2\"]" } ]
+      [
+        {
+          "css_selector": "li.qt-nav.menuheader:nth-of-type(1) > div > ul > li:nth-of-type(6) > a"
+        }
+      ],
+      [
+        {
+          "css_selector": "li.tool-calc:nth-of-type(4) > a"
+        }
+      ]
     ]
   },
   {
@@ -1217,35 +2764,89 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [390, 213], [350, 34] ],
+          "css_selector": "#Origin",
+          "bounding_box": [
+            [
+              390,
+              213
+            ],
+            [
+              350,
+              34
+            ]
+          ],
           "bu_identifier": 10
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [770, 213], [350, 34] ],
+          "css_selector": "#Destination",
+          "bounding_box": [
+            [
+              770,
+              213
+            ],
+            [
+              350,
+              34
+            ]
+          ],
           "bu_identifier": 12
         },
         {
-          "css_selector": "[DATA-AIE=\"4\"]",
-          "bounding_box": [ [770, 636], [120, 120] ],
+          "css_selector": "#option_3",
+          "bounding_box": [
+            [
+              770,
+              636
+            ],
+            [
+              120,
+              120
+            ]
+          ],
           "bu_identifier": 37
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [390, 129], [248, 14] ],
+          "css_selector": "#zip-codes-section > div.col-xs-12.col-md-4:nth-of-type(1) > div.form-group > label",
+          "bounding_box": [
+            [
+              390,
+              129
+            ],
+            [
+              248,
+              14
+            ]
+          ],
           "bu_identifier": 0
         },
         {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [770, 129], [230, 14] ],
+          "css_selector": "#zip-codes-section > div.col-xs-12.col-md-4:nth-of-type(2) > div.form-group > label",
+          "bounding_box": [
+            [
+              770,
+              129
+            ],
+            [
+              230,
+              14
+            ]
+          ],
           "bu_identifier": 11
         },
         {
-          "css_selector": "[DATA-AIE=\"5\"]",
-          "bounding_box": [ [770, 636], [120, 120] ],
+          "css_selector": "div.col-xs-6.col-sm-3.col-md-2:nth-of-type(3) > label",
+          "bounding_box": [
+            [
+              770,
+              636
+            ],
+            [
+              120,
+              120
+            ]
+          ],
           "bu_identifier": 38
         }
       ]
@@ -1256,18 +2857,45 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [723, 665], [360, 64] ],
+          "css_selector": "#search",
+          "bounding_box": [
+            [
+              723,
+              665
+            ],
+            [
+              360,
+              64
+            ]
+          ],
           "bu_identifier": 10
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1084, 665], [238, 64] ],
+          "css_selector": "#location",
+          "bounding_box": [
+            [
+              1084,
+              665
+            ],
+            [
+              238,
+              64
+            ]
+          ],
           "bu_identifier": 11
         },
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [1344, 663], [60, 60] ],
+          "css_selector": "button.button.button--yellow",
+          "bounding_box": [
+            [
+              1344,
+              663
+            ],
+            [
+              60,
+              60
+            ]
+          ],
           "bu_identifier": 12
         }
       ]
@@ -1278,44 +2906,104 @@
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [1542, 14], [46, 46] ],
+          "css_selector": "button.vn-mt.vn-menu-btn.vn-search:nth-of-type(2)",
+          "bounding_box": [
+            [
+              1542,
+              14
+            ],
+            [
+              46,
+              46
+            ]
+          ],
           "bu_identifier": 8
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [368, 1463], [277, 67] ],
+          "css_selector": "#vn-menu-hdr-site-3 > ul > li:nth-of-type(16) > a",
+          "bounding_box": [
+            [
+              368,
+              1463
+            ],
+            [
+              277,
+              67
+            ]
+          ],
           "bu_identifier": 20
         }
       ],
       [
         {
-          "css_selector": "[DATA-AIE=\"2\"]",
-          "bounding_box": [ [587, 5186], [250, 250] ],
+          "css_selector": "#hp-lvnghlthtool > div.module-content > div.module-container:nth-of-type(1) > ul.list-container-2 > div.module-list > li:nth-of-type(2) > a.module-list-link",
+          "bounding_box": [
+            [
+              587,
+              5186
+            ],
+            [
+              250,
+              250
+            ]
+          ],
           "bu_identifier": 79
         }
       ],
-      [        {
-          "css_selector": "[DATA-AIE=\"3\"]",
-          "bounding_box": [ [740, 5560], [165, 42] ],
+      [
+        {
+          "css_selector": "#hp-lvnghlthtool > div.module-content > div.module-container:nth-of-type(1) > ul.list-container-2 > div.module-list > li:nth-of-type(8) > a.module-list-link",
+          "bounding_box": [
+            [
+              740,
+              5560
+            ],
+            [
+              165,
+              42
+            ]
+          ],
           "bu_identifier": 85
         }
       ],
-      [ { "css_selector": "[DATA-AIE=\"4\"]" } ]
+      [
+        {
+          "css_selector": "#hp-conditions > div.module-content > div.module-container:nth-of-type(1) > ul.list-container-2 > div.module-list > li:nth-of-type(1) > a.module-list-link"
+        }
+      ]
     ]
-  },{
+  },
+  {
     "id": "webmd-1",
     "trajectories": [
       [
         {
-          "css_selector": "[DATA-AIE=\"0\"]",
-          "bounding_box": [ [485, 926], [85, 30] ]
+          "css_selector": "span.cell.day:nth-of-type(30)",
+          "bounding_box": [
+            [
+              485,
+              926
+            ],
+            [
+              85,
+              30
+            ]
+          ]
         },
         {
-          "css_selector": "[DATA-AIE=\"1\"]",
-          "bounding_box": [ [1172, 1010], [375, 34] ],
+          "css_selector": "button.webmd-button.webmd-button--primary.webmd-button--medium.is-disabled.oc-calc-btn",
+          "bounding_box": [
+            [
+              1172,
+              1010
+            ],
+            [
+              375,
+              34
+            ]
+          ],
           "bu_identifier": 15
         }
       ]

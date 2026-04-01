@@ -56,7 +56,7 @@ async function takeSnapshot(page, record) {
     // BU
     const buIndexes = await page.evaluate(
         (script) => new Function(script)(),
-        readFileSync(join(import.meta.dirname, "_highlight.js")).toString()
+        readFileSync(join(import.meta.dirname, "_bu.js")).toString()
     );
 
     await page.waitForTimeout(250);

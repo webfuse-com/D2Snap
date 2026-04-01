@@ -39,7 +39,7 @@ for(let resultsFileName of readdirSync(RESULTS_DIR_PATH)) {
             summary[resultsFileName].failureCases += +!result.success;
             summary[resultsFileName].errorCases += +result.error;
             summary[resultsFileName].totalSnapshotSize += +(result.snapshotSize ?? 0);
-            summary[resultsFileName].totalEstimatedTokens += +(result.estimatedTokens ?? 0);
+            summary[resultsFileName].totalEstimatedTokens += +(result.tokenEstimate ?? 0);
             summary[resultsFileName].totalRTT += +(result.rtt ?? 0);
         });
 

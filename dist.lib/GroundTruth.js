@@ -27,7 +27,6 @@ var init_ground_truth = __esm({
             "footer",
             "header",
             "html",
-            "iframe",
             "main",
             "nav",
             "section"
@@ -40,7 +39,6 @@ var init_ground_truth = __esm({
             footer: 0.7,
             header: 0.75,
             html: 0.1,
-            iframe: 0.5,
             main: 0.85,
             nav: 0.8,
             section: 0.9

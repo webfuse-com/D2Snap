@@ -2,13 +2,13 @@ import { workerData, parentPort } from "worker_threads";
 
 import { runEvaluation } from "../eval.js";
 import { INSTRUCTIONS_DOM, DOMInteractiveElementTarget,analyzeResultDOM } from "../eval.shared.js";
-
-import { d2Snap, adaptiveD2Snap } from "../../dist/D2Snap.lib.js";
 import { Logger } from "../Logger.js";
+
+import { d2Snap, adaptiveD2Snap } from "../../dist.lib/api.js";
 
 
 const D2Snap_CONFIG = {
-    assignUniqueIDs: true
+    uniqueIDs: true
 };
 const LOGGER = new Logger("D2Snap-serialization");
 
@@ -20,7 +20,7 @@ export async function runWorkerEvaluation(identifier, config) {
             let downsampledDOMSnapshot;
             try {
                 if(!config.maxTokens) {
-                    downsampledDOMSnapshot = await d2Snap(data.originalDOM, config.k, config.l, config.m, D2Snap_CONFIG);
+                    downsampledDOMSnapshot = await d2Snap(data.originalDOM, config.rE, config.rA, config.rT, D2Snap_CONFIG);
                 } else {
                     downsampledDOMSnapshot = await adaptiveD2Snap(data.originalDOM, config.maxTokens, 5, D2Snap_CONFIG);
                 }
@@ -28,12 +28,12 @@ export async function runWorkerEvaluation(identifier, config) {
                 return null;
             }
 
-            LOGGER.write(`${id}.${identifier}`, downsampledDOMSnapshot.serializedHtml);
+            LOGGER.write(`${id}.${identifier}`, downsampledDOMSnapshot.html);
 
             return [
                 {
                     type: "text",
-                    data: downsampledDOMSnapshot.serializedHtml,
+                    data: downsampledDOMSnapshot.html,
                     size: downsampledDOMSnapshot.meta.snapshotSize
                 }
             ];

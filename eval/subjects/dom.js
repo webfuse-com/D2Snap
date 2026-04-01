@@ -2,7 +2,8 @@ import { runEvaluation } from "../eval.js";
 import { INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyzeResultDOM } from "../eval.shared.js";
 
 
-const MAX_SNAPSHOT_SIZE_B = 2**13 * 4;  // according to https://platform.openai.com/tokenizer
+const MAX_SNAPSHOT_SIZE_TOKENS = 2**16;
+const MAX_SNAPSHOT_SIZE_B = MAX_SNAPSHOT_SIZE_TOKENS * 4;
 
 
 // NOTE: Cut-off at 'maximum' context length

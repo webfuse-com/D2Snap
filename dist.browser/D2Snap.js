@@ -54,7 +54,6 @@
               "footer",
               "header",
               "html",
-              "iframe",
               "main",
               "nav",
               "section"
@@ -67,7 +66,6 @@
               footer: 0.7,
               header: 0.75,
               html: 0.1,
-              iframe: 0.5,
               main: 0.85,
               nav: 0.8,
               section: 0.9
@@ -1371,7 +1369,7 @@
     const document2 = resolveDocument(dom);
     if (!document2) throw new ReferenceError("Could not resolve a valid document object from DOM");
     const rootElement = resolveRoot(dom);
-    const originalSize = rootElement.outerHTML.length;
+    const originalSize = rootElement.innerHTML.length;
     let n = 0;
     optionsWithDefaults.uniqueIDs && await traverseDom(
       document2,
@@ -1447,7 +1445,7 @@
         originalSize,
         snapshotSize: snapshot.length,
         sizeRatio: snapshot.length / originalSize,
-        estimatedTokens: Math.round(snapshot.length / 4)
+        tokenEstimate: Math.round(snapshot.length / 4)
         // according to https://platform.openai.com/tokenizer
       }
     };
@@ -1493,7 +1491,7 @@
       };
       snapshot = await d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
       sCalc = sCalc ** 1.125;
-      if (snapshot.meta.estimatedTokens <= maxTokens)
+      if (snapshot.meta.tokenEstimate <= maxTokens)
         break;
       if (i++ === maxIterations)
         throw new RangeError("Unable to create snapshot below given token threshold");

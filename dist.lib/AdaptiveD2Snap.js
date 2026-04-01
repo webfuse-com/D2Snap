@@ -43,7 +43,7 @@ async function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5
     };
     snapshot = await d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
     sCalc = sCalc ** 1.125;
-    if (snapshot.meta.estimatedTokens <= maxTokens)
+    if (snapshot.meta.tokenEstimate <= maxTokens)
       break;
     if (i++ === maxIterations)
       throw new RangeError("Unable to create snapshot below given token threshold");

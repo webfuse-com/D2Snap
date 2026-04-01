@@ -41,7 +41,7 @@ export type D2SnapOptions = {
 
 export type D2SnapResult = {
     meta: {
-        estimatedTokens: number;
+        tokenEstimate: number;
         originalSize: number;
         sizeRatio: number;
         snapshotSize: number;

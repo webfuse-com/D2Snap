@@ -69,7 +69,7 @@ export async function adaptiveD2Snap(
         snapshot = await d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
         sCalc = sCalc**1.125;   // stretch
 
-        if(snapshot.meta.estimatedTokens <= maxTokens)
+        if(snapshot.meta.tokenEstimate <= maxTokens)
             break;
 
         if(i++ === maxIterations)

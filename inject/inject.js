@@ -15,9 +15,11 @@ const READLINE = createInterface({
 
 
 async function inject() {
-    const url = await new Promise(r => {
+    let url = await new Promise(r => {
         READLINE.question("\x1b[1mURL\x1b[0m >> ", r);
     });
+    url = !/^https?:\/\//.test(url) ? `https://${url}` : url;
+
     const rawParams = (
         await new Promise(r => {
             READLINE.question("\x1b[1mrE[,rA,rT]\x1b[0m >> ", r);

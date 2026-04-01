@@ -68,13 +68,15 @@ import * as D2Snap from "@webfuse-com/d2snap";
 ``` html
 <section tabindex="3" class="container" required="true">
   # Our Pizza
-  <div class="shadow-lg">
-    ## Margherita
-    A simple classic mozzarela tomatoes and basil
-    <button type="button">Add</button>
-    ## Capricciosa
-    A rich taste A true favourite
-    <button type="button">Add</button>
+  <div>
+    <div class="shadow-lg">
+      ## Margherita
+      A simple classic mozzarela tomatoes and basil
+      <button type="button">Add</button>
+      ## Capricciosa
+      A rich taste A true favourite
+      <button type="button">Add</button>
+    </div>
   </div>
 </section>
 ```

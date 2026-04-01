@@ -183,7 +183,7 @@ export async function d2Snap(
     if(!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
 
     const rootElement: Element = resolveRoot(dom)
-    const originalSize = rootElement.outerHTML.length;
+    const originalSize = rootElement.innerHTML.length;
 
     let n = 0;
     optionsWithDefaults.uniqueIDs
@@ -299,7 +299,7 @@ export async function d2Snap(
             originalSize,
             snapshotSize: snapshot.length,
             sizeRatio: snapshot.length / originalSize,
-            estimatedTokens: Math.round(snapshot.length / 4)    // according to https://platform.openai.com/tokenizer
+            tokenEstimate: Math.round(snapshot.length / 4)    // according to https://platform.openai.com/tokenizer
         }
     };
 }
