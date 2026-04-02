@@ -110,21 +110,30 @@ export async function d2Snap(
                     .insertBefore(sourceEl.childNodes[0], sourceEl);
             }
         } else {
-            let afterPivot = false;
-            while(sourceEl.childNodes.length > 1) {
-                const childNode = sourceEl.childNodes[+afterPivot];
+            const before: ChildNode[] = [];
+            const after: ChildNode[]  = [];
 
-                if(childNode === targetEl) {
-                    afterPivot = true;
+            let isAfterTarget: boolean = false;
+            for (const child of sourceEl.childNodes) {
+                if (child === targetEl) {
+                    isAfterTarget = true;
 
                     continue;
                 }
 
-                (afterPivot || !targetEl.childNodes.length)
-                    ? targetEl
-                        .appendChild(childNode)
-                    : targetEl
-                        .insertBefore(childNode, targetEl.childNodes[0]);
+                (
+                    isAfterTarget
+                        ? after
+                        : before
+                )
+                    .push(child);
+            }
+
+            for (let i = before.length - 1; i >= 0; i--) {
+                targetEl.insertBefore(before[i], targetEl.firstChild);
+            }
+            for (const child of after) {
+                targetEl.appendChild(child);
             }
 
             targetEl.depth = sourceEl.depth!;
