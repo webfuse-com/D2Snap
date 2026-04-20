@@ -1,4 +1,3 @@
-// src/util.html.ts
 function formatHTML(html, indentSize = 2) {
   const tokens = html.replace(/>\s+</g, "><").trim().split(/(<[^>]+>)/).filter((token) => token.trim().length);
   const indentChar = " ".repeat(indentSize);

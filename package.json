@@ -7,7 +7,7 @@
   "types": "./dist.lib/types",
   "scripts": {
     "prepare": "husky",
-    "build:lib": "npx esbuild ./src/* --outdir=./dist.lib/ --bundle --platform=node --format=esm --target=es2022 --packages=external",
+    "build:lib": "npx esbuild ./src/* --outdir=./dist.lib/ --platform=node --format=esm --target=es2022 --packages=external",
     "build:lib:watch": "npm run build:lib -- --watch",
     "build:browser": "npx esbuild ./src/api.browser.ts --outfile=./dist.browser/D2Snap.js --bundle --external:jsdom",
     "build:browser:watch": "npm run build:browser -- --watch",

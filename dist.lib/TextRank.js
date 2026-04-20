@@ -1,4 +1,3 @@
-// src/TextRank.ts
 function initArray(n, value = 0) {
   return Array.from({ length: n }, () => value);
 }

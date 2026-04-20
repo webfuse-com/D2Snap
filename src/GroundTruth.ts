@@ -84,9 +84,8 @@ export class GroundTruth {
 export async function createDefaultGroundTruth(): Promise<GroundTruth> {
     return new GroundTruth(
         (
-            await import("../variables/ground-truth.json", { with: { type: "json" }})
-        )
-            .default as GroundTruthJSON
+            await import("./var.GROUND_TRUTH.js")
+        ).GROUND_TRUTH
     );
 }
 

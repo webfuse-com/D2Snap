@@ -4,8 +4,7 @@ import { formatHTML } from "./util.html.js";
 import { GroundTruth, createDefaultGroundTruth } from "./GroundTruth.js";
 import { relativeTextRank } from "./TextRank.js";
 import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
-
-import CONFIG from "../variables/config.json" with { type: "json" };
+import { CONFIG } from "./var.CONFIG.js";
 
 
 const PRE_FILTER_TAG_NAMES = [

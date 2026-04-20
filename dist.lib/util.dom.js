@@ -1,4 +1,3 @@
-// src/util.dom.ts
 async function ensureDOM(domOrString) {
   if (typeof domOrString !== "string") return domOrString;
   if (typeof window !== "undefined") {

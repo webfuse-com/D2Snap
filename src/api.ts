@@ -22,3 +22,9 @@ export async function adaptiveD2Snap(
 ) {
     return _adaptiveD2Snap(d2Snap, await ensureDOM(domOrString), ...args);
 }
+
+
+export { type D2SnapOptions, type TextRankOptions, type D2SnapResult, type GroundTruthJSON } from "./types.js";
+
+
+// TODO: Class interface

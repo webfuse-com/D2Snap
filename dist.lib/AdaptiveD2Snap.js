@@ -1,9 +1,4 @@
-// src/util.dom.ts
-function resolveRoot(node) {
-  return node?.body ?? node?.documentElement ?? node;
-}
-
-// src/AdaptiveD2Snap.ts
+import { resolveRoot } from "./util.dom.js";
 function* generateHalton() {
   const halton = (index, base) => {
     let result = 0;

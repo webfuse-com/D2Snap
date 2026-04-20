@@ -1,4 +1,4 @@
-{
+export const GROUND_TRUTH = {
     "typeElement": {
         "container": {
             "tagNames": [
@@ -152,4 +152,4 @@
         },
         "fallbackRating": 0.0
     }
-}
+};

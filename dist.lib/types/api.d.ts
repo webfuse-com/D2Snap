@@ -10,3 +10,4 @@ export declare function adaptiveD2Snap(domOrString: DOM | string, ...args: Param
         adaptiveIterations: number;
     };
 }>;
+export { type D2SnapOptions, type TextRankOptions, type D2SnapResult, type GroundTruthJSON } from "./types.js";
