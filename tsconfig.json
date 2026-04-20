@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./dist.lib/types",
+        "module": "esnext",
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"allowImportingTsExtensions": true,
+		"strict": true
+	},
+	"include": [ "./src" ]
+}

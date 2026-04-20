@@ -66,49 +66,65 @@ import * as D2Snap from "@webfuse-com/d2snap";
 ### Example
 
 ``` html
-<section tabindex="3" class="container" required="true">
-  # Our Pizza
-  <div>
-    <div class="shadow-lg">
-      ## Margherita
-      A simple classic mozzarela tomatoes and basil
-      <button type="button">Add</button>
-      ## Capricciosa
-      A rich taste A true favourite
-      <button type="button">Add</button>
+<main class="container" tabindex="3" required="true" type="example">
+  <div class="mx-auto" data-topic="products" required="false">
+    <h1>Our Pizza</h1>
+    <div>
+      <strong>Choose one</strong>
+      <section class="shadow-lg">
+        <h2>Margherita</h2>
+        <p>
+         A simple classic: mozzarela, tomatoes and basil.
+         An everyday choice!
+        </p>
+        <button type="button">Add</button>
+      </section>
+      <section class="shadow-lg">
+        <h2>Capricciosa</h2>
+        <p>
+          A rich taste: mozzarella, ham, mushrooms, artichokes, and olives.
+          A true favourite!
+        </p>
+        <button type="button">Add</button>
+      </section>
     </div>
   </div>
-</section>
+</main>
 ```
 
 <p align="center">↓ D2Snap ↓</p>
 
 ``` html
-<section class="container" required="true">
+<main class="container" required="true">
   # Our Pizza
-  <div class="shadow-lg">
+  <section class="shadow-lg">
+    **Choose one**
     ## Margherita
-    A simple classic
-    <button>Add</button>
+    A simple classic mozzarela tomatoes and basil
+    <button>
+      Add
+    </button>
     ## Capricciosa
     A rich taste
-    <button>Add</button>
-  </div>
-</section>
+    A true favourite
+    <button>
+      Add
+    </button>
+  </section>
+</main>
 ```
 
 <p align="center">↓ D2Snap ↓</p>
 
 ``` html
-<section>
-  # Our Pizza
-  ## Margherita
-  A simple classic
-  <button>Add</button>
-  ## Capricciosa
-  A rich taste
-  <button>Add</button>
-</section>
+# Our Pizza
+**Choose one**
+## Margherita
+A simple classic
+<button>Add</button>
+## Capricciosa
+A rich taste
+<button>Add</button>
 ```
 
 ##

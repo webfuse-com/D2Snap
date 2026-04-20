@@ -2,7 +2,7 @@
 // Copyright (c) Dom Christie
 // --------------------------
 
-import TurndownService from "turndown";
+import TurndownService, { Filter } from "turndown";
 import { gfm } from "turndown-plugin-gfm"
 
 
@@ -15,8 +15,8 @@ const SERVICE = new TurndownService({
 });
 
 SERVICE.addRule("keep", {
-    filter: KEEP_TAG_NAMES,
-    replacement: (_, node: Node) => ("outerHTML" in node) ? node.outerHTML : ""
+    filter: KEEP_TAG_NAMES as Filter,
+    replacement: (_: string, node: Node) => ("outerHTML" in node) ? (node.outerHTML as string) : ""
 });
 
 SERVICE.use(gfm);

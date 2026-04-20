@@ -460,13 +460,13 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     } else {
       const before = [];
       const after = [];
-      let pivot = false;
+      let isAfterTarget = false;
       for (const child of sourceEl.childNodes) {
         if (child === targetEl) {
-          pivot = true;
+          isAfterTarget = true;
           continue;
         }
-        (pivot ? after : before).push(child);
+        (isAfterTarget ? after : before).push(child);
       }
       for (let i = before.length - 1; i >= 0; i--) {
         targetEl.insertBefore(before[i], targetEl.firstChild);
