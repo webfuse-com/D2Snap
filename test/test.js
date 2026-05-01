@@ -36,6 +36,10 @@ global.assertIn = function(a, b, message) {
     wrapAssertion(() => ok(b.includes(a), message), a, b, "in");
 }
 
+global.assertNotIn = function(a, b, message) {
+    wrapAssertion(() => ok(!b.includes(a), message), a, b, "not in");
+}
+
 global.assertAlmostEqual = function(a, b, precision, message) {
     const roundPrecision = a => Math.round(a * 10**precision) / 10**precision;
 

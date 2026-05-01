@@ -33,7 +33,6 @@ export declare const GROUND_TRUTH: {
             title: number;
             lang: number;
             role: number;
-            "aria-*": number;
             placeholder: number;
             label: number;
             for: number;
@@ -94,6 +93,7 @@ export declare const GROUND_TRUTH: {
             style: number;
             content: number;
             "http-equiv": number;
+            "aria-*": number;
             "data-uid": number;
         };
         fallbackRating: number;

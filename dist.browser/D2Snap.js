@@ -108,6 +108,11 @@
 
   // src/GroundTruth.ts
   var HARD_FALLBACK_RATING = 0;
+  var SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
+    "aria-",
+    "data-"
+  ];
+  var ATTRIBUTE_SUFFIX_WILDCARD = "*";
   var GroundTruth = class {
     groundTruth;
     constructor(groundTruth) {
@@ -130,12 +135,23 @@
       const fallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating;
       return fallbackRating ?? HARD_FALLBACK_RATING;
     }
-    getAttributeRating(attributeName) {
+    getAttributeRatingPrecise(attributeName) {
       if (!attributeName) return -Infinity;
       const rating = (this.groundTruth?.typeAttribute?.ratings ?? {})[attributeName.toLowerCase()];
       if (rating !== void 0) return rating;
       const fallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
-      return fallbackRating ?? HARD_FALLBACK_RATING;
+      return fallbackRating;
+    }
+    getAttributeRating(attributeName) {
+      let rating = this.getAttributeRatingPrecise(attributeName);
+      if (!rating) {
+        for (const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
+          if (!attributeName.toLocaleLowerCase().startsWith(prefix)) continue;
+          rating = this.getAttributeRatingPrecise(`${prefix}${ATTRIBUTE_SUFFIX_WILDCARD}`);
+          break;
+        }
+      }
+      return rating ?? HARD_FALLBACK_RATING;
     }
   };
 
@@ -1175,7 +1191,6 @@
         "title": 0.6,
         "lang": 0.6,
         "role": 0.6,
-        "aria-*": 0.6,
         "placeholder": 0.5,
         "label": 0.5,
         "for": 0.5,
@@ -1236,6 +1251,7 @@
         "style": 0.1,
         "content": 0.1,
         "http-equiv": 0.1,
+        "aria-*": 0.6,
         "data-uid": 1
       },
       "fallbackRating": 0
@@ -1305,12 +1321,12 @@
       }
       elementNode.parentNode?.removeChild(elementNode);
     }
-    function snapElementContainerNode(elementNode, k, domTreeHeight2) {
+    function snapElementContainerNode(elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("container", elementNode.tagName)) return;
       if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
       const mergeLevels = Math.max(
-        Math.round(domTreeHeight2 * Math.min(1, k)),
+        Math.round(domTreeHeight2 * Math.min(1, rE2)),
         1
       );
       if ((elementNode.depth - 1) % mergeLevels === 0) return;
@@ -1373,15 +1389,15 @@
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("actionable", elementNode.tagName)) return;
     }
-    function snapTextNode(textNode, l) {
+    function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
       const text = textNode?.innerText ?? textNode.textContent;
-      textNode.textContent = relativeTextRank(text, 1 - l, optionsWithDefaults.textRankOptions, true);
+      textNode.textContent = relativeTextRank(text, 1 - rT2, optionsWithDefaults.textRankOptions, true);
     }
-    function snapAttributeNode(elementNode, m) {
+    function snapAttributeNode(elementNode, rA2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       for (const attr of Array.from(elementNode.attributes)) {
-        if (groundTruth.getAttributeRating(attr.name) >= m) continue;
+        if (groundTruth.getAttributeRating(attr.name) >= rA2) continue;
         elementNode.removeAttribute(attr.name);
       }
     }

@@ -78,14 +78,14 @@ export async function d2Snap(
             ?.removeChild(elementNode);
     }
 
-    function snapElementContainerNode(elementNode: HTMLElementWithDepth, k: number, domTreeHeight: number) {
+    function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
         if(!groundTruth.isElementType("container", elementNode.tagName)) return;
         if(!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
 
         // merge
         const mergeLevels: number = Math.max(
-            Math.round(domTreeHeight * (Math.min(1, k))),
+            Math.round(domTreeHeight * (Math.min(1, rE))),
             1
         );
         if((elementNode.depth - 1) % mergeLevels === 0) return;
@@ -106,6 +106,7 @@ export async function d2Snap(
 
         if(isTopdownMerge) {
             const mergedAttributes = Array.from(targetElement.attributes);
+
             for(const attr of sourceElement.attributes) {
                 if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
                 mergedAttributes.push(attr);
@@ -184,19 +185,19 @@ export async function d2Snap(
         // pass
     }
 
-    function snapTextNode(textNode: TextNode, l: number) {
+    function snapTextNode(textNode: TextNode, rT: number) {
         if(textNode.nodeType !== Node.TEXT_NODE) return;
 
         const text: string = (textNode?.innerText ?? textNode.textContent);
 
-        textNode.textContent = relativeTextRank(text, (1 - l), optionsWithDefaults.textRankOptions, true);
+        textNode.textContent = relativeTextRank(text, (1 - rT), optionsWithDefaults.textRankOptions, true);
     }
 
-    function snapAttributeNode(elementNode: HTMLElement, m: number) {
+    function snapAttributeNode(elementNode: HTMLElement, rA: number) {
         if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 
         for(const attr of Array.from(elementNode.attributes)) {
-            if(groundTruth.getAttributeRating(attr.name) >= m) continue;
+            if(groundTruth.getAttributeRating(attr.name) >= rA) continue;
 
             elementNode.removeAttribute(attr.name);
         }

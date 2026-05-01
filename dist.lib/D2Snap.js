@@ -48,12 +48,12 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     elementNode.parentNode?.removeChild(elementNode);
   }
-  function snapElementContainerNode(elementNode, k, domTreeHeight2) {
+  function snapElementContainerNode(elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("container", elementNode.tagName)) return;
     if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
     const mergeLevels = Math.max(
-      Math.round(domTreeHeight2 * Math.min(1, k)),
+      Math.round(domTreeHeight2 * Math.min(1, rE2)),
       1
     );
     if ((elementNode.depth - 1) % mergeLevels === 0) return;
@@ -116,15 +116,15 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("actionable", elementNode.tagName)) return;
   }
-  function snapTextNode(textNode, l) {
+  function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== Node.TEXT_NODE) return;
     const text = textNode?.innerText ?? textNode.textContent;
-    textNode.textContent = relativeTextRank(text, 1 - l, optionsWithDefaults.textRankOptions, true);
+    textNode.textContent = relativeTextRank(text, 1 - rT2, optionsWithDefaults.textRankOptions, true);
   }
-  function snapAttributeNode(elementNode, m) {
+  function snapAttributeNode(elementNode, rA2) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     for (const attr of Array.from(elementNode.attributes)) {
-      if (groundTruth.getAttributeRating(attr.name) >= m) continue;
+      if (groundTruth.getAttributeRating(attr.name) >= rA2) continue;
       elementNode.removeAttribute(attr.name);
     }
   }

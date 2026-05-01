@@ -1,4 +1,9 @@
 const HARD_FALLBACK_RATING = 0;
+const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
+  "aria-",
+  "data-"
+];
+const ATTRIBUTE_SUFFIX_WILDCARD = "*";
 class GroundTruth {
   groundTruth;
   constructor(groundTruth) {
@@ -21,12 +26,23 @@ class GroundTruth {
     const fallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating;
     return fallbackRating ?? HARD_FALLBACK_RATING;
   }
-  getAttributeRating(attributeName) {
+  getAttributeRatingPrecise(attributeName) {
     if (!attributeName) return -Infinity;
     const rating = (this.groundTruth?.typeAttribute?.ratings ?? {})[attributeName.toLowerCase()];
     if (rating !== void 0) return rating;
     const fallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
-    return fallbackRating ?? HARD_FALLBACK_RATING;
+    return fallbackRating;
+  }
+  getAttributeRating(attributeName) {
+    let rating = this.getAttributeRatingPrecise(attributeName);
+    if (!rating) {
+      for (const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
+        if (!attributeName.toLocaleLowerCase().startsWith(prefix)) continue;
+        rating = this.getAttributeRatingPrecise(`${prefix}${ATTRIBUTE_SUFFIX_WILDCARD}`);
+        break;
+      }
+    }
+    return rating ?? HARD_FALLBACK_RATING;
   }
 }
 export {

@@ -84,14 +84,14 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        710,
+        780,
         -1,
         "Invalid DOM snapshot original size"
     );
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.43,
+        0.44,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -113,7 +113,7 @@ await test("Take DOM snapshot (M)", async() => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.21,
+        0.2,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -135,7 +135,7 @@ await test("Take DOM snapshot (S)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.2,
+        0.18,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -157,7 +157,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.35,
+        0.32,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -239,10 +239,38 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
         flattenDOMSnapshot(expectedReplace),
         "Invalid DOM snapshot (replace)"
     );
+
+    const snapshotAttributeWildcard = await d2Snap(await readFile("pizza"), 0, 0.3, 1, {
+        debug: true,
+        groundTruth: {
+            "typeAttribute": {
+                "ratings": {
+                    "class": 0,
+                    "required": 0,
+                    "tabindex": 0,
+                    "type": 0,
+
+                    "aria-label": 0.2,
+                    "aria-description": 0.4,
+                    "aria-*": 0.5,
+                    "data-*": 1.0
+                }
+            }
+        }
+    });
+
+    writeActual("pizza.ground-truth.attribute-wildcard", snapshotAttributeWildcard.html);
+    const expectedARIA = readExpected("pizza.ground-truth.attribute-wildcard");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotAttributeWildcard.html),
+        flattenDOMSnapshot(expectedARIA),
+        "Invalid DOM snapshot (attribute wildcard suffix '{aria-|data-}*')"
+    );
 });
 
 await test("Take DOM snapshot (options.skipMarkdown)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1.0, 0, {
+    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 0, {
         debug: true,
         skipMarkdown: true
     });
@@ -269,5 +297,21 @@ await test("Take DOM snapshot (options.debug)", async () => {
         snapshot.html,
         expected,
         "Invalid DOM snapshot"
+    );
+
+    assertNotIn(
+        "\n",
+        snapshot.html,
+        "Invalid DOM snapshot (debug)"
+    );
+
+    const snapshotDebug = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
+        debug: true
+    });
+
+    assertIn(
+        "\n",
+        snapshotDebug.html,
+        "Invalid DOM snapshot (debug)"
     );
 });

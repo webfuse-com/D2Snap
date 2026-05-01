@@ -2,6 +2,11 @@ import { type GroundTruthJSON } from "./types.js";
 
 
 const HARD_FALLBACK_RATING: number = 0.0;
+const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
+    "aria-",
+    "data-"
+];
+const ATTRIBUTE_SUFFIX_WILDCARD: string = "*";
 
 
 export class GroundTruth {
@@ -61,7 +66,7 @@ export class GroundTruth {
         return fallbackRating ?? HARD_FALLBACK_RATING;
     }
 
-    public getAttributeRating(attributeName: string): number {
+    public getAttributeRatingPrecise(attributeName: string): number | undefined {
         if(!attributeName) return -Infinity;
 
         const rating: number | undefined = (
@@ -77,6 +82,22 @@ export class GroundTruth {
             ?.typeAttribute
             ?.fallbackRating;
 
-        return fallbackRating ?? HARD_FALLBACK_RATING;
+        return fallbackRating;
+    }
+
+    public getAttributeRating(attributeName: string): number {
+        let rating: number | undefined = this.getAttributeRatingPrecise(attributeName);
+
+        if(!rating) {
+            for(const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
+                if(!attributeName.toLocaleLowerCase().startsWith(prefix)) continue;
+
+                rating = this.getAttributeRatingPrecise(`${prefix}${ATTRIBUTE_SUFFIX_WILDCARD}`);
+
+                break;
+            }
+        }
+
+        return rating ?? HARD_FALLBACK_RATING;
     }
 }

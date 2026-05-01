@@ -42,6 +42,7 @@ type Options = {
 ```
 
 > The [downsampling ground truth](./src/var.GROUND_TRUTH.ts) can be overridden via `options.groundTruth` (full replacement via `groundTruthReplaceDefault: true`).
+> It supports wildcards for `aria` and `data` attributes (`{aria-|data-}*`).
 
 #### Browser
 

@@ -86,7 +86,6 @@ export const GROUND_TRUTH = {
             "title": 0.6,
             "lang": 0.6,
             "role": 0.6,
-            "aria-*": 0.6,
             "placeholder": 0.5,
             "label": 0.5,
             "for": 0.5,
@@ -147,6 +146,7 @@ export const GROUND_TRUTH = {
             "style": 0.1,
             "content": 0.1,
             "http-equiv": 0.1,
+            "aria-*": 0.6,
 
             "data-uid": 1.0
         },
