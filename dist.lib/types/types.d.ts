@@ -15,23 +15,28 @@ export type TextNode = Node & {
     textContent: string;
     innerText?: string;
 };
-export type HTMLElementWithDepth = HTMLElement & {
-    depth: number;
-};
 export type DOM = Document | Element;
-export type TextRankOptions = {
+export type JSONValue = string | number | boolean | null | JSONValue[] | JSONObject;
+export interface JSONObject {
+    [key: string]: JSONValue;
+}
+export interface HTMLElementWithDepth extends HTMLElement {
+    depth: number;
+}
+export interface TextRankOptions {
     damping: number;
     maxIterations: number;
     maxSentences: number;
-};
-export type D2SnapOptions = {
-    debug?: boolean;
-    groundTruth?: GroundTruthJSON;
-    skipMarkdown?: boolean;
-    textRankOptions?: Partial<TextRankOptions>;
-    uniqueIDs?: boolean;
-};
-export type D2SnapResult = {
+}
+export interface D2SnapOptions {
+    debug: boolean;
+    groundTruth: Partial<GroundTruthJSON>;
+    groundTruthReplaceDefault: boolean;
+    skipMarkdown: boolean;
+    textRankOptions: Partial<TextRankOptions>;
+    uniqueIDs: boolean;
+}
+export interface D2SnapResult {
     meta: {
         tokenEstimate: number;
         originalSize: number;
@@ -39,12 +44,14 @@ export type D2SnapResult = {
         snapshotSize: number;
     };
     html: string;
-};
-export type GroundTruthJSON = {
+}
+export interface GroundTruthJSON extends JSONObject {
     typeElement: {
         container: {
             tagNames: string[];
-            ratings: Record<string, number>;
+            ratings: {
+                [key: string]: number;
+            };
             fallbackRating: number;
         };
         actionable: {
@@ -58,4 +65,4 @@ export type GroundTruthJSON = {
         ratings: Record<string, number>;
         fallbackRating: number;
     };
-};
+}

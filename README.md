@@ -32,13 +32,16 @@ D2Snap.adaptiveD2Snap(
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  debug?: boolean;                // false
-  groundTruth: object;            // see variables/ground-truth.json
-  keepUnknownElements?: boolean;  // false
-  skipMarkdown?: boolean;         // false
-  uniqueIDs?: boolean;            // false
+  debug?: boolean;                      // false
+  groundTruth?: object;                 // compare src/types.ts:GroundTruthJSON
+  groundTruthReplaceDefault?: boolean;  // false
+  keepUnknownElements?: boolean;        // false
+  skipMarkdown?: boolean;               // false
+  uniqueIDs?: boolean;                  // false
 };
 ```
+
+> The [downsampling ground truth](./src/var.GROUND_TRUTH.ts) can be overridden via `options.groundTruth` (full replacement via `groundTruthReplaceDefault: true`).
 
 #### Browser
 

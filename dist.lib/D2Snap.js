@@ -1,4 +1,7 @@
-import { NodeFilter, Node } from "./types.js";
+import {
+  NodeFilter,
+  Node
+} from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
 import { GroundTruth } from "./GroundTruth.js";
@@ -6,6 +9,7 @@ import { relativeTextRank } from "./TextRank.js";
 import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
+import { mergeJSONs } from "./util.json.js";
 const PRE_FILTER_TAG_NAMES = [
   "SCRIPT",
   "STYLE",
@@ -23,14 +27,15 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   validateParameter("rT", rT);
   const optionsWithDefaults = {
     debug: false,
-    groundTruth: void 0,
+    groundTruth: DEFAULT_GROUND_TRUTH,
+    groundTruthReplaceDefault: false,
     textRankOptions: {},
     skipMarkdown: false,
     uniqueIDs: false,
     ...options
   };
   const groundTruth = new GroundTruth(
-    optionsWithDefaults.groundTruth ? optionsWithDefaults.groundTruth : DEFAULT_GROUND_TRUTH
+    !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
   );
   function snapElementNode(elementNode) {
     if (groundTruth.isElementType("container", elementNode.tagName)) return;

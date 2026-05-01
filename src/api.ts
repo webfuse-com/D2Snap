@@ -3,7 +3,7 @@
 // -------------------------------------
 
 
-import { DOM } from "./types.js";
+import { type DOM } from "./types.js";
 import { ensureDOM } from "./util.dom.js";
 import { d2Snap as _d2Snap} from "./D2Snap.js";
 import { adaptiveD2Snap  as _adaptiveD2Snap} from "./AdaptiveD2Snap.js";

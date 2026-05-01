@@ -1,4 +1,4 @@
-import { GroundTruthJSON } from "./types.js";
+import { type GroundTruthJSON } from "./types.js";
 
 
 const HARD_FALLBACK_RATING: number = 0.0;
@@ -22,6 +22,7 @@ export class GroundTruth {
             .includes(tagName.toLowerCase());
 
         if(isNativeElement) return true;
+
         if(type !== "container") return isNativeElement;
 
         const isCustomElement: boolean = ![
@@ -79,13 +80,3 @@ export class GroundTruth {
         return fallbackRating ?? HARD_FALLBACK_RATING;
     }
 }
-
-
-export async function createDefaultGroundTruth(): Promise<GroundTruth> {
-    return new GroundTruth(
-        (
-            await import("./var.GROUND_TRUTH.js")
-        ).GROUND_TRUTH
-    );
-}
-

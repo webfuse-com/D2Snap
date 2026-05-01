@@ -3,7 +3,7 @@
 // ------------------------------------------
 
 
-import { TextRankOptions } from "./types.js";
+import { type TextRankOptions } from "./types.js";
 
 
 type Vector = number[];

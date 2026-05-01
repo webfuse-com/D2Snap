@@ -2,7 +2,7 @@
 // Copyright (c) Thassilo M. Schiepanski
 // -------------------------------------
 
-import { DOM, D2SnapOptions, D2SnapResult } from "./types.js";
+import { type DOM, type D2SnapOptions, type D2SnapResult } from "./types.js";
 import { resolveRoot } from "./util.dom.js";
 import { d2Snap } from "./D2Snap.js";
 
@@ -38,7 +38,7 @@ export async function adaptiveD2Snap(
     dom: DOM,
     maxTokens: number = 4096,
     maxIterations: number = 5,
-    options: D2SnapOptions = {}
+    options: Partial<D2SnapOptions> = {}
 ): Promise<D2SnapResult & {
     parameters: {
         rE: number; rA: number; rT: number;

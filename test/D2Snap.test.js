@@ -169,23 +169,36 @@ await test("Take DOM snapshot (linearized)", async () => {
     );
 });
 
-await test("Take DOM snapshot (options.groundTruth default)", async () => {
-    const snapshot = await d2Snap(await readFile("options.gt"), 0.5, 0.5, 0.0, {
-        debug: true
+await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceDefault)", async () => {
+    const snapshot = await d2Snap(await readFile("pizza"), 0.3, 0.3, 0.3, {
+        debug: true,
+        groundTruth: {
+            "typeElement": {
+                "container": {
+                    "ratings": {
+                        "div": 0.70
+                    }
+                },
+            },
+            "typeAttribute": {
+                "ratings": {
+                    "required": 0.2,
+                    "tabindex": 0.1
+                }
+            }
+        }
     });
 
-    writeActual("options.gt.0", snapshot.html);
-    const expected = readExpected("options.gt.0");
+    writeActual("pizza.ground-truth", snapshot.html);
+    const expected = readExpected("pizza.ground-truth");
 
     assertEqual(
         flattenDOMSnapshot(snapshot.html),
         flattenDOMSnapshot(expected),
         "Invalid DOM snapshot"
     );
-});
 
-await test("Take DOM snapshot (options.groundTruth custom)", async () => {
-    const snapshot = await d2Snap(await readFile("options.gt"), 0.5, 0.5, 0.0, {
+    const snapshotReplace = await d2Snap(await readFile("pizza"), 0.3, 0.3, 0.3, {
         debug: true,
         groundTruth: {
             "typeElement": {
@@ -194,28 +207,48 @@ await test("Take DOM snapshot (options.groundTruth custom)", async () => {
                         "div"
                     ],
                     "ratings": {
-                        "div": 0.5
+                        "div": 0.70
                     },
-                    "fallbackRating": 1.0
+                    "fallbackRating": 0.5
+                },
+                "actionable": {
+                    "tagNames": []
                 },
                 "textFormatting": {
                     "tagNames": [
-                        "h1",
-                        "h2"
+                        "h1"
                     ]
                 }
             },
             "typeAttribute": {
                 "ratings": {
-                    "id": 0.1
+                    "required": 0.2,
+                    "tabindex": 0.1
                 },
-                "fallbackRating": 1.0
+                "fallbackRating": 0.7
             }
-        }
+        },
+        groundTruthReplaceDefault: true
     });
 
-    writeActual("options.gt.1", snapshot.html);
-    const expected = readExpected("options.gt.1");
+    writeActual("pizza.ground-truth.replace", snapshotReplace.html);
+    const expectedReplace = readExpected("pizza.ground-truth.replace");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotReplace.html),
+        flattenDOMSnapshot(expectedReplace),
+        "Invalid DOM snapshot (replace)"
+    );
+});
+
+await test("Take DOM snapshot (options.skipMarkdown)", async () => {
+    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1.0, 0, {
+        debug: true,
+        skipMarkdown: true
+    });
+
+    writeActual("options.skip-markdown", snapshot.html);
+    const expected = readExpected("options.skip-markdown");
 
     assertEqual(
         flattenDOMSnapshot(snapshot.html),
@@ -224,18 +257,17 @@ await test("Take DOM snapshot (options.groundTruth custom)", async () => {
     );
 });
 
-await test("Take DOM snapshot (options.skipMarkdown = true)", async () => {
-    const snapshot = await d2Snap(await readFile("options.sm"), Infinity, 1.0, 0, {
-        debug: true,
-        skipMarkdown: true
+await test("Take DOM snapshot (options.debug)", async () => {
+    const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
+        debug: false
     });
 
-    writeActual("options.sm.true", snapshot.html);
-    const expected = readExpected("options.sm.true");
+    writeActual("options.debug", snapshot.html);
+    const expected = readExpected("options.debug");
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.html),
-        flattenDOMSnapshot(expected),
+        snapshot.html,
+        expected,
         "Invalid DOM snapshot"
     );
 });

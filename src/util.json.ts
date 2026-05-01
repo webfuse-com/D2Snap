@@ -1,8 +1,4 @@
-type JSONValue = string | number | boolean | null | JSONObject | JSONObject[];
-
-interface JSONObject {
-	[ key: string ]: JSONValue;
-}
+import { type JSONObject, type JSONValue } from "./types.js";
 
 
 function isObject(value: unknown): boolean {

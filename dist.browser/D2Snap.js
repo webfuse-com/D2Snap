@@ -1242,6 +1242,30 @@
     }
   };
 
+  // src/util.json.ts
+  function isObject(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function mergeJSONs(source, target) {
+    const result = {
+      ...source
+    };
+    for (const key of Object.keys(target)) {
+      const sourceValue = result[key];
+      const targetValue = target[key];
+      if (isObject(sourceValue) && isObject(targetValue)) {
+        result[key] = mergeJSONs(sourceValue, targetValue);
+        continue;
+      }
+      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
+        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
+        continue;
+      }
+      result[key] = targetValue;
+    }
+    return result;
+  }
+
   // src/D2Snap.ts
   var PRE_FILTER_TAG_NAMES = [
     "SCRIPT",
@@ -1260,14 +1284,15 @@
     validateParameter("rT", rT);
     const optionsWithDefaults = {
       debug: false,
-      groundTruth: void 0,
+      groundTruth: GROUND_TRUTH,
+      groundTruthReplaceDefault: false,
       textRankOptions: {},
       skipMarkdown: false,
       uniqueIDs: false,
       ...options
     };
     const groundTruth = new GroundTruth(
-      optionsWithDefaults.groundTruth ? optionsWithDefaults.groundTruth : GROUND_TRUTH
+      !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
     );
     function snapElementNode(elementNode) {
       if (groundTruth.isElementType("container", elementNode.tagName)) return;

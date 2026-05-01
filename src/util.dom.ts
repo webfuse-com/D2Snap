@@ -1,4 +1,4 @@
-import { DOM } from "./types.js";
+import { type DOM } from "./types.js";
 
 
 export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {

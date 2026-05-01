@@ -1,4 +1,4 @@
-import { DOM } from "./types.js";
+import { type DOM } from "./types.js";
 export declare function ensureDOM(domOrString: DOM | string): Promise<DOM>;
 export declare function resolveDocument(dom: DOM): Document | null;
 export declare function resolveRoot(node: DOM): Element;

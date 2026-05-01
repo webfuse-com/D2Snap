@@ -1,10 +1,22 @@
-import { NodeFilter, Node, TextNode, HTMLElementWithDepth, DOM, D2SnapOptions, D2SnapResult } from "./types.js";
+import {
+    NodeFilter,
+    Node,
+    type TextNode,
+    type HTMLElementWithDepth,
+    type DOM,
+    type JSONObject,
+    type D2SnapOptions,
+    type D2SnapResult,
+    type GroundTruthJSON
+} from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
-import { GroundTruth, createDefaultGroundTruth } from "./GroundTruth.js";
+import { GroundTruth } from "./GroundTruth.js";
 import { relativeTextRank } from "./TextRank.js";
 import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
+import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
+import { mergeJSONs } from "./util.json.js";
 
 
 const PRE_FILTER_TAG_NAMES = [
@@ -26,7 +38,7 @@ async function validateParameter(name: string, value: number, allowInfinity: boo
 export async function d2Snap(
     dom: DOM,
     rE: number, rA: number, rT: number,
-    options: D2SnapOptions = {}
+    options: Partial<D2SnapOptions> = {}
 ): Promise<D2SnapResult> {
     validateParameter("rE", rE, true);
     validateParameter("rA", rA);
@@ -34,7 +46,8 @@ export async function d2Snap(
 
     const optionsWithDefaults: D2SnapOptions = {
         debug: false,
-        groundTruth: undefined,
+        groundTruth: DEFAULT_GROUND_TRUTH,
+        groundTruthReplaceDefault: false,
         textRankOptions: {},
         skipMarkdown: false,
         uniqueIDs: false,
@@ -42,9 +55,11 @@ export async function d2Snap(
         ...options
     }
 
-    const groundTruth: GroundTruth = optionsWithDefaults.groundTruth
-        ? new GroundTruth(optionsWithDefaults.groundTruth)  // Merge with default?
-        : await createDefaultGroundTruth();
+    const groundTruth: GroundTruth = new GroundTruth(
+        !optionsWithDefaults.groundTruthReplaceDefault
+            ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth as JSONObject) as GroundTruthJSON
+            : optionsWithDefaults.groundTruth as GroundTruthJSON
+    );
 
     function snapElementNode(elementNode: HTMLElement) {
         if(groundTruth.isElementType("container", elementNode.tagName)) return;
@@ -86,35 +101,35 @@ export async function d2Snap(
         );
         isTopdownMerge && elements.reverse();
 
-        const targetEl = elements[0];
-        const sourceEl = elements[1];
+        const targetElement: HTMLElementWithDepth = elements[0];
+        const sourceElement: HTMLElementWithDepth = elements[1];
 
         if(isTopdownMerge) {
-            const mergedAttributes = Array.from(targetEl.attributes);
-            for(const attr of sourceEl.attributes) {
+            const mergedAttributes = Array.from(targetElement.attributes);
+            for(const attr of sourceElement.attributes) {
                 if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
                 mergedAttributes.push(attr);
             }
-            for(const attr of targetEl.attributes) {
-                targetEl.removeAttribute(attr.name);
+            for(const attr of targetElement.attributes) {
+                targetElement.removeAttribute(attr.name);
             }
             for(const attr of mergedAttributes) {
-                targetEl.setAttribute(attr.name, attr.value);
+                targetElement.setAttribute(attr.name, attr.value);
             }
         }
 
         if(!isTopdownMerge) {
-            while(sourceEl.childNodes.length) {
-                targetEl
-                    .insertBefore(sourceEl.childNodes[0], sourceEl);
+            while(sourceElement.childNodes.length) {
+                targetElement
+                    .insertBefore(sourceElement.childNodes[0], sourceElement);
             }
         } else {
             const before: ChildNode[] = [];
             const after: ChildNode[]  = [];
 
             let isAfterTarget: boolean = false;
-            for (const child of sourceEl.childNodes) {
-                if (child === targetEl) {
+            for (const child of sourceElement.childNodes) {
+                if (child === targetElement) {
                     isAfterTarget = true;
 
                     continue;
@@ -129,22 +144,22 @@ export async function d2Snap(
             }
 
             for (let i = before.length - 1; i >= 0; i--) {
-                targetEl.insertBefore(before[i], targetEl.firstChild);
+                targetElement.insertBefore(before[i], targetElement.firstChild);
             }
             for (const child of after) {
-                targetEl.appendChild(child);
+                targetElement.appendChild(child);
             }
 
-            targetEl.depth = sourceEl.depth!;
+            targetElement.depth = sourceElement.depth!;
 
-            sourceEl
+            sourceElement
                 .parentNode
-                ?.insertBefore(targetEl, sourceEl);
+                ?.insertBefore(targetElement, sourceElement);
         }
 
-        sourceEl
+        sourceElement
             .parentNode
-            ?.removeChild(sourceEl);
+            ?.removeChild(sourceElement);
     }
 
     function snapElementContentNode(elementNode: HTMLElement) {

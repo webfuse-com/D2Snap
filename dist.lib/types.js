@@ -13,6 +13,10 @@ var Node = /* @__PURE__ */ ((Node2) => {
   Node2[Node2["TEXT_NODE"] = 3] = "TEXT_NODE";
   return Node2;
 })(Node || {});
+;
+;
+;
+;
 export {
   Node,
   NodeFilter

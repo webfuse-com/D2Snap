@@ -1,4 +1,4 @@
-import { GroundTruthJSON } from "./types.js";
+import { type GroundTruthJSON } from "./types.js";
 export declare class GroundTruth {
     private readonly groundTruth;
     constructor(groundTruth: GroundTruthJSON);
