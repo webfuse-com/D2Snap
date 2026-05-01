@@ -11,7 +11,7 @@
 ``` ts
 D2Snap.d2Snap(
   dom: DOM,
-  r_e: number, r_a: number, r_t: number,
+  rE: number, rA: number, rT: number,
   options?: Options
 ): Promise<{
   html: string;
@@ -42,7 +42,7 @@ type Options = {
 ```
 
 > The [downsampling ground truth](./src/var.GROUND_TRUTH.ts) can be overridden via `options.groundTruth` (full replacement via `groundTruthReplaceDefault: true`).
-> It supports wildcards for `aria` and `data` attributes (`{aria-|data-}*`).
+> Wildcards for `aria` and `data` attributes are supported (`{aria-|data-}*`).
 
 #### Browser
 
@@ -70,10 +70,10 @@ import * as D2Snap from "@webfuse-com/d2snap";
 ### Example
 
 ``` html
-<main class="container" tabindex="3" required="true" type="example">
+<main class="container" tabindex="3" required="true">
   <div class="mx-auto" data-topic="products" required="false">
     <h1>Our Pizza</h1>
-    <div>
+    <div aria-description="Choose one product">
       <strong>Choose one</strong>
       <section class="shadow-lg">
         <h2>Margherita</h2>
@@ -101,7 +101,7 @@ import * as D2Snap from "@webfuse-com/d2snap";
 ``` html
 <main class="container" required="true">
   # Our Pizza
-  <section class="shadow-lg">
+  <section aria-description="Choose one product" class="shadow-lg">
     **Choose one**
     ## Margherita
     A simple classic mozzarela tomatoes and basil
@@ -177,11 +177,11 @@ npm run snapshots:create
 ##
 
 <p align="center">
-    <strong>Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents</strong>
-    <br>
-    <sub><a href="https://github.com/t-ski" target="_blank">Thassilo M. Schiepanski</a></sub>
-    &hairsp;
-    <sub><a href="https://nl.linkedin.com/in/nicholasp" target="_blank">Nicholas Piël</a></sub>
-    <br>
-    <sub>Surfly BV</sub>
+  <strong>Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents</strong>
+  <br>
+  <sub><a href="https://github.com/t-ski" target="_blank">Thassilo M. Schiepanski</a></sub>
+  &hairsp;
+  <sub><a href="https://nl.linkedin.com/in/nicholasp" target="_blank">Nicholas Piël</a></sub>
+  <br>
+  <sub>Surfly BV</sub>
 </p>
