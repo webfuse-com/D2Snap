@@ -47,7 +47,7 @@
   function resolveDocument(dom) {
     let doc;
     try {
-      let doc2 = (window ?? {}).document;
+      const doc2 = (window ?? {}).document;
       if (doc2) return doc2;
     } catch {
     }
@@ -88,7 +88,7 @@
         formattedHtml.push(indentChar.repeat(indentLevel) + token);
         continue;
       }
-      if (token.match(/^<\w[^>]*[^\/]>$/)) {
+      if (token.match(/^<\w[^>]*[^/]>$/)) {
         formattedHtml.push(indentChar.repeat(indentLevel) + token);
         indentLevel++;
         continue;
@@ -1288,7 +1288,7 @@
     "STYLE",
     "LINK"
   ];
-  async function validateParameter(name, value, allowInfinity = false) {
+  function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
       throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);

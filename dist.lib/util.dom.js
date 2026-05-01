@@ -15,7 +15,7 @@ async function ensureDOM(domOrString) {
 function resolveDocument(dom) {
   let doc;
   try {
-    let doc2 = (window ?? {}).document;
+    const doc2 = (window ?? {}).document;
     if (doc2) return doc2;
   } catch {
   }

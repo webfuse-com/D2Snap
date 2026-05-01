@@ -9,7 +9,7 @@ function formatHTML(html, indentSize = 2) {
       formattedHtml.push(indentChar.repeat(indentLevel) + token);
       continue;
     }
-    if (token.match(/^<\w[^>]*[^\/]>$/)) {
+    if (token.match(/^<\w[^>]*[^/]>$/)) {
       formattedHtml.push(indentChar.repeat(indentLevel) + token);
       indentLevel++;
       continue;
