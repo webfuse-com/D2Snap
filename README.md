@@ -35,7 +35,6 @@ type Options = {
   debug?: boolean;                      // false
   groundTruth?: object;                 // compare src/types.ts:GroundTruthJSON
   groundTruthReplaceDefault?: boolean;  // false
-  keepUnknownElements?: boolean;        // false
   skipMarkdown?: boolean;               // false
   uniqueIDs?: boolean;                  // false
 };

@@ -19,11 +19,8 @@ import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 import { mergeJSONs } from "./util.json.js";
 
 
-const PRE_FILTER_TAG_NAMES = [
-	"SCRIPT",
-	"STYLE",
-	"LINK"
-];
+const DATA_URL_ATTRIBUTE_NAME: string = "src";
+const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
 
 
 function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
@@ -48,6 +45,12 @@ export async function d2Snap(
 		debug: false,
 		groundTruth: DEFAULT_GROUND_TRUTH,
 		groundTruthReplaceDefault: false,
+		filterDataURLs: true,
+		filteredTagNames: [
+			"SCRIPT",
+			"STYLE",
+			"LINK"
+		],
 		textRankOptions: {},
 		skipMarkdown: false,
 		uniqueIDs: false,
@@ -234,16 +237,32 @@ export async function d2Snap(
 		NodeFilter.SHOW_COMMENT,
 		node => node.parentNode?.removeChild(node)
 	);
+
 	await traverseDom<Element>(
 		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		elementNode => {
-			if(!PRE_FILTER_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+			if(
+				optionsWithDefaults
+					.filteredTagNames
+					.includes(elementNode.tagName.toUpperCase())
+			) {
+				elementNode
+					.parentNode
+					?.removeChild(elementNode);
 
-			elementNode
-                .parentNode
-                ?.removeChild(elementNode);
+				return;
+			}
+
+			for(const attr of Array.from(elementNode.attributes)) {
+				if(
+					(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
+					|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
+				) continue;
+
+				elementNode.removeAttribute(attr.name);
+			}
 		}
 	);
 

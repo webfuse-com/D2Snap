@@ -276,7 +276,7 @@ await test("Take DOM snapshot (options.skipMarkdown)", async () => {
     });
 
     writeActual("options.skip-markdown", snapshot.html);
-    const expected = readExpected("options.skip-markdown");
+    const expected = readExpected("pizza.options.skip-markdown");
 
     assertEqual(
         flattenDOMSnapshot(snapshot.html),
@@ -290,8 +290,8 @@ await test("Take DOM snapshot (options.debug)", async () => {
         debug: false
     });
 
-    writeActual("options.debug", snapshot.html);
-    const expected = readExpected("options.debug");
+    writeActual("pizza.options.debug", snapshot.html);
+    const expected = readExpected("pizza.options.debug");
 
     assertEqual(
         snapshot.html,
@@ -313,5 +313,20 @@ await test("Take DOM snapshot (options.debug)", async () => {
         "\n",
         snapshotDebug.html,
         "Invalid DOM snapshot (debug)"
+    );
+});
+
+await test("Take DOM snapshot (verbose)", async () => {
+    const snapshot = await d2Snap(await readFile("verbose"), 0.6, 0.4, 0.2, {
+        debug: true
+    });
+
+    writeActual("verbose", snapshot.html);
+    const expected = readExpected("verbose");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(expected),
+        "Invalid DOM snapshot"
     );
 });

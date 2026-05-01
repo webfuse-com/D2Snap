@@ -47,6 +47,8 @@ export interface D2SnapOptions {
     debug: boolean;
     groundTruth: Partial<GroundTruthJSON>;
     groundTruthReplaceDefault: boolean;
+    filterDataURLs: boolean;
+    filteredTagNames: string[];
     skipMarkdown: boolean;
     textRankOptions: Partial<TextRankOptions>;
     uniqueIDs: boolean;

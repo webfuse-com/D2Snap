@@ -10,11 +10,8 @@ import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 import { mergeJSONs } from "./util.json.js";
-const PRE_FILTER_TAG_NAMES = [
-  "SCRIPT",
-  "STYLE",
-  "LINK"
-];
+const DATA_URL_ATTRIBUTE_NAME = "src";
+const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 function validateParameter(name, value, allowInfinity = false) {
   if (allowInfinity && value === Infinity) return;
   if (value < 0 || value > 1) {
@@ -29,6 +26,12 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     debug: false,
     groundTruth: DEFAULT_GROUND_TRUTH,
     groundTruthReplaceDefault: false,
+    filterDataURLs: true,
+    filteredTagNames: [
+      "SCRIPT",
+      "STYLE",
+      "LINK"
+    ],
     textRankOptions: {},
     skipMarkdown: false,
     uniqueIDs: false,
@@ -154,8 +157,15 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (elementNode) => {
-      if (!PRE_FILTER_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-      elementNode.parentNode?.removeChild(elementNode);
+      if (optionsWithDefaults.filteredTagNames.includes(elementNode.tagName.toUpperCase())) {
+        elementNode.parentNode?.removeChild(elementNode);
+        return;
+      }
+      for (const attr of Array.from(elementNode.attributes)) {
+        if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+        console.log(attr);
+        elementNode.removeAttribute(attr.name);
+      }
     }
   );
   let domTreeHeight = 0;

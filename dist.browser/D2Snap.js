@@ -1283,11 +1283,8 @@
   }
 
   // src/D2Snap.ts
-  var PRE_FILTER_TAG_NAMES = [
-    "SCRIPT",
-    "STYLE",
-    "LINK"
-  ];
+  var DATA_URL_ATTRIBUTE_NAME = "src";
+  var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
   function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
@@ -1302,6 +1299,12 @@
       debug: false,
       groundTruth: GROUND_TRUTH,
       groundTruthReplaceDefault: false,
+      filterDataURLs: true,
+      filteredTagNames: [
+        "SCRIPT",
+        "STYLE",
+        "LINK"
+      ],
       textRankOptions: {},
       skipMarkdown: false,
       uniqueIDs: false,
@@ -1427,8 +1430,15 @@
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
-        if (!PRE_FILTER_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-        elementNode.parentNode?.removeChild(elementNode);
+        if (optionsWithDefaults.filteredTagNames.includes(elementNode.tagName.toUpperCase())) {
+          elementNode.parentNode?.removeChild(elementNode);
+          return;
+        }
+        for (const attr of Array.from(elementNode.attributes)) {
+          if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+          console.log(attr);
+          elementNode.removeAttribute(attr.name);
+        }
       }
     );
     let domTreeHeight = 0;
