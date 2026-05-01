@@ -6,4 +6,3 @@ export declare class GroundTruth {
     getContainerRating(tagName: string): number;
     getAttributeRating(attributeName: string): number;
 }
-export declare function createDefaultGroundTruth(): Promise<GroundTruth>;

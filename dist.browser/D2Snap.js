@@ -12,13 +12,6 @@
     if (typeof require !== "undefined") return require.apply(this, arguments);
     throw Error('Dynamic require of "' + x + '" is not supported');
   });
-  var __esm = (fn, res) => function __init() {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  };
-  var __export = (target, all) => {
-    for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
-  };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
       for (let key of __getOwnPropNames(from))
@@ -35,172 +28,6 @@
     isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
     mod
   ));
-
-  // src/var.GROUND_TRUTH.ts
-  var var_GROUND_TRUTH_exports = {};
-  __export(var_GROUND_TRUTH_exports, {
-    GROUND_TRUTH: () => GROUND_TRUTH
-  });
-  var GROUND_TRUTH;
-  var init_var_GROUND_TRUTH = __esm({
-    "src/var.GROUND_TRUTH.ts"() {
-      "use strict";
-      GROUND_TRUTH = {
-        "typeElement": {
-          "container": {
-            "tagNames": [
-              "article",
-              "aside",
-              "body",
-              "div",
-              "footer",
-              "header",
-              "html",
-              "main",
-              "nav",
-              "section"
-            ],
-            "ratings": {
-              "article": 0.95,
-              "aside": 0.85,
-              "body": 0.9,
-              "div": 0.3,
-              "footer": 0.7,
-              "header": 0.75,
-              "html": 0.1,
-              "main": 0.85,
-              "nav": 0.8,
-              "section": 0.9
-            },
-            "fallbackRating": 0
-          },
-          "actionable": {
-            "tagNames": [
-              "a",
-              "button",
-              "details",
-              "form",
-              "input",
-              "label",
-              "select",
-              "summary",
-              "textarea"
-            ]
-          },
-          "textFormatting": {
-            "tagNames": [
-              "address",
-              "blockquote",
-              "b",
-              "code",
-              "em",
-              "figure",
-              "figcaption",
-              "h1",
-              "h2",
-              "h3",
-              "h4",
-              "h5",
-              "h6",
-              "hr",
-              "img",
-              "li",
-              "ol",
-              "p",
-              "pre",
-              "small",
-              "span",
-              "strong",
-              "sub",
-              "sup",
-              "table",
-              "tbody",
-              "td",
-              "thead",
-              "th",
-              "tr",
-              "ul"
-            ]
-          }
-        },
-        "typeAttribute": {
-          "ratings": {
-            "alt": 0.9,
-            "href": 0.9,
-            "src": 0.8,
-            "id": 0.8,
-            "class": 0.7,
-            "title": 0.6,
-            "lang": 0.6,
-            "role": 0.6,
-            "aria-*": 0.6,
-            "placeholder": 0.5,
-            "label": 0.5,
-            "for": 0.5,
-            "value": 0.5,
-            "checked": 0.5,
-            "disabled": 0.5,
-            "readonly": 0.5,
-            "required": 0.5,
-            "maxlength": 0.5,
-            "minlength": 0.5,
-            "pattern": 0.5,
-            "step": 0.5,
-            "min": 0.5,
-            "max": 0.5,
-            "accept": 0.4,
-            "accept-charset": 0.4,
-            "action": 0.4,
-            "method": 0.4,
-            "enctype": 0.4,
-            "target": 0.4,
-            "rel": 0.4,
-            "media": 0.4,
-            "sizes": 0.4,
-            "srcset": 0.4,
-            "preload": 0.4,
-            "autoplay": 0.4,
-            "controls": 0.4,
-            "loop": 0.4,
-            "muted": 0.4,
-            "poster": 0.4,
-            "autofocus": 0.3,
-            "autocomplete": 0.3,
-            "autocapitalize": 0.3,
-            "spellcheck": 0.3,
-            "contenteditable": 0.3,
-            "draggable": 0.3,
-            "dropzone": 0.3,
-            "tabindex": 0.3,
-            "accesskey": 0.3,
-            "cite": 0.3,
-            "datetime": 0.3,
-            "coords": 0.3,
-            "shape": 0.3,
-            "usemap": 0.3,
-            "ismap": 0.3,
-            "download": 0.3,
-            "ping": 0.3,
-            "hreflang": 0.3,
-            "type": 0.3,
-            "name": 0.3,
-            "form": 0.3,
-            "novalidate": 0.2,
-            "multiple": 0.2,
-            "selected": 0.2,
-            "size": 0.2,
-            "wrap": 0.2,
-            "hidden": 0.1,
-            "style": 0.1,
-            "content": 0.1,
-            "http-equiv": 0.1,
-            "data-uid": 1
-          },
-          "fallbackRating": 0
-        }
-      };
-    }
-  });
 
   // src/util.dom.ts
   async function ensureDOM(domOrString) {
@@ -311,11 +138,6 @@
       return fallbackRating ?? HARD_FALLBACK_RATING;
     }
   };
-  async function createDefaultGroundTruth() {
-    return new GroundTruth(
-      (await Promise.resolve().then(() => (init_var_GROUND_TRUTH(), var_GROUND_TRUTH_exports))).GROUND_TRUTH
-    );
-  }
 
   // src/TextRank.ts
   function initArray(n, value = 0) {
@@ -1256,7 +1078,168 @@
 
   // src/var.CONFIG.ts
   var CONFIG = {
-    "uniqueAttributeName": "data-uid"
+    filteredTagNames: [
+      "SCRIPT",
+      "STYLE",
+      "LINK"
+    ],
+    uniqueAttributeName: "data-uid"
+  };
+
+  // src/var.GROUND_TRUTH.ts
+  var GROUND_TRUTH = {
+    "typeElement": {
+      "container": {
+        "tagNames": [
+          "article",
+          "aside",
+          "body",
+          "div",
+          "footer",
+          "header",
+          "html",
+          "main",
+          "nav",
+          "section"
+        ],
+        "ratings": {
+          "article": 0.95,
+          "aside": 0.85,
+          "body": 0.9,
+          "div": 0.3,
+          "footer": 0.7,
+          "header": 0.75,
+          "html": 0.1,
+          "main": 0.85,
+          "nav": 0.8,
+          "section": 0.9
+        },
+        "fallbackRating": 0
+      },
+      "actionable": {
+        "tagNames": [
+          "a",
+          "button",
+          "details",
+          "form",
+          "input",
+          "label",
+          "select",
+          "summary",
+          "textarea"
+        ]
+      },
+      "textFormatting": {
+        "tagNames": [
+          "address",
+          "blockquote",
+          "b",
+          "code",
+          "em",
+          "figure",
+          "figcaption",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "hr",
+          "img",
+          "li",
+          "ol",
+          "p",
+          "pre",
+          "small",
+          "span",
+          "strong",
+          "sub",
+          "sup",
+          "table",
+          "tbody",
+          "td",
+          "thead",
+          "th",
+          "tr",
+          "ul"
+        ]
+      }
+    },
+    "typeAttribute": {
+      "ratings": {
+        "alt": 0.9,
+        "href": 0.9,
+        "src": 0.8,
+        "id": 0.8,
+        "class": 0.7,
+        "title": 0.6,
+        "lang": 0.6,
+        "role": 0.6,
+        "aria-*": 0.6,
+        "placeholder": 0.5,
+        "label": 0.5,
+        "for": 0.5,
+        "value": 0.5,
+        "checked": 0.5,
+        "disabled": 0.5,
+        "readonly": 0.5,
+        "required": 0.5,
+        "maxlength": 0.5,
+        "minlength": 0.5,
+        "pattern": 0.5,
+        "step": 0.5,
+        "min": 0.5,
+        "max": 0.5,
+        "accept": 0.4,
+        "accept-charset": 0.4,
+        "action": 0.4,
+        "method": 0.4,
+        "enctype": 0.4,
+        "target": 0.4,
+        "rel": 0.4,
+        "media": 0.4,
+        "sizes": 0.4,
+        "srcset": 0.4,
+        "preload": 0.4,
+        "autoplay": 0.4,
+        "controls": 0.4,
+        "loop": 0.4,
+        "muted": 0.4,
+        "poster": 0.4,
+        "autofocus": 0.3,
+        "autocomplete": 0.3,
+        "autocapitalize": 0.3,
+        "spellcheck": 0.3,
+        "contenteditable": 0.3,
+        "draggable": 0.3,
+        "dropzone": 0.3,
+        "tabindex": 0.3,
+        "accesskey": 0.3,
+        "cite": 0.3,
+        "datetime": 0.3,
+        "coords": 0.3,
+        "shape": 0.3,
+        "usemap": 0.3,
+        "ismap": 0.3,
+        "download": 0.3,
+        "ping": 0.3,
+        "hreflang": 0.3,
+        "type": 0.3,
+        "name": 0.3,
+        "form": 0.3,
+        "novalidate": 0.2,
+        "multiple": 0.2,
+        "selected": 0.2,
+        "size": 0.2,
+        "wrap": 0.2,
+        "hidden": 0.1,
+        "style": 0.1,
+        "content": 0.1,
+        "http-equiv": 0.1,
+        "data-uid": 1
+      },
+      "fallbackRating": 0
+    }
   };
 
   // src/D2Snap.ts
@@ -1283,7 +1266,9 @@
       uniqueIDs: false,
       ...options
     };
-    const groundTruth = optionsWithDefaults.groundTruth ? new GroundTruth(optionsWithDefaults.groundTruth) : await createDefaultGroundTruth();
+    const groundTruth = new GroundTruth(
+      optionsWithDefaults.groundTruth ? optionsWithDefaults.groundTruth : GROUND_TRUTH
+    );
     function snapElementNode(elementNode) {
       if (groundTruth.isElementType("container", elementNode.tagName)) return;
       if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
@@ -1310,46 +1295,46 @@
       ];
       const isTopdownMerge = groundTruth.getContainerRating(elements[0].tagName) < groundTruth.getContainerRating(elements[1].tagName);
       isTopdownMerge && elements.reverse();
-      const targetEl = elements[0];
-      const sourceEl = elements[1];
+      const targetElement = elements[0];
+      const sourceElement = elements[1];
       if (isTopdownMerge) {
-        const mergedAttributes = Array.from(targetEl.attributes);
-        for (const attr of sourceEl.attributes) {
+        const mergedAttributes = Array.from(targetElement.attributes);
+        for (const attr of sourceElement.attributes) {
           if (mergedAttributes.some((targetAttr) => targetAttr.name === attr.name)) continue;
           mergedAttributes.push(attr);
         }
-        for (const attr of targetEl.attributes) {
-          targetEl.removeAttribute(attr.name);
+        for (const attr of targetElement.attributes) {
+          targetElement.removeAttribute(attr.name);
         }
         for (const attr of mergedAttributes) {
-          targetEl.setAttribute(attr.name, attr.value);
+          targetElement.setAttribute(attr.name, attr.value);
         }
       }
       if (!isTopdownMerge) {
-        while (sourceEl.childNodes.length) {
-          targetEl.insertBefore(sourceEl.childNodes[0], sourceEl);
+        while (sourceElement.childNodes.length) {
+          targetElement.insertBefore(sourceElement.childNodes[0], sourceElement);
         }
       } else {
         const before = [];
         const after = [];
         let isAfterTarget = false;
-        for (const child of sourceEl.childNodes) {
-          if (child === targetEl) {
+        for (const child of sourceElement.childNodes) {
+          if (child === targetElement) {
             isAfterTarget = true;
             continue;
           }
           (isAfterTarget ? after : before).push(child);
         }
         for (let i = before.length - 1; i >= 0; i--) {
-          targetEl.insertBefore(before[i], targetEl.firstChild);
+          targetElement.insertBefore(before[i], targetElement.firstChild);
         }
         for (const child of after) {
-          targetEl.appendChild(child);
+          targetElement.appendChild(child);
         }
-        targetEl.depth = sourceEl.depth;
-        sourceEl.parentNode?.insertBefore(targetEl, sourceEl);
+        targetElement.depth = sourceElement.depth;
+        sourceElement.parentNode?.insertBefore(targetElement, sourceElement);
       }
-      sourceEl.parentNode?.removeChild(sourceEl);
+      sourceElement.parentNode?.removeChild(sourceElement);
     }
     function snapElementContentNode(elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;

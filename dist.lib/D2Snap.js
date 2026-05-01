@@ -1,10 +1,11 @@
 import { NodeFilter, Node } from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
-import { GroundTruth, createDefaultGroundTruth } from "./GroundTruth.js";
+import { GroundTruth } from "./GroundTruth.js";
 import { relativeTextRank } from "./TextRank.js";
 import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
+import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const PRE_FILTER_TAG_NAMES = [
   "SCRIPT",
   "STYLE",
@@ -28,7 +29,9 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     uniqueIDs: false,
     ...options
   };
-  const groundTruth = optionsWithDefaults.groundTruth ? new GroundTruth(optionsWithDefaults.groundTruth) : await createDefaultGroundTruth();
+  const groundTruth = new GroundTruth(
+    optionsWithDefaults.groundTruth ? optionsWithDefaults.groundTruth : DEFAULT_GROUND_TRUTH
+  );
   function snapElementNode(elementNode) {
     if (groundTruth.isElementType("container", elementNode.tagName)) return;
     if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
@@ -55,46 +58,46 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     ];
     const isTopdownMerge = groundTruth.getContainerRating(elements[0].tagName) < groundTruth.getContainerRating(elements[1].tagName);
     isTopdownMerge && elements.reverse();
-    const targetEl = elements[0];
-    const sourceEl = elements[1];
+    const targetElement = elements[0];
+    const sourceElement = elements[1];
     if (isTopdownMerge) {
-      const mergedAttributes = Array.from(targetEl.attributes);
-      for (const attr of sourceEl.attributes) {
+      const mergedAttributes = Array.from(targetElement.attributes);
+      for (const attr of sourceElement.attributes) {
         if (mergedAttributes.some((targetAttr) => targetAttr.name === attr.name)) continue;
         mergedAttributes.push(attr);
       }
-      for (const attr of targetEl.attributes) {
-        targetEl.removeAttribute(attr.name);
+      for (const attr of targetElement.attributes) {
+        targetElement.removeAttribute(attr.name);
       }
       for (const attr of mergedAttributes) {
-        targetEl.setAttribute(attr.name, attr.value);
+        targetElement.setAttribute(attr.name, attr.value);
       }
     }
     if (!isTopdownMerge) {
-      while (sourceEl.childNodes.length) {
-        targetEl.insertBefore(sourceEl.childNodes[0], sourceEl);
+      while (sourceElement.childNodes.length) {
+        targetElement.insertBefore(sourceElement.childNodes[0], sourceElement);
       }
     } else {
       const before = [];
       const after = [];
       let isAfterTarget = false;
-      for (const child of sourceEl.childNodes) {
-        if (child === targetEl) {
+      for (const child of sourceElement.childNodes) {
+        if (child === targetElement) {
           isAfterTarget = true;
           continue;
         }
         (isAfterTarget ? after : before).push(child);
       }
       for (let i = before.length - 1; i >= 0; i--) {
-        targetEl.insertBefore(before[i], targetEl.firstChild);
+        targetElement.insertBefore(before[i], targetElement.firstChild);
       }
       for (const child of after) {
-        targetEl.appendChild(child);
+        targetElement.appendChild(child);
       }
-      targetEl.depth = sourceEl.depth;
-      sourceEl.parentNode?.insertBefore(targetEl, sourceEl);
+      targetElement.depth = sourceElement.depth;
+      sourceElement.parentNode?.insertBefore(targetElement, sourceElement);
     }
-    sourceEl.parentNode?.removeChild(sourceEl);
+    sourceElement.parentNode?.removeChild(sourceElement);
   }
   function snapElementContentNode(elementNode) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;

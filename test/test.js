@@ -66,7 +66,8 @@ process.on("exit", code => {
 [
     "Turndown",
     "TextRank",
-    "D2Snap"
+    "D2Snap",
+    "util",
 ]
     .forEach(async reference => {
         await import(

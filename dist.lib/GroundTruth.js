@@ -29,12 +29,6 @@ class GroundTruth {
     return fallbackRating ?? HARD_FALLBACK_RATING;
   }
 }
-async function createDefaultGroundTruth() {
-  return new GroundTruth(
-    (await import("./var.GROUND_TRUTH.js")).GROUND_TRUTH
-  );
-}
 export {
-  GroundTruth,
-  createDefaultGroundTruth
+  GroundTruth
 };
