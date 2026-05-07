@@ -46,11 +46,7 @@ export async function d2Snap(
 		groundTruth: DEFAULT_GROUND_TRUTH,
 		groundTruthReplaceDefault: false,
 		filterDataURLs: true,
-		filteredTagNames: [
-			"SCRIPT",
-			"STYLE",
-			"LINK"
-		],
+		filteredTagNames: CONFIG.filteredTagNames,
 		textRankOptions: {},
 		skipMarkdown: false,
 		uniqueIDs: false,
@@ -248,9 +244,7 @@ export async function d2Snap(
 					.filteredTagNames
 					.includes(elementNode.tagName.toUpperCase())
 			) {
-				elementNode
-					.parentNode
-					?.removeChild(elementNode);
+				elementNode.remove();
 
 				return;
 			}

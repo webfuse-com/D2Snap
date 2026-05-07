@@ -1095,9 +1095,29 @@
   // src/var.CONFIG.ts
   var CONFIG = {
     filteredTagNames: [
+      "CIRCLE",
+      "CLIPPATH",
+      "DEFS",
+      "ELLIPSE",
+      "FILTER",
+      "G",
+      "IMAGE",
+      "LINE",
+      "LINEARGRADIENT",
+      "LINK",
+      "MASK",
+      "NOSCRIPT",
+      "PATH",
+      "PATTERN",
+      "POLYGON",
+      "POLYLINE",
+      "RADIALGRADIENT",
+      "RECT",
       "SCRIPT",
+      "STOP",
       "STYLE",
-      "LINK"
+      "TEMPLATE",
+      "USE"
     ],
     uniqueAttributeName: "data-uid"
   };
@@ -1300,11 +1320,7 @@
       groundTruth: GROUND_TRUTH,
       groundTruthReplaceDefault: false,
       filterDataURLs: true,
-      filteredTagNames: [
-        "SCRIPT",
-        "STYLE",
-        "LINK"
-      ],
+      filteredTagNames: CONFIG.filteredTagNames,
       textRankOptions: {},
       skipMarkdown: false,
       uniqueIDs: false,
@@ -1431,12 +1447,11 @@
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
         if (optionsWithDefaults.filteredTagNames.includes(elementNode.tagName.toUpperCase())) {
-          elementNode.parentNode?.removeChild(elementNode);
+          elementNode.remove();
           return;
         }
         for (const attr of Array.from(elementNode.attributes)) {
           if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-          console.log(attr);
           elementNode.removeAttribute(attr.name);
         }
       }
