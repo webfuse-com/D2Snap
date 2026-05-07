@@ -36,10 +36,10 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   const groundTruth = new GroundTruth(
     !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
   );
-  function snapElementNode(elementNode) {
+  function snapElementNode(document2, elementNode) {
     if (groundTruth.isElementType("container", elementNode.tagName)) return;
     if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
-      return snapElementContentNode(elementNode);
+      return snapElementContentNode(document2, elementNode);
     }
     if (groundTruth.isElementType("actionable", elementNode.tagName)) {
       snapElementInteractiveNode(elementNode);
@@ -47,7 +47,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     elementNode.parentNode?.removeChild(elementNode);
   }
-  function snapElementContainerNode(elementNode, rE2, domTreeHeight2) {
+  function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("container", elementNode.tagName)) return;
     if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
@@ -93,9 +93,25 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
         (isAfterTarget ? after : before).push(child);
       }
       for (let i = before.length - 1; i >= 0; i--) {
-        targetElement.insertBefore(before[i], targetElement.firstChild);
+        const child = before[i];
+        if (targetElement.childNodes.length && i === before.length - 1) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            child.textContent = `${child.textContent} `;
+          } else {
+            child.appendChild(document2.createTextNode(" "));
+          }
+        }
+        targetElement.insertBefore(child, targetElement.firstChild);
       }
-      for (const child of after) {
+      for (let i = 0; i < after.length; i++) {
+        const child = after[i];
+        if (targetElement.childNodes.length && i === 0) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            child.textContent = ` ${child.textContent}`;
+          } else {
+            child.insertBefore(document2.createTextNode(" "), child.firstChild);
+          }
+        }
         targetElement.appendChild(child);
       }
       targetElement.depth = sourceElement.depth;
@@ -103,13 +119,13 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
-  function snapElementContentNode(elementNode) {
+  function snapElementContentNode(document2, elementNode) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-    elementNode.replaceWith(...markdownNodesFragment.childNodes);
+    elementNode.replaceWith(...[document2.createTextNode(" "), ...markdownNodesFragment.childNodes, document2.createTextNode(" ")]);
   }
   function snapElementInteractiveNode(elementNode) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
@@ -184,7 +200,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementNode(node)
+    (node) => snapElementNode(document, node)
   );
   await traverseDom(
     document,
@@ -192,7 +208,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     NodeFilter.SHOW_ELEMENT,
     (node) => {
       if (!groundTruth.isElementType("container", node.tagName)) return;
-      return snapElementContainerNode(node, rE, domTreeHeight);
+      return snapElementContainerNode(document, node, rE, domTreeHeight);
     }
   );
   await traverseDom(
@@ -203,8 +219,9 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     // work on parent element
   );
   const snapshot = virtualDom.innerHTML;
-  let html = optionsWithDefaults.debug ? formatHTML(snapshot) : snapshot;
-  html = html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n").replace(/\n *(\n|$)/g, "");
+  let html = snapshot.replace(/\n *(\n|$)/g, "").replace(/\s{2,}/g, " ").replace(/((?<=>)\s+|\s+(?=<))/g, "");
+  html = optionsWithDefaults.debug ? formatHTML(html) : html;
+  html = html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
   html = virtualDom.children.length === 1 && rE === Infinity && virtualDom.children.length ? html.trim().replace(/^<[^>]+>\s*/, "").replace(/\s*<\/[^<]+>$/, "") : html;
   return {
     html,

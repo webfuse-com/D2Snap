@@ -60,11 +60,11 @@ export async function d2Snap(
 			: optionsWithDefaults.groundTruth as GroundTruthJSON
 	);
 
-	function snapElementNode(elementNode: HTMLElement) {
+	function snapElementNode(document: Document, elementNode: HTMLElement) {
 		if(groundTruth.isElementType("container", elementNode.tagName)) return;
 
 		if(groundTruth.isElementType("textFormatting", elementNode.tagName)) {
-			return snapElementContentNode(elementNode);
+			return snapElementContentNode(document, elementNode);
 		}
 		if(groundTruth.isElementType("actionable", elementNode.tagName)) {
 			snapElementInteractiveNode(elementNode);
@@ -77,7 +77,7 @@ export async function d2Snap(
             ?.removeChild(elementNode);
 	}
 
-	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
+	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
 		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("container", elementNode.tagName)) return;
 		if(!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
@@ -128,7 +128,7 @@ export async function d2Snap(
 			const after: ChildNode[]  = [];
 
 			let isAfterTarget: boolean = false;
-			for (const child of sourceElement.childNodes) {
+			for(const child of sourceElement.childNodes) {
 				if (child === targetElement) {
 					isAfterTarget = true;
 
@@ -143,10 +143,30 @@ export async function d2Snap(
                     .push(child);
 			}
 
-			for (let i = before.length - 1; i >= 0; i--) {
-				targetElement.insertBefore(before[i], targetElement.firstChild);
+			for(let i = before.length - 1; i >= 0; i--) {
+				const child: ChildNode = before[i];
+
+				if(targetElement.childNodes.length && (i === (before.length - 1))) {
+					if(child.nodeType === Node.TEXT_NODE) {
+						child.textContent = `${child.textContent} `;
+					} else {
+						child.appendChild(document.createTextNode(" "));
+					}
+				}
+
+				targetElement.insertBefore(child, targetElement.firstChild);
 			}
-			for (const child of after) {
+			for(let i = 0; i < after.length; i++) {
+				const child: ChildNode = after[i];
+
+				if(targetElement.childNodes.length && (i === 0)) {
+					if(child.nodeType === Node.TEXT_NODE) {
+						child.textContent = ` ${child.textContent}`;
+					} else {
+						child.insertBefore(document.createTextNode(" "), child.firstChild);
+					}
+				}
+
 				targetElement.appendChild(child);
 			}
 
@@ -162,7 +182,7 @@ export async function d2Snap(
             ?.removeChild(sourceElement);
 	}
 
-	function snapElementContentNode(elementNode: HTMLElement) {
+	function snapElementContentNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
 		if(optionsWithDefaults.skipMarkdown) return;
@@ -174,7 +194,7 @@ export async function d2Snap(
             .createContextualFragment(markdown);
 
 		elementNode
-            .replaceWith(...markdownNodesFragment.childNodes);
+            .replaceWith(...[ document.createTextNode(" "), ...markdownNodesFragment.childNodes, document.createTextNode(" ") ]);
 	}
 
 	function snapElementInteractiveNode(elementNode: HTMLElement) {
@@ -289,7 +309,7 @@ export async function d2Snap(
 		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementNode(node)
+		(node: HTMLElement) => snapElementNode(document, node)
 	);
 
 	// Container element nodes
@@ -300,7 +320,7 @@ export async function d2Snap(
 		(node: HTMLElementWithDepth) => {
 			if(!groundTruth.isElementType("container", node.tagName)) return;
 
-			return snapElementContainerNode(node, rE, domTreeHeight);
+			return snapElementContainerNode(document, node, rE, domTreeHeight);
 		}
 	);
 
@@ -313,12 +333,15 @@ export async function d2Snap(
 	);
 
 	const snapshot = virtualDom.innerHTML;
-	let html = optionsWithDefaults.debug
-		? formatHTML(snapshot)
-		: snapshot;
+	let html = snapshot
+        .replace(/\n *(\n|$)/g, "")
+        .replace(/\s{2,}/g, " ")
+        .replace(/((?<=>)\s+|\s+(?=<))/g, "");
+	html = optionsWithDefaults.debug
+		? formatHTML(html)
+		: html;
 	html = html
-        .replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n")
-        .replace(/\n *(\n|$)/g, "");
+        .replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
 	html = (
 		virtualDom.children.length === 1
         && (rE === Infinity)
