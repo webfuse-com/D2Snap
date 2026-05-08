@@ -1,6 +1,9 @@
 import { type GroundTruthJSON } from "./types.js";
 
 
+type ElementType = "container" | "actionable" | "textFormatting";
+
+
 const HARD_FALLBACK_RATING: number = 0.0;
 const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
 	"aria-",
@@ -16,15 +19,17 @@ export class GroundTruth {
 		this.groundTruth = groundTruth;
 	}
 
-	public isElementType(type: "container" | "actionable" | "textFormatting", tagName: string): boolean {
-		const isNativeElement: boolean = (
-			(
-				this.groundTruth
-                    ?.typeElement[type]
-                    ?.tagNames
-			) ?? []
-		)
-            .includes(tagName.toLowerCase());
+	public getElementsByType(type: ElementType): string[] {
+		return (
+			this.groundTruth
+				?.typeElement[type]
+				?.tagNames
+		) ?? [];
+	}
+
+	public isElementType(type: ElementType, tagName: string): boolean {
+		const isNativeElement: boolean = this.getElementsByType(type)
+			.includes(tagName.toLowerCase());
 
 		if(isNativeElement) return true;
 

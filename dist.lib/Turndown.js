@@ -1,21 +1,24 @@
 import TurndownService from "turndown";
 import { gfm } from "turndown-plugin-gfm";
-const KEEP_TAG_NAMES = ["a"];
-const SERVICE = new TurndownService({
-  headingStyle: "atx",
-  bulletListMarker: "-",
-  codeBlockStyle: "fenced"
-});
-SERVICE.addRule("keep", {
-  filter: KEEP_TAG_NAMES,
-  replacement: (_, node) => "outerHTML" in node ? node.outerHTML : ""
-});
-SERVICE.use(gfm);
-const KEEP_LINE_BREAK_MARK = "@@@";
-function turndown(markup) {
-  return SERVICE.turndown(markup).trim().replace(/\n/g, KEEP_LINE_BREAK_MARK);
+class Turndown {
+  service;
+  constructor(keepTagNames) {
+    this.service = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced"
+    });
+    const normalizedKeepTagNames = new Set(keepTagNames.map((tag) => tag.toLowerCase()));
+    this.service.addRule("keep", {
+      filter: (node) => node.nodeType === 1 && normalizedKeepTagNames.has(node.tagName.toLowerCase()),
+      replacement: (_content, node) => node.nodeType === 1 ? node.outerHTML : ""
+    });
+    this.service.use(gfm);
+  }
+  translate(html) {
+    return this.service.turndown(html).trim();
+  }
 }
 export {
-  KEEP_LINE_BREAK_MARK,
-  turndown
+  Turndown
 };

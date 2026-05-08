@@ -1,2 +1,5 @@
-export declare const KEEP_LINE_BREAK_MARK = "@@@";
-export declare function turndown(markup: string): string;
+export declare class Turndown {
+    private readonly service;
+    constructor(keepTagNames: string[]);
+    translate(html: string): string;
+}

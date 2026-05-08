@@ -9,8 +9,11 @@ class GroundTruth {
   constructor(groundTruth) {
     this.groundTruth = groundTruth;
   }
+  getElementsByType(type) {
+    return this.groundTruth?.typeElement[type]?.tagNames ?? [];
+  }
   isElementType(type, tagName) {
-    const isNativeElement = (this.groundTruth?.typeElement[type]?.tagNames ?? []).includes(tagName.toLowerCase());
+    const isNativeElement = this.getElementsByType(type).includes(tagName.toLowerCase());
     if (isNativeElement) return true;
     if (type !== "container") return isNativeElement;
     const isCustomElement = ![

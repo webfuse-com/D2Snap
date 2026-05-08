@@ -118,8 +118,11 @@
     constructor(groundTruth) {
       this.groundTruth = groundTruth;
     }
+    getElementsByType(type) {
+      return this.groundTruth?.typeElement[type]?.tagNames ?? [];
+    }
     isElementType(type, tagName) {
-      const isNativeElement = (this.groundTruth?.typeElement[type]?.tagNames ?? []).includes(tagName.toLowerCase());
+      const isNativeElement = this.getElementsByType(type).includes(tagName.toLowerCase());
       if (isNativeElement) return true;
       if (type !== "container") return isNativeElement;
       const isCustomElement = ![
@@ -1076,21 +1079,25 @@
   }
 
   // src/Turndown.ts
-  var KEEP_TAG_NAMES = ["a"];
-  var SERVICE = new turndown_browser_es_default({
-    headingStyle: "atx",
-    bulletListMarker: "-",
-    codeBlockStyle: "fenced"
-  });
-  SERVICE.addRule("keep", {
-    filter: KEEP_TAG_NAMES,
-    replacement: (_, node) => "outerHTML" in node ? node.outerHTML : ""
-  });
-  SERVICE.use(gfm);
-  var KEEP_LINE_BREAK_MARK = "@@@";
-  function turndown(markup) {
-    return SERVICE.turndown(markup).trim().replace(/\n/g, KEEP_LINE_BREAK_MARK);
-  }
+  var Turndown = class {
+    service;
+    constructor(keepTagNames) {
+      this.service = new turndown_browser_es_default({
+        headingStyle: "atx",
+        bulletListMarker: "-",
+        codeBlockStyle: "fenced"
+      });
+      const normalizedKeepTagNames = new Set(keepTagNames.map((tag) => tag.toLowerCase()));
+      this.service.addRule("keep", {
+        filter: (node) => node.nodeType === 1 && normalizedKeepTagNames.has(node.tagName.toLowerCase()),
+        replacement: (_content, node) => node.nodeType === 1 ? node.outerHTML : ""
+      });
+      this.service.use(gfm);
+    }
+    translate(html) {
+      return this.service.turndown(html).trim();
+    }
+  };
 
   // src/var.CONFIG.ts
   var CONFIG = {
@@ -1329,6 +1336,9 @@
     const groundTruth = new GroundTruth(
       !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
     );
+    const turndown = new Turndown(
+      groundTruth.getElementsByType("actionable")
+    );
     function snapElementNode(document3, elementNode) {
       if (groundTruth.isElementType("container", elementNode.tagName)) return;
       if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
@@ -1416,7 +1426,7 @@
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
       if (optionsWithDefaults.skipMarkdown) return;
-      const markdown = turndown(elementNode.outerHTML);
+      const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
       elementNode.replaceWith(...[document3.createTextNode(" "), ...markdownNodesFragment.childNodes, document3.createTextNode(" ")]);
     }
@@ -1514,7 +1524,6 @@
     const snapshot = virtualDom.innerHTML;
     let html = snapshot.replace(/\n *(\n|$)/g, "").replace(/\s{2,}/g, " ").replace(/((?<=>)\s+|\s+(?=<))/g, "");
     html = optionsWithDefaults.debug ? formatHTML(html) : html;
-    html = html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
     html = virtualDom.children.length === 1 && rE === Infinity && virtualDom.children.length ? html.trim().replace(/^<[^>]+>\s*/, "").replace(/\s*<\/[^<]+>$/, "") : html;
     return {
       html,

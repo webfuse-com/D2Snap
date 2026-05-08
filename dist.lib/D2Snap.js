@@ -6,7 +6,7 @@ import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
 import { GroundTruth } from "./GroundTruth.js";
 import { relativeTextRank } from "./TextRank.js";
-import { KEEP_LINE_BREAK_MARK, turndown } from "./Turndown.js";
+import { Turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 import { mergeJSONs } from "./util.json.js";
@@ -35,6 +35,9 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   };
   const groundTruth = new GroundTruth(
     !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
+  );
+  const turndown = new Turndown(
+    groundTruth.getElementsByType("actionable")
   );
   function snapElementNode(document2, elementNode) {
     if (groundTruth.isElementType("container", elementNode.tagName)) return;
@@ -123,7 +126,7 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
-    const markdown = turndown(elementNode.outerHTML);
+    const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
     elementNode.replaceWith(...[document2.createTextNode(" "), ...markdownNodesFragment.childNodes, document2.createTextNode(" ")]);
   }
@@ -221,7 +224,6 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   const snapshot = virtualDom.innerHTML;
   let html = snapshot.replace(/\n *(\n|$)/g, "").replace(/\s{2,}/g, " ").replace(/((?<=>)\s+|\s+(?=<))/g, "");
   html = optionsWithDefaults.debug ? formatHTML(html) : html;
-  html = html.replace(new RegExp(KEEP_LINE_BREAK_MARK, "g"), "\n");
   html = virtualDom.children.length === 1 && rE === Infinity && virtualDom.children.length ? html.trim().replace(/^<[^>]+>\s*/, "").replace(/\s*<\/[^<]+>$/, "") : html;
   return {
     html,

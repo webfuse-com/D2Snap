@@ -2,33 +2,41 @@
 // Copyright (c) Dom Christie
 // --------------------------
 
-import TurndownService, { Filter } from "turndown";
+import TurndownService from "turndown";
 import { gfm } from "turndown-plugin-gfm"
 
 
-const KEEP_TAG_NAMES = [ "a" ];
+export class Turndown {
+	private readonly service: TurndownService;
 
-const SERVICE = new TurndownService({
-	headingStyle: "atx",
-	bulletListMarker: "-",
-	codeBlockStyle: "fenced",
-});
+	constructor(keepTagNames: string[]) {
+		this.service = new TurndownService({
+			headingStyle: "atx",
+			bulletListMarker: "-",
+			codeBlockStyle: "fenced",
+		});
 
-SERVICE.addRule("keep", {
-	filter: KEEP_TAG_NAMES as Filter,
-	replacement: (_: string, node: Node) => ("outerHTML" in node) ? (node.outerHTML as string) : ""
-});
+		const normalizedKeepTagNames: Set<string> = new Set(keepTagNames.map(tag => tag.toLowerCase()));
 
- 
-SERVICE.use(gfm);
+		this.service
+			.addRule("keep", {
+				filter: (node: Node) => (
+					(node.nodeType === 1)
+					&& normalizedKeepTagNames.has((node as Element).tagName.toLowerCase())
+				),
+				replacement: (_content: string, node: Node) => (
+					node.nodeType === 1
+						? (node as Element).outerHTML
+						: ""
+				)
+			});
 
+		this.service.use(gfm);
+	}
 
-export const KEEP_LINE_BREAK_MARK = "@@@";
-
-
-export function turndown(markup: string): string {
-	return SERVICE
-        .turndown(markup)
-        .trim()
-        .replace(/\n/g, KEEP_LINE_BREAK_MARK);
+	public translate(html: string): string {
+		return this.service
+			.turndown(html)
+			.trim();
+	}
 }

@@ -86,7 +86,7 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        800,
+        990,
         -1,
         "Invalid DOM snapshot original size"
     );
@@ -115,7 +115,7 @@ await test("Take DOM snapshot (M)", async() => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.21,
+        0.27,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -137,7 +137,7 @@ await test("Take DOM snapshot (S)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.19,
+        0.22,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -150,7 +150,7 @@ await test("Take DOM snapshot (S)", async () => {
 });
 
 await test("Take DOM snapshot (linearized)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1.0, 0, {
+    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 0, {
         debug: true
     });
 
@@ -159,7 +159,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.33,
+        0.31,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -289,7 +289,7 @@ await test("Take DOM snapshot (options.skipMarkdown)", async () => {
         skipMarkdown: true
     });
 
-    writeActual("options.skip-markdown", snapshot.html);
+    writeActual("pizza.options.skip-markdown", snapshot.html);
     const expected = readExpected("pizza.options.skip-markdown");
 
     assertEqual(
