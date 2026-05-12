@@ -1,3 +1,4 @@
+import { NodeFilter, Node as NodeType } from "./types.js";
 async function ensureDOM(domOrString) {
   if (typeof domOrString !== "string") return domOrString;
   if (typeof window !== "undefined") {
@@ -29,15 +30,23 @@ function resolveDocument(dom) {
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;
 }
-async function traverseDom(doc, root, filter = NodeFilter.SHOW_ALL, cb) {
-  const resolvedDoc = resolveDocument(doc);
-  if (!resolvedDoc) throw new Error("Could not resolve document");
-  const walker = resolvedDoc.createTreeWalker(root, filter);
+async function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
+  const showElement = (filter & NodeFilter.SHOW_ELEMENT) !== 0;
+  const showText = (filter & NodeFilter.SHOW_TEXT) !== 0;
+  const showComment = (filter & NodeFilter.SHOW_COMMENT) !== 0;
   const nodes = [];
-  let node = walker.firstChild();
-  while (node) {
-    nodes.push(node);
-    node = walker.nextNode();
+  const stack = [];
+  for (let i = root.childNodes.length - 1; i >= 0; i--) {
+    stack.push(root.childNodes[i]);
+  }
+  while (stack.length) {
+    const node = stack.pop();
+    const passes = filter === NodeFilter.SHOW_ALL || node.nodeType === NodeType.ELEMENT_NODE && showElement || node.nodeType === NodeType.TEXT_NODE && showText || node.nodeType === NodeType.COMMENT_NODE && showComment;
+    passes && nodes.push(node);
+    const children = node.childNodes;
+    for (let i = children.length - 1; i >= 0; i--) {
+      stack.push(children[i]);
+    }
   }
   while (nodes.length) {
     await cb(nodes.shift());

@@ -64,23 +64,6 @@ export async function d2Snap(
 		groundTruth.getElementsByType("actionable")
 	);
 
-	function snapElementNode(document: Document, elementNode: HTMLElement) {
-		if(groundTruth.isElementType("container", elementNode.tagName)) return;
-
-		if(groundTruth.isElementType("textFormatting", elementNode.tagName)) {
-			return snapElementContentNode(document, elementNode);
-		}
-		if(groundTruth.isElementType("actionable", elementNode.tagName)) {
-			snapElementInteractiveNode(elementNode);
-
-			return;
-		}
-
-		elementNode
-            .parentNode
-            ?.removeChild(elementNode);
-	}
-
 	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
 		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("container", elementNode.tagName)) return;
@@ -186,12 +169,12 @@ export async function d2Snap(
             ?.removeChild(sourceElement);
 	}
 
-	function snapElementContentNode(document: Document, elementNode: HTMLElement) {
+	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
 		if(optionsWithDefaults.skipMarkdown) return;
 
-		// markdown
+		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
 		const markdownNodesFragment = resolveDocument(dom)!
             .createRange()
@@ -199,13 +182,6 @@ export async function d2Snap(
 
 		elementNode
             .replaceWith(...[ document.createTextNode(" "), ...markdownNodesFragment.childNodes, document.createTextNode(" ") ]);
-	}
-
-	function snapElementInteractiveNode(elementNode: HTMLElement) {
-		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
-		if(!groundTruth.isElementType("actionable", elementNode.tagName)) return;
-
-		// pass
 	}
 
 	function snapTextNode(textNode: TextNode, rT: number) {
@@ -235,7 +211,6 @@ export async function d2Snap(
 	let n = 0;
 	optionsWithDefaults.uniqueIDs
         && await traverseDom<Element>(
-        	document,
         	rootElement,
         	NodeFilter.SHOW_ELEMENT,
         	elementNode => {
@@ -252,14 +227,12 @@ export async function d2Snap(
 
 	// Prepare
 	await traverseDom<Comment>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_COMMENT,
 		node => node.parentNode?.removeChild(node)
 	);
 
 	await traverseDom<Element>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		elementNode => {
@@ -286,7 +259,6 @@ export async function d2Snap(
 
 	let domTreeHeight: number = 0;
 	await traverseDom<Element>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		elementNode => {
@@ -298,27 +270,22 @@ export async function d2Snap(
 		}
 	);
 
-	// D2Snap implementation harnessing the TreeWalkers API:
-
 	// Text nodes first
 	await traverseDom<TextNode>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_TEXT,
 		(node: TextNode) => snapTextNode(node, rT)
 	);
 
-	// Non-container element nodes
+	// Text formatting element nodes
 	await traverseDom<HTMLElement>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementNode(document, node)
+		(node: HTMLElement) => snapElementTextFormattingNode(document, node),
 	);
 
 	// Container element nodes
 	await traverseDom<HTMLElementWithDepth>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElementWithDepth) => {
@@ -328,9 +295,11 @@ export async function d2Snap(
 		}
 	);
 
+	// Actionable element nodes
+	// Designated no-op
+
 	// Attribute nodes
 	await traverseDom<HTMLElement>(
-		document,
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element

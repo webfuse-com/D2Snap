@@ -61,15 +61,23 @@
   function resolveRoot(node) {
     return node?.body ?? node?.documentElement ?? node;
   }
-  async function traverseDom(doc, root2, filter = NodeFilter.SHOW_ALL, cb) {
-    const resolvedDoc = resolveDocument(doc);
-    if (!resolvedDoc) throw new Error("Could not resolve document");
-    const walker = resolvedDoc.createTreeWalker(root2, filter);
+  async function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb) {
+    const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
+    const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
+    const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
     const nodes = [];
-    let node = walker.firstChild();
-    while (node) {
-      nodes.push(node);
-      node = walker.nextNode();
+    const stack = [];
+    for (let i = root2.childNodes.length - 1; i >= 0; i--) {
+      stack.push(root2.childNodes[i]);
+    }
+    while (stack.length) {
+      const node = stack.pop();
+      const passes = filter === 4294967295 /* SHOW_ALL */ || node.nodeType === 1 /* ELEMENT_NODE */ && showElement || node.nodeType === 3 /* TEXT_NODE */ && showText || node.nodeType === 8 /* COMMENT_NODE */ && showComment;
+      passes && nodes.push(node);
+      const children = node.childNodes;
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]);
+      }
     }
     while (nodes.length) {
       await cb(nodes.shift());
@@ -747,7 +755,7 @@
   function isPreOrCode(node) {
     return node.nodeName === "PRE" || node.nodeName === "CODE";
   }
-  function Node(node, options) {
+  function Node2(node, options) {
     node.isBlock = isBlock(node);
     node.isCode = node.nodeName === "CODE" || node.parentNode.isCode;
     node.isBlank = isBlank(node);
@@ -934,7 +942,7 @@
   function process(parentNode) {
     var self = this;
     return reduce.call(parentNode.childNodes, function(output, node) {
-      node = new Node(node, self.options);
+      node = new Node2(node, self.options);
       var replacement = "";
       if (node.nodeType === 3) {
         replacement = node.isCode ? node.nodeValue : self.escape(node.nodeValue);
@@ -1339,17 +1347,6 @@
     const turndown = new Turndown(
       groundTruth.getElementsByType("actionable")
     );
-    function snapElementNode(document3, elementNode) {
-      if (groundTruth.isElementType("container", elementNode.tagName)) return;
-      if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
-        return snapElementContentNode(document3, elementNode);
-      }
-      if (groundTruth.isElementType("actionable", elementNode.tagName)) {
-        snapElementInteractiveNode(elementNode);
-        return;
-      }
-      elementNode.parentNode?.removeChild(elementNode);
-    }
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("container", elementNode.tagName)) return;
@@ -1422,17 +1419,19 @@
       }
       sourceElement.parentNode?.removeChild(sourceElement);
     }
-    function snapElementContentNode(document3, elementNode) {
+    function snapElementTextFormattingNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-      elementNode.replaceWith(...[document3.createTextNode(" "), ...markdownNodesFragment.childNodes, document3.createTextNode(" ")]);
-    }
-    function snapElementInteractiveNode(elementNode) {
-      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!groundTruth.isElementType("actionable", elementNode.tagName)) return;
+      elementNode.replaceWith(
+        ...[
+          document3.createTextNode(" "),
+          ...markdownNodesFragment.childNodes,
+          document3.createTextNode(" ")
+        ]
+      );
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
@@ -1452,7 +1451,6 @@
     const originalSize = rootElement.innerHTML.length;
     let n = 0;
     optionsWithDefaults.uniqueIDs && await traverseDom(
-      document2,
       rootElement,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
@@ -1462,13 +1460,11 @@
     );
     const virtualDom = rootElement.cloneNode(true);
     await traverseDom(
-      document2,
       virtualDom,
       128 /* SHOW_COMMENT */,
       (node) => node.parentNode?.removeChild(node)
     );
     await traverseDom(
-      document2,
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
@@ -1484,7 +1480,6 @@
     );
     let domTreeHeight = 0;
     await traverseDom(
-      document2,
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
@@ -1494,19 +1489,16 @@
       }
     );
     await traverseDom(
-      document2,
       virtualDom,
       4 /* SHOW_TEXT */,
       (node) => snapTextNode(node, rT)
     );
     await traverseDom(
-      document2,
       virtualDom,
       1 /* SHOW_ELEMENT */,
-      (node) => snapElementNode(document2, node)
+      (node) => snapElementTextFormattingNode(document2, node)
     );
     await traverseDom(
-      document2,
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => {
@@ -1515,7 +1507,6 @@
       }
     );
     await traverseDom(
-      document2,
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapAttributeNode(node, rA)

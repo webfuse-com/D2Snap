@@ -11,6 +11,7 @@ var Node = /* @__PURE__ */ ((Node2) => {
   Node2[Node2["ELEMENT_NODE"] = 1] = "ELEMENT_NODE";
   Node2[Node2["ATTRIBUTE_NODE"] = 2] = "ATTRIBUTE_NODE";
   Node2[Node2["TEXT_NODE"] = 3] = "TEXT_NODE";
+  Node2[Node2["COMMENT_NODE"] = 8] = "COMMENT_NODE";
   return Node2;
 })(Node || {});
 ;

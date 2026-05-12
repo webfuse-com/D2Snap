@@ -9,7 +9,8 @@ export enum NodeFilter {
 export enum Node {
     ELEMENT_NODE = 1,
     ATTRIBUTE_NODE = 2,
-    TEXT_NODE = 3
+    TEXT_NODE = 3,
+    COMMENT_NODE = 8
 }
 
 export type TextNode = Node & {

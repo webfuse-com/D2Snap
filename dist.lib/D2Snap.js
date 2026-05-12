@@ -39,17 +39,6 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   const turndown = new Turndown(
     groundTruth.getElementsByType("actionable")
   );
-  function snapElementNode(document2, elementNode) {
-    if (groundTruth.isElementType("container", elementNode.tagName)) return;
-    if (groundTruth.isElementType("textFormatting", elementNode.tagName)) {
-      return snapElementContentNode(document2, elementNode);
-    }
-    if (groundTruth.isElementType("actionable", elementNode.tagName)) {
-      snapElementInteractiveNode(elementNode);
-      return;
-    }
-    elementNode.parentNode?.removeChild(elementNode);
-  }
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("container", elementNode.tagName)) return;
@@ -122,17 +111,19 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
-  function snapElementContentNode(document2, elementNode) {
+  function snapElementTextFormattingNode(document2, elementNode) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-    elementNode.replaceWith(...[document2.createTextNode(" "), ...markdownNodesFragment.childNodes, document2.createTextNode(" ")]);
-  }
-  function snapElementInteractiveNode(elementNode) {
-    if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
-    if (!groundTruth.isElementType("actionable", elementNode.tagName)) return;
+    elementNode.replaceWith(
+      ...[
+        document2.createTextNode(" "),
+        ...markdownNodesFragment.childNodes,
+        document2.createTextNode(" ")
+      ]
+    );
   }
   function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== Node.TEXT_NODE) return;
@@ -152,7 +143,6 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   const originalSize = rootElement.innerHTML.length;
   let n = 0;
   optionsWithDefaults.uniqueIDs && await traverseDom(
-    document,
     rootElement,
     NodeFilter.SHOW_ELEMENT,
     (elementNode) => {
@@ -162,13 +152,11 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   const virtualDom = rootElement.cloneNode(true);
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_COMMENT,
     (node) => node.parentNode?.removeChild(node)
   );
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (elementNode) => {
@@ -184,7 +172,6 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   let domTreeHeight = 0;
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (elementNode) => {
@@ -194,19 +181,16 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
   );
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_TEXT,
     (node) => snapTextNode(node, rT)
   );
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementNode(document, node)
+    (node) => snapElementTextFormattingNode(document, node)
   );
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => {
@@ -215,7 +199,6 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     }
   );
   await traverseDom(
-    document,
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapAttributeNode(node, rA)
