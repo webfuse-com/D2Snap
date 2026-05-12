@@ -4,7 +4,7 @@ import { mergeJSONs } from "../dist.lib/util.json.js";
 
 await test("Format HTML", async () => {
     const formattedHTML = formatHTML(
-        `<h1>Amsterdam</h1><p><strong>Amsterdam</strong> is the capital and largest city of the Kingdom of the Netherlands.<p>`
+        `<h1>Amsterdam</h1><p><strong>Amsterdam</strong> is the capital and largest city of the Kingdom of the Netherlands.</p>`
     );
 
     assertEqual(
@@ -14,11 +14,8 @@ await test("Format HTML", async () => {
           Amsterdam
         </h1>
         <p>
-        <strong>
-          Amsterdam
-        </strong>
-        is the capital and largest city of the Kingdom of the Netherlands.
-        <p>
+          <strong>Amsterdam</strong> is the capital and largest city of the Kingdom of the Netherlands.
+        </p>
         `
             .replace(/\n {8}/g, "\n")
             .trim(),
