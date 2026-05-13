@@ -7,7 +7,7 @@ import { Logger } from "./Logger.js";
 
 const RESULTS_DATE = parseOption("--date");
 if(!RESULTS_DATE)
-    throw new ReferenceError(`Missing results directory date identifier`);
+    throw new ReferenceError(`Missing results date (--date <dirname>)`);
 
 const RESULTS_DIR_PATH = join(import.meta.dirname, "results", RESULTS_DATE);
 if(!existsSync(RESULTS_DIR_PATH))

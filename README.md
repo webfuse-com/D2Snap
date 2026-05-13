@@ -36,6 +36,7 @@ type Options = {
   groundTruth?: object;                 // compare src/types.ts:GroundTruthJSON
   groundTruthReplaceDefault?: boolean;  // false
   skipMarkdown?: boolean;               // false
+  skipTextRank?: boolean;               // false
   uniqueIDs?: boolean;                  // false
 };
 ```
