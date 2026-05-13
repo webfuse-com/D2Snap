@@ -9,7 +9,7 @@ function textRank(sentences, options = {}) {
   const optionsWithDefaults = {
     damping: 0.75,
     maxIterations: 20,
-    minSimilarity: 0,
+    minSimilarity: 0.1,
     tolerance: 1e-4,
     ...options
   };

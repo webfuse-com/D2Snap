@@ -32,7 +32,7 @@ export function textRank(sentences: string[], options: Partial<TextRankOptions> 
 	const optionsWithDefaults: TextRankOptions = {
 		damping: 0.75,
 		maxIterations: 20,
-		minSimilarity: 0,
+		minSimilarity: 0.1,
 		tolerance: 1e-4,
 		...options
 	};
