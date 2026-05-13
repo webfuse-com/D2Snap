@@ -1,4 +1,4 @@
-import { tokenizeSentences, textRank, relativeTextRank } from "../dist.lib/TextRank.js";
+import { tokenizeSentences, textRank, transform } from "../dist.lib/TextRank.js";
 
 
 await test("Tokenize sentences", async () => {
@@ -14,44 +14,92 @@ await test("Tokenize sentences", async () => {
     assertEqual(
         tokenization,
         [
-            "An AI agent is a fundamental concept in artificial intelligence",
-            "At its core an AI agent operates on a continuous cycle",
-            "sensors processing actuators",
-            "The environment itself can be physical like",
-            "a selfdriving car navigating roads",
-            "or entirely digital"
+            "An AI agent is a fundamental concept in artificial intelligence.",
+            "At its core, an AI agent operates on a continuous cycle: sensors, processing, actuators.",
+            "The environment itself can be physical, like",
+            "a self-driving car navigating roads,",
+            "or entirely digital."
+        ],
+        "Tokenization returns invalid results"
+    );
+});
+
+await test("Apply sentence-based TextRank algorithm", async () => {
+    const result = textRank(
+        tokenizeSentences(`
+            Amsterdam (AM-stər-dam, AM-stər-DAM; Dutch: [ˌɑmstərˈdɑm]; lit. 'Dam in the Amstel') is the capital and largest city of the Kingdom of the Netherlands.
+            It has a population of 933,680 in June 2024 within the city proper, 1,457,018 in the urban area and 2,480,394 in the metropolitan area.
+            Located in the Dutch province of North Holland, Amsterdam is colloquially referred to as the "Venice of the North", for its large number of canals, now a UNESCO World Heritage Site.
+
+            Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.
+            Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse.
+            Amsterdam was the leading centre for finance and trade, as well as a hub of secular art production.
+            In the 19th and 20th centuries, the city expanded and new neighborhoods and suburbs were built.
+            The city has a long tradition of openness, liberalism, and tolerance.
+            Cycling is key to the city's modern character, and there are numerous biking paths and lanes spread throughout.
+        `)
+    );
+
+    assertEqual(
+        result,
+        [
+            {
+                sentence: 'The city has a long tradition of openness, liberalism, and tolerance.',
+                index: 8,
+                score: 40377457951943.766
+            },
+            {
+                sentence: 'In the 19th and 20th centuries, the city expanded and new neighborhoods and suburbs were built.',
+                index: 7,
+                score: 32129898770595.543
+            },
+            {
+                sentence: "Cycling is key to the city's modern character, and there are numerous biking paths and lanes spread throughout.",
+                index: 9,
+                score: 31392826794416.746
+            },
+            {
+                sentence: 'Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse.',
+                index: 5,
+                score: 30103893103183.938
+            },
+            {
+                sentence: 'Amsterdam was the leading centre for finance and trade, as well as a hub of secular art production.',
+                index: 6,
+                score: 26746762811203.273
+            },
+            {
+                sentence: 'Located in the Dutch province of North Holland, Amsterdam is colloquially referred to as the "Venice of the North", for its large number of canals, now a UNESCO World Heritage Site.',
+                index: 3,
+                score: 20424202079795.04
+            },
+            {
+                sentence: 'Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.',
+                index: 4,
+                score: 20403959446520.484
+            },
+            {
+                sentence: 'It has a population of 933,680 in June 2024 within the city proper, 1,457,018 in the urban area and 2,480,394 in the metropolitan area.',
+                index: 2,
+                score: 17308255276095.914
+            },
+            {
+                sentence: "'Dam in the Amstel') is the capital and largest city of the Kingdom of the Netherlands.",
+                index: 1,
+                score: 15448694653321.406
+            },
+            {
+                sentence: 'Amsterdam (AM-stər-dam, AM-stər-DAM; Dutch: [ˌɑmstərˈdɑm]; lit.',    // negligible edge case
+                index: 0,
+                score: 1445719612045.8823
+            }
         ],
         "TextRank returns invalid results"
     );
 });
 
-await test("Summarize text via TextRank sentence algorithm (k = 3)", async () => {
-    const summary = textRank(`
-        Amsterdam (AM-stər-dam, AM-stər-DAM; Dutch: [ˌɑmstərˈdɑm]; lit. 'Dam in the Amstel') is the capital and largest city of the Kingdom of the Netherlands.
-        It has a population of 933,680 in June 2024 within the city proper, 1,457,018 in the urban area and 2,480,394 in the metropolitan area.
-        Located in the Dutch province of North Holland, Amsterdam is colloquially referred to as the "Venice of the North", for its large number of canals, now a UNESCO World Heritage Site.
-
-        Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.
-        Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse.
-        Amsterdam was the leading centre for finance and trade, as well as a hub of secular art production.
-        In the 19th and 20th centuries, the city expanded and new neighborhoods and suburbs were built.
-        The city has a long tradition of openness, liberalism, and tolerance.
-        Cycling is key to the city's modern character, and there are numerous biking paths and lanes spread throughout.
-    `, 3);
-
-    assertEqual(
-        summary,
-        [
-            "In the 19th and 20th centuries the city expanded and new neighborhoods and suburbs were built",
-            "The city has a long tradition of openness liberalism and tolerance",
-            "Cycling is key to the citys modern character and there are numerous biking paths and lanes spread throughout"
-        ].join("\n"),
-        "TextRank returns invalid results"
-    );
-});
-
-await test("Summarize text via relative TextRank sentence algorithm (ratio = 0.6)", async () => {
-    const summary = relativeTextRank(`
+await test("Summarize text via highlevel text transform algorithm (ratio = 0.6)", async () => {
+    const summary = transform(`
         Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.
         Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse.
         Amsterdam was the leading centre for finance and trade, as well as a hub of secular art production.
@@ -60,9 +108,9 @@ await test("Summarize text via relative TextRank sentence algorithm (ratio = 0.6
     assertEqual(
         summary,
         [
-            "Amsterdam was founded at the mouth of the Amstel River which was dammed to control flooding",
-            "Originally a small fishing village in the 12th century Amsterdam became a major world port during the Dutch Golden Age of the 17th century when the Netherlands was an economic powerhouse"
+            "Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.",
+            "Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse."
         ].join("\n"),
-        "TextRank returns invalid results"
+        "Text transform returns invalid results"
     );
 });

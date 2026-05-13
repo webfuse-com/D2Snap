@@ -9,6 +9,12 @@ import { type TextRankOptions } from "./types.js";
 type Vector = number[];
 type Matrix = number[][];
 
+interface TextRankSentence {
+	index: number;
+	sentence: string;
+	score: number;
+}
+
 
 function initArray(n: number, value: number = 0): number[] {
 	return Array.from({ length: n }, () => value);
@@ -21,26 +27,18 @@ function initMatrix(n: number, m: number = n): number[][] {
 
 export function tokenizeSentences(text: string): string[] {
 	return text
-        .replace(/[^\w\s.?!:]+/g, "")
-        .split(/[.?!:]\s|\n|\r/g)
+		.split(/(?<=\p{Sentence_Terminal})\s|\n|\r/gu)
         .map((rawSentence: string) => rawSentence.trim())
         .filter((sentence: string) => !!sentence);
 }
 
 
-export function textRank(textOrSentences: string|string[], k: number = 3, options: Partial<TextRankOptions> = {}): string {
-	if(!textOrSentences.length) return "";
-
-	const sentences: string[] = !Array.isArray(textOrSentences)
-		? tokenizeSentences(textOrSentences)
-		: textOrSentences;
-
-	if(sentences.length <= k) return sentences.join("\n");
+export function textRank(sentences: string[], options: Partial<TextRankOptions> = {}): TextRankSentence[] {
+	if(!sentences.length) return [];
 
 	const optionsWithDefaults: TextRankOptions = {
 		damping: 0.75,
 		maxIterations: 20,
-		maxSentences: Infinity,
 
 		...options
 	};
@@ -50,8 +48,7 @@ export function textRank(textOrSentences: string|string[], k: number = 3, option
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
             .split(/\s+/)
-            .filter(token => !!token.trim()))
-            .slice(0, optionsWithDefaults.maxSentences);    // or split into chunks and apply for each chunk
+            .filter(token => !!token.trim()));
 	const n: number = sentences.length;
 
 	const similarityMatrix: Matrix = initMatrix(n);
@@ -104,24 +101,36 @@ export function textRank(textOrSentences: string|string[], k: number = 3, option
         		score: scores[i]
         	};
         })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, Math.min(k, sentences.length))
+        .sort((a, b) => b.score - a.score);
+}
+
+export function transform(
+	text: string,
+	ratio: number = 0.5,
+	simple: boolean = false,
+	noEmpty: boolean = false,
+	textRankOptions: Partial<TextRankOptions> = {}
+): string {
+	const sentences: string[] = tokenizeSentences(text);
+	const k: number = Math.min(
+		Math.max(
+			Math.round(sentences.length * ratio),
+			+noEmpty
+		),
+		sentences.length
+	);
+
+	if(sentences.length <= k) return sentences.join("\n");
+	
+	if(simple) {
+		return sentences
+			.slice(0, k)
+			.join("\n");
+	}
+
+	return textRank(sentences, textRankOptions)
+        .slice(0, k)
         .sort((a, b) => a.index - b.index)
         .map(obj => obj.sentence)
         .join("\n");
-}
-
-export function relativeTextRank(
-	text: string,
-	ratio: number = 0.5,
-	options: Partial<TextRankOptions> = {},
-	noEmpty: boolean = false
-): string {
-	const sentences: string[] = tokenizeSentences(text);
-	const k: number = Math.max(
-		Math.round(sentences.length * ratio),
-		1
-	);
-
-	return textRank(sentences, Math.max(k, +noEmpty), options);
 }

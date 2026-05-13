@@ -5,19 +5,16 @@ function initMatrix(n, m = n) {
   return initArray(n).map(() => initArray(m));
 }
 function tokenizeSentences(text) {
-  return text.replace(/[^\w\s.?!:]+/g, "").split(/[.?!:]\s|\n|\r/g).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
+  return text.split(/(?<=\p{Sentence_Terminal})\s|\n|\r/gu).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
 }
-function textRank(textOrSentences, k = 3, options = {}) {
-  if (!textOrSentences.length) return "";
-  const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
-  if (sentences.length <= k) return sentences.join("\n");
+function textRank(sentences, options = {}) {
+  if (!sentences.length) return [];
   const optionsWithDefaults = {
     damping: 0.75,
     maxIterations: 20,
-    maxSentences: Infinity,
     ...options
   };
-  const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim())).slice(0, optionsWithDefaults.maxSentences);
+  const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim()));
   const n = sentences.length;
   const similarityMatrix = initMatrix(n);
   for (let i = 0; i < n; i++) {
@@ -61,18 +58,25 @@ function textRank(textOrSentences, k = 3, options = {}) {
       index: i,
       score: scores[i]
     };
-  }).sort((a, b) => b.score - a.score).slice(0, Math.min(k, sentences.length)).sort((a, b) => a.index - b.index).map((obj) => obj.sentence).join("\n");
+  }).sort((a, b) => b.score - a.score);
 }
-function relativeTextRank(text, ratio = 0.5, options = {}, noEmpty = false) {
+function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
   const sentences = tokenizeSentences(text);
-  const k = Math.max(
-    Math.round(sentences.length * ratio),
-    1
+  const k = Math.min(
+    Math.max(
+      Math.round(sentences.length * ratio),
+      +noEmpty
+    ),
+    sentences.length
   );
-  return textRank(sentences, Math.max(k, +noEmpty), options);
+  if (sentences.length <= k) return sentences.join("\n");
+  if (simple) {
+    return sentences.slice(0, k).join("\n");
+  }
+  return textRank(sentences, textRankOptions).slice(0, k).sort((a, b) => a.index - b.index).map((obj) => obj.sentence).join("\n");
 }
 export {
-  relativeTextRank,
   textRank,
-  tokenizeSentences
+  tokenizeSentences,
+  transform
 };

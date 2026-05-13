@@ -27,7 +27,6 @@ export interface HTMLElementWithDepth extends HTMLElement {
 export interface TextRankOptions {
     damping: number;
     maxIterations: number;
-    maxSentences: number;
 }
 export interface D2SnapOptions {
     debug: boolean;
@@ -36,6 +35,7 @@ export interface D2SnapOptions {
     filterDataURLs: boolean;
     filteredTagNames: string[];
     skipMarkdown: boolean;
+    skipTextRank: boolean;
     textRankOptions: Partial<TextRankOptions>;
     uniqueIDs: boolean;
 }

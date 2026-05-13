@@ -85,33 +85,307 @@
   }
 
   // src/util.html.ts
-  function formatHTML(html, indentSize = 2) {
-    const tokens = html.replace(/>\s+</g, "><").trim().split(/(<[^>]+>)/).filter((token) => token.trim().length);
-    const indentChar = " ".repeat(indentSize);
-    let indentLevel = 0;
-    const formattedHtml = [];
-    for (const token of tokens) {
-      if (token.match(/^<\/\w/)) {
-        indentLevel = Math.max(indentLevel - 1, 0);
-        formattedHtml.push(indentChar.repeat(indentLevel) + token);
+  var INLINE_TAG_NAMES = [
+    "A",
+    "ABBR",
+    "B",
+    "BDI",
+    "BDO",
+    "CITE",
+    "CODE",
+    "DATA",
+    "DFN",
+    "EM",
+    "I",
+    "KBD",
+    "MARK",
+    "Q",
+    "RP",
+    "RT",
+    "RUBY",
+    "S",
+    "SAMP",
+    "SMALL",
+    "SPAN",
+    "STRONG",
+    "SUB",
+    "SUP",
+    "TIME",
+    "U",
+    "VAR",
+    "WBR",
+    "BR"
+  ];
+  var RAW_TEXT_TAG_NAMES = [
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "TITLE"
+  ];
+  var VOID_TAG_NAMES = [
+    "AREA",
+    "BASE",
+    "BR",
+    "COL",
+    "EMBED",
+    "HR",
+    "IMG",
+    "INPUT",
+    "LINK",
+    "META",
+    "SOURCE",
+    "TRACK",
+    "WBR"
+  ];
+  function tokenize(html) {
+    const tokens = [];
+    const n = html.length;
+    let i = 0;
+    while (i < n) {
+      if (html[i] !== "<") {
+        const start = i;
+        while (i < n && html[i] !== "<") i++;
+        const raw2 = html.slice(start, i);
+        if (raw2.trim()) tokens.push({
+          kind: "text",
+          raw: raw2
+        });
         continue;
       }
-      if (token.match(/^<\w[^>]*[^/]>$/)) {
-        formattedHtml.push(indentChar.repeat(indentLevel) + token);
-        indentLevel++;
+      if (html.startsWith("<!--", i)) {
+        const end = html.indexOf("-->", i + 4);
+        const stop = end < 0 ? n : end + 3;
+        tokens.push({
+          kind: "comment",
+          raw: html.slice(i, stop)
+        });
+        i = stop;
         continue;
       }
-      if (token.match(/^<[^>]+\/>$/)) {
-        formattedHtml.push(indentChar.repeat(indentLevel) + token);
+      const tagStart = i;
+      i++;
+      const isClose = html[i] === "/";
+      isClose && i++;
+      let quote = null;
+      while (i < n) {
+        const c = html[i];
+        if (quote) {
+          if (c === quote) quote = null;
+          i++;
+          continue;
+        }
+        if (c === '"' || c === "'") {
+          quote = c;
+          i++;
+          continue;
+        }
+        if (c === ">") break;
+        i++;
+      }
+      if (i >= n) {
+        tokens.push({
+          kind: "text",
+          raw: html.slice(tagStart)
+        });
+        break;
+      }
+      i++;
+      const raw = html.slice(tagStart, i);
+      const inner = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
+      const selfClosing = inner.endsWith("/");
+      const tagName = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
+      if (!tagName) {
+        tokens.push({
+          kind: "text",
+          raw
+        });
         continue;
       }
-      if (token.match(/^<[^!]/)) {
-        formattedHtml.push(indentChar.repeat(indentLevel) + token);
+      if (isClose) {
+        tokens.push({
+          kind: "close",
+          tag: tagName,
+          raw
+        });
         continue;
       }
-      formattedHtml.push(indentChar.repeat(indentLevel) + token.trim());
+      if (VOID_TAG_NAMES.includes(tagName) || selfClosing) {
+        tokens.push({
+          kind: "void",
+          tag: tagName,
+          raw
+        });
+        continue;
+      }
+      if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
+        const rest = html.slice(i);
+        const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
+        if (!m) {
+          tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
+          i = n;
+          continue;
+        }
+        const contentEnd = i + m.index;
+        const content = html.slice(i, contentEnd);
+        const closeRaw = html.slice(contentEnd, contentEnd + m[0].length);
+        tokens.push({
+          kind: "raw",
+          tag: tagName,
+          openRaw: raw,
+          content,
+          closeRaw
+        });
+        i = contentEnd + m[0].length;
+        continue;
+      }
+      tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
     }
-    return formattedHtml.join("\n").trim();
+    return tokens;
+  }
+  function formatHTML(html, indentSize = 2) {
+    const indent = " ".repeat(indentSize);
+    const tokens = tokenize(html);
+    const lines = [];
+    const stack = [];
+    let buffer = "";
+    let bufferDepth = 0;
+    const flushBuffer = () => {
+      const text = buffer.replace(/\s+/g, " ").trim();
+      text && lines.push(indent.repeat(bufferDepth) + text);
+      buffer = "";
+    };
+    const emit = (line, depth) => {
+      flushBuffer();
+      lines.push(indent.repeat(depth) + line);
+    };
+    const isInline = (tag) => {
+      return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
+    };
+    for (const token of tokens) {
+      switch (token.kind) {
+        case "text":
+          if (buffer === "") {
+            bufferDepth = stack.length;
+          }
+          buffer += token.raw;
+          break;
+        case "comment":
+        case "doctype":
+        case "cdata":
+          emit(token.raw, stack.length);
+          break;
+        case "void":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+          } else {
+            emit(token.raw, stack.length);
+          }
+          break;
+        case "raw":
+          emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
+          break;
+        case "open":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+            stack.push(token.tag);
+          } else {
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+            stack.push(token.tag);
+          }
+          break;
+        case "close":
+          if (isInline(token.tag)) {
+            buffer += token.raw;
+            stack[stack.length - 1] === token.tag && stack.pop();
+          } else {
+            while (stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
+            stack.length && stack.pop();
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+          }
+          break;
+      }
+    }
+    flushBuffer();
+    return lines.join("\n");
+  }
+  function dissolveToplevelTags(html) {
+    const tokens = tokenize(html);
+    const outputParts = [];
+    let nestingDepth = 0;
+    for (const token of tokens) {
+      switch (token.kind) {
+        case "open": {
+          const isTopLevel = nestingDepth === 0;
+          !isTopLevel && outputParts.push(token.raw);
+          nestingDepth++;
+          break;
+        }
+        case "close": {
+          const isTopLevel = nestingDepth === 1;
+          !isTopLevel && outputParts.push(token.raw);
+          nestingDepth = Math.max(0, nestingDepth - 1);
+          break;
+        }
+        case "void": {
+          const isTopLevel = nestingDepth === 0;
+          !isTopLevel && outputParts.push(token.raw);
+          break;
+        }
+        case "raw": {
+          if (nestingDepth === 0) {
+            outputParts.push(token.content);
+          } else {
+            outputParts.push(
+              [
+                token.openRaw,
+                token.content,
+                token.closeRaw
+              ].join("")
+            );
+          }
+          break;
+        }
+        case "text":
+        case "comment":
+        case "doctype":
+        case "cdata":
+          outputParts.push(token.raw);
+          break;
+      }
+    }
+    return outputParts.join("");
+  }
+
+  // src/util.json.ts
+  function isObject(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function mergeJSONs(source, target) {
+    const result = {
+      ...source
+    };
+    for (const key of Object.keys(target)) {
+      const sourceValue = result[key];
+      const targetValue = target[key];
+      if (isObject(sourceValue) && isObject(targetValue)) {
+        result[key] = mergeJSONs(sourceValue, targetValue);
+        continue;
+      }
+      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
+        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
+        continue;
+      }
+      result[key] = targetValue;
+    }
+    return result;
   }
 
   // src/GroundTruth.ts
@@ -174,19 +448,16 @@
     return initArray(n).map(() => initArray(m));
   }
   function tokenizeSentences(text) {
-    return text.replace(/[^\w\s.?!:]+/g, "").split(/[.?!:]\s|\n|\r/g).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
+    return text.split(/(?<=\p{Sentence_Terminal})\s|\n|\r/gu).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
   }
-  function textRank(textOrSentences, k = 3, options = {}) {
-    if (!textOrSentences.length) return "";
-    const sentences = !Array.isArray(textOrSentences) ? tokenizeSentences(textOrSentences) : textOrSentences;
-    if (sentences.length <= k) return sentences.join("\n");
+  function textRank(sentences, options = {}) {
+    if (!sentences.length) return [];
     const optionsWithDefaults = {
       damping: 0.75,
       maxIterations: 20,
-      maxSentences: Infinity,
       ...options
     };
-    const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim())).slice(0, optionsWithDefaults.maxSentences);
+    const sentenceTokens = sentences.map((sentence) => sentence.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((token) => !!token.trim()));
     const n = sentences.length;
     const similarityMatrix = initMatrix(n);
     for (let i = 0; i < n; i++) {
@@ -230,15 +501,22 @@
         index: i,
         score: scores[i]
       };
-    }).sort((a, b) => b.score - a.score).slice(0, Math.min(k, sentences.length)).sort((a, b) => a.index - b.index).map((obj) => obj.sentence).join("\n");
+    }).sort((a, b) => b.score - a.score);
   }
-  function relativeTextRank(text, ratio = 0.5, options = {}, noEmpty = false) {
+  function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
     const sentences = tokenizeSentences(text);
-    const k = Math.max(
-      Math.round(sentences.length * ratio),
-      1
+    const k = Math.min(
+      Math.max(
+        Math.round(sentences.length * ratio),
+        +noEmpty
+      ),
+      sentences.length
     );
-    return textRank(sentences, Math.max(k, +noEmpty), options);
+    if (sentences.length <= k) return sentences.join("\n");
+    if (simple) {
+      return sentences.slice(0, k).join("\n");
+    }
+    return textRank(sentences, textRankOptions).slice(0, k).sort((a, b) => a.index - b.index).map((obj) => obj.sentence).join("\n");
   }
 
   // node_modules/turndown/lib/turndown.browser.es.js
@@ -1293,33 +1571,10 @@
     }
   };
 
-  // src/util.json.ts
-  function isObject(value) {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-  function mergeJSONs(source, target) {
-    const result = {
-      ...source
-    };
-    for (const key of Object.keys(target)) {
-      const sourceValue = result[key];
-      const targetValue = target[key];
-      if (isObject(sourceValue) && isObject(targetValue)) {
-        result[key] = mergeJSONs(sourceValue, targetValue);
-        continue;
-      }
-      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
-        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
-        continue;
-      }
-      result[key] = targetValue;
-    }
-    return result;
-  }
-
   // src/D2Snap.ts
   var DATA_URL_ATTRIBUTE_NAME = "src";
   var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
+  var WHITESPACE_REGEX = /^\s$/;
   function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
@@ -1336,8 +1591,9 @@
       groundTruthReplaceDefault: false,
       filterDataURLs: true,
       filteredTagNames: CONFIG.filteredTagNames,
-      textRankOptions: {},
       skipMarkdown: false,
+      skipTextRank: false,
+      textRankOptions: {},
       uniqueIDs: false,
       ...options
     };
@@ -1425,18 +1681,19 @@
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-      elementNode.replaceWith(
-        ...[
-          document3.createTextNode(" "),
-          ...markdownNodesFragment.childNodes,
-          document3.createTextNode(" ")
-        ]
-      );
+      elementNode.replaceWith(...[document3.createTextNode(" "), ...markdownNodesFragment.childNodes, document3.createTextNode(" ")]);
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
       const text = textNode?.innerText ?? textNode.textContent;
-      textNode.textContent = relativeTextRank(text, 1 - rT2, optionsWithDefaults.textRankOptions, true);
+      if (!(text ?? "").trim().length) return;
+      const leadingSpace = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
+      const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
+      textNode.textContent = [
+        leadingSpace,
+        transform(text, 1 - rT2, optionsWithDefaults.skipTextRank, true, optionsWithDefaults.textRankOptions),
+        trailingSpace
+      ].join("");
     }
     function snapAttributeNode(elementNode, rA2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
@@ -1513,9 +1770,13 @@
       // work on parent element
     );
     const snapshot = virtualDom.innerHTML;
-    let html = snapshot.replace(/\n *(\n|$)/g, "").replace(/\s{2,}/g, " ").replace(/((?<=>)\s+|\s+(?=<))/g, "");
-    html = optionsWithDefaults.debug ? formatHTML(html) : html;
-    html = virtualDom.children.length === 1 && rE === Infinity && virtualDom.children.length ? html.trim().replace(/^<[^>]+>\s*/, "").replace(/\s*<\/[^<]+>$/, "") : html;
+    let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
+    if (rE === Infinity) {
+      html = dissolveToplevelTags(html);
+    }
+    if (optionsWithDefaults.debug) {
+      html = formatHTML(html);
+    }
     return {
       html,
       meta: {

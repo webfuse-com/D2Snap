@@ -60,7 +60,7 @@ await test("Translate markup to markdown via Turndown", async () => {
                 <td>Zuid</td>
             </tr>
         </table>
-        <a href="#stats">Stats</a>
+        View <a href="#stats">Stats</a>
     `)
         .trim();
 
@@ -93,7 +93,7 @@ await test("Translate markup to markdown via Turndown", async () => {
             | Oude Kerk | Centrum |
             | Rijksmuseum | Zuid |
 
-            <a href="#stats">Stats</a>
+            View <a href="#stats">Stats</a>
         `),
         "Turndown returns invalid results"
     );

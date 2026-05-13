@@ -10,17 +10,18 @@ import {
 	type GroundTruthJSON
 } from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
-import { formatHTML } from "./util.html.js";
+import { dissolveToplevelTags, formatHTML } from "./util.html.js";
+import { mergeJSONs } from "./util.json.js";
 import { GroundTruth } from "./GroundTruth.js";
-import { relativeTextRank } from "./TextRank.js";
+import { transform } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
-import { mergeJSONs } from "./util.json.js";
 
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
+const WHITESPACE_REGEX: RegExp = /^\s$/;
 
 
 function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
@@ -47,8 +48,9 @@ export async function d2Snap(
 		groundTruthReplaceDefault: false,
 		filterDataURLs: true,
 		filteredTagNames: CONFIG.filteredTagNames,
-		textRankOptions: {},
 		skipMarkdown: false,
+		skipTextRank: false,
+		textRankOptions: {},
 		uniqueIDs: false,
 
 		...options
@@ -187,9 +189,17 @@ export async function d2Snap(
 	function snapTextNode(textNode: TextNode, rT: number) {
 		if(textNode.nodeType !== Node.TEXT_NODE) return;
 
-		const text: string = (textNode?.innerText ?? textNode.textContent);
+		const text: string | null = (textNode?.innerText ?? textNode.textContent);
+    	if(!(text ?? "").trim().length) return;
 
-		textNode.textContent = relativeTextRank(text, (1 - rT), optionsWithDefaults.textRankOptions, true);
+		const leadingSpace: string = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
+		const trailingSpace: string = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
+
+		textNode.textContent = [
+			leadingSpace,
+			transform(text, (1 - rT), optionsWithDefaults.skipTextRank, true, optionsWithDefaults.textRankOptions),
+			trailingSpace
+		].join("");
 	}
 
 	function snapAttributeNode(elementNode: HTMLElement, rA: number) {
@@ -306,23 +316,22 @@ export async function d2Snap(
 	);
 
 	const snapshot = virtualDom.innerHTML;
+	// Minify
 	let html = snapshot
-        .replace(/\n *(\n|$)/g, "")
-        .replace(/\s{2,}/g, " ")
-        .replace(/((?<=>)\s+|\s+(?=<))/g, "");
-	html = optionsWithDefaults.debug
-		? formatHTML(html)
-		: html;
-	html = (
-		virtualDom.children.length === 1
-        && (rE === Infinity)
-        && virtualDom.children.length
-	)
-		? html
-            .trim()
-            .replace(/^<[^>]+>\s*/, "")
-            .replace(/\s*<\/[^<]+>$/, "")
-		: html;
+		.replace(/\s+/g, " ")
+		.replace(/>\s+</g, "><")
+		.replace(/\s+>/g, ">")
+		.replace(/<\s+/g, "<")
+		.replace(/\s+\/>/g, "/>")
+		.trim();
+	// Dissolve toplevel tags for 'infinite' element downsampling ratio
+	if(rE === Infinity) {
+		html = dissolveToplevelTags(html);
+	}
+	// Format if is debug mode
+	if(optionsWithDefaults.debug) {
+		html = formatHTML(html);
+	}
 
 	return {
 		html,

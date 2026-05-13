@@ -3,15 +3,16 @@ import {
   Node
 } from "./types.js";
 import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
-import { formatHTML } from "./util.html.js";
+import { dissolveToplevelTags, formatHTML } from "./util.html.js";
+import { mergeJSONs } from "./util.json.js";
 import { GroundTruth } from "./GroundTruth.js";
-import { relativeTextRank } from "./TextRank.js";
+import { transform } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
-import { mergeJSONs } from "./util.json.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
+const WHITESPACE_REGEX = /^\s$/;
 function validateParameter(name, value, allowInfinity = false) {
   if (allowInfinity && value === Infinity) return;
   if (value < 0 || value > 1) {
@@ -28,8 +29,9 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     groundTruthReplaceDefault: false,
     filterDataURLs: true,
     filteredTagNames: CONFIG.filteredTagNames,
-    textRankOptions: {},
     skipMarkdown: false,
+    skipTextRank: false,
+    textRankOptions: {},
     uniqueIDs: false,
     ...options
   };
@@ -117,18 +119,19 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-    elementNode.replaceWith(
-      ...[
-        document2.createTextNode(" "),
-        ...markdownNodesFragment.childNodes,
-        document2.createTextNode(" ")
-      ]
-    );
+    elementNode.replaceWith(...[document2.createTextNode(" "), ...markdownNodesFragment.childNodes, document2.createTextNode(" ")]);
   }
   function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== Node.TEXT_NODE) return;
     const text = textNode?.innerText ?? textNode.textContent;
-    textNode.textContent = relativeTextRank(text, 1 - rT2, optionsWithDefaults.textRankOptions, true);
+    if (!(text ?? "").trim().length) return;
+    const leadingSpace = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
+    const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
+    textNode.textContent = [
+      leadingSpace,
+      transform(text, 1 - rT2, optionsWithDefaults.skipTextRank, true, optionsWithDefaults.textRankOptions),
+      trailingSpace
+    ].join("");
   }
   function snapAttributeNode(elementNode, rA2) {
     if (elementNode.nodeType !== Node.ELEMENT_NODE) return;
@@ -205,9 +208,13 @@ async function d2Snap(dom, rE, rA, rT, options = {}) {
     // work on parent element
   );
   const snapshot = virtualDom.innerHTML;
-  let html = snapshot.replace(/\n *(\n|$)/g, "").replace(/\s{2,}/g, " ").replace(/((?<=>)\s+|\s+(?=<))/g, "");
-  html = optionsWithDefaults.debug ? formatHTML(html) : html;
-  html = virtualDom.children.length === 1 && rE === Infinity && virtualDom.children.length ? html.trim().replace(/^<[^>]+>\s*/, "").replace(/\s*<\/[^<]+>$/, "") : html;
+  let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
+  if (rE === Infinity) {
+    html = dissolveToplevelTags(html);
+  }
+  if (optionsWithDefaults.debug) {
+    html = formatHTML(html);
+  }
   return {
     html,
     meta: {

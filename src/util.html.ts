@@ -10,73 +10,73 @@ type Token =
 
 
 const INLINE_TAG_NAMES: string[] = [
-    "A", "ABBR", "B", "BDI", "BDO", "CITE", "CODE", "DATA", "DFN", "EM", "I", "KBD", "MARK", "Q", "RP", "RT", "RUBY", "S", "SAMP", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TIME", "U", "VAR", "WBR", "BR"
+	"A", "ABBR", "B", "BDI", "BDO", "CITE", "CODE", "DATA", "DFN", "EM", "I", "KBD", "MARK", "Q", "RP", "RT", "RUBY", "S", "SAMP", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TIME", "U", "VAR", "WBR", "BR"
 ];
 const RAW_TEXT_TAG_NAMES: string[] = [
 	"SCRIPT", "STYLE", "TEXTAREA", "TITLE"
 ];
 const VOID_TAG_NAMES: string[] = [
-    "AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT", "LINK", "META", "SOURCE", "TRACK", "WBR"
+	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT", "LINK", "META", "SOURCE", "TRACK", "WBR"
 ];
 
 
 function tokenize(html: string): Token[] {
-    const tokens: Token[] = [];
-    const n: number = html.length;
+	const tokens: Token[] = [];
+	const n: number = html.length;
 
-    let i: number = 0;
-    while(i < n) {
-        if(html[i] !== "<") {
-            const start: number = i;
+	let i: number = 0;
+	while(i < n) {
+		if(html[i] !== "<") {
+			const start: number = i;
 
-            while(i < n && html[i] !== "<") i++;
+			while(i < n && html[i] !== "<") i++;
 
-            const raw: string = html.slice(start, i);
+			const raw: string = html.slice(start, i);
 
-            if(raw.trim()) tokens.push({
+			if(raw.trim()) tokens.push({
 				kind: "text",
 				raw
 			});
 
-            continue;
-        }
+			continue;
+		}
 
-        // Comment
-        if(html.startsWith("<!--", i)) {
-            const end: number = html.indexOf("-->", i + 4);
-            const stop: number = (end < 0) ? n : end + 3;
+		// Comment
+		if(html.startsWith("<!--", i)) {
+			const end: number = html.indexOf("-->", i + 4);
+			const stop: number = (end < 0) ? n : end + 3;
 
-            tokens.push({
+			tokens.push({
 				kind: "comment",
 				raw: html.slice(i, stop)
 			});
 
-            i = stop;
+			i = stop;
 
-            continue;
-        }
+			continue;
+		}
 
 		// Tag
-        const tagStart: number = i;
-        i++; // <
+		const tagStart: number = i;
+		i++; // <
 
-        const isClose = html[i] === "/";
+		const isClose = html[i] === "/";
 
-        isClose && i++;
+		isClose && i++;
 
-        let quote: string | null = null;
-        while(i < n) {
-            const c = html[i];
+		let quote: string | null = null;
+		while(i < n) {
+			const c = html[i];
 
-            if(quote) {
-                if(c === quote) quote = null;
+			if(quote) {
+				if(c === quote) quote = null;
 
-                i++;
+				i++;
 
-                continue;
-            }
+				continue;
+			}
 
-            if(c === '"' || c === "'") {
+			if(c === '"' || c === "'") {
 				quote = c;
 
 				i++;
@@ -86,66 +86,66 @@ function tokenize(html: string): Token[] {
 
 			if(c === ">") break;
 
-            i++;
-        }
+			i++;
+		}
 
-        if(i >= n) {
-            // Unterminated tag
-            tokens.push({
+		if(i >= n) {
+			// Unterminated tag
+			tokens.push({
 				kind: "text",
 				raw: html.slice(tagStart)
 			});
 
-            break;
-        }
+			break;
+		}
 
-        i++; // >
+		i++; // >
 
-        const raw: string = html.slice(tagStart, i);
-        const inner: string = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
-        const selfClosing: boolean = inner.endsWith("/");
-        const tagName: string = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
+		const raw: string = html.slice(tagStart, i);
+		const inner: string = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
+		const selfClosing: boolean = inner.endsWith("/");
+		const tagName: string = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
 
-        if(!tagName) {
-            tokens.push({
+		if(!tagName) {
+			tokens.push({
 				kind: "text",
 				raw
 			});
 
-            continue;
-        }
+			continue;
+		}
 
-        if(isClose) {
-            tokens.push({
+		if(isClose) {
+			tokens.push({
 				kind: "close",
 				tag: tagName,
 				raw
 			});
 
-            continue;
-        }
+			continue;
+		}
 
-        if(VOID_TAG_NAMES.includes(tagName) || selfClosing) {
-            tokens.push({
+		if(VOID_TAG_NAMES.includes(tagName) || selfClosing) {
+			tokens.push({
 				kind: "void",
 				tag: tagName,
 				raw
 			});
 
-            continue;
-        }
+			continue;
+		}
 
-        if(RAW_TEXT_TAG_NAMES.includes(tagName)) {
-            const rest: string = html.slice(i);
-            const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
+		if(RAW_TEXT_TAG_NAMES.includes(tagName)) {
+			const rest: string = html.slice(i);
+			const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
 
-            if(!m) {
-                tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
+			if(!m) {
+				tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
 
-                i = n;
+				i = n;
 
 				continue;
-            }
+			}
 
 			const contentEnd: number = i + m.index!;
 			const content: string = html.slice(i, contentEnd);
@@ -161,116 +161,179 @@ function tokenize(html: string): Token[] {
 
 			i = contentEnd + m[0].length;
 
-            continue;
-        }
+			continue;
+		}
 
-        tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
-    }
+		tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
+	}
 
-    return tokens;
+	return tokens;
 }
 
 export function formatHTML(html: string, indentSize: number = 2): string {
-    const indent: string = " ".repeat(indentSize);
-    const tokens: Token[] = tokenize(html);
-    const lines: string[] = [];
-    const stack: string[] = [];
+	const indent: string = " ".repeat(indentSize);
+	const tokens: Token[] = tokenize(html);
+	const lines: string[] = [];
+	const stack: string[] = [];
 
-    let buffer: string = "";
-    let bufferDepth: number = 0;
+	let buffer: string = "";
+	let bufferDepth: number = 0;
 
-    const flushBuffer = () => {
-        const text: string = buffer.replace(/\s+/g, " ").trim();
+	const flushBuffer = () => {
+		const text: string = buffer.replace(/\s+/g, " ").trim();
 
-        text
+		text
 			&& lines.push(indent.repeat(bufferDepth) + text);
 
-        buffer = "";
-    };
+		buffer = "";
+	};
 
-    const emit = (line: string, depth: number) => {
-        flushBuffer();
+	const emit = (line: string, depth: number) => {
+		flushBuffer();
 
-        lines.push(indent.repeat(depth) + line);
-    }
+		lines.push(indent.repeat(depth) + line);
+	}
 
-    const isInline = (tag: string) => {
-        return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
-    }
+	const isInline = (tag: string) => {
+		return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
+	}
 
-    for(const token of tokens) {
-        switch(token.kind) {
-            case "text":
-                if(buffer === "") {
+	for(const token of tokens) {
+		switch(token.kind) {
+			case "text":
+				if(buffer === "") {
 					bufferDepth = stack.length;
 				}
 
-                buffer += token.raw;
+				buffer += token.raw;
 
-                break;
-            case "comment":
-            case "doctype":
-            case "cdata":
-                emit(token.raw, stack.length);
+				break;
+			case "comment":
+			case "doctype":
+			case "cdata":
+				emit(token.raw, stack.length);
 
-                break;
-            case "void":
-                if(isInline(token.tag)) {
-                    if(buffer === "") {
+				break;
+			case "void":
+				if(isInline(token.tag)) {
+					if(buffer === "") {
 						bufferDepth = stack.length;
 					}
 
-                    buffer += token.raw;
-                } else {
-                    emit(token.raw, stack.length);
-                }
+					buffer += token.raw;
+				} else {
+					emit(token.raw, stack.length);
+				}
 
-                break;
-            case "raw":
-                // Verbatim
-                emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
+				break;
+			case "raw":
+				// Verbatim
+				emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
 
-                break;
-            case "open":
-                if(isInline(token.tag)) {
-                    if(buffer === "") {
+				break;
+			case "open":
+				if(isInline(token.tag)) {
+					if(buffer === "") {
 						bufferDepth = stack.length;
 					}
 
-                    buffer += token.raw;
+					buffer += token.raw;
 
-                    stack.push(token.tag);
-                } else {
-                    flushBuffer();
+					stack.push(token.tag);
+				} else {
+					flushBuffer();
 
-                    lines.push(indent.repeat(stack.length) + token.raw);
-                    stack.push(token.tag);
-                }
+					lines.push(indent.repeat(stack.length) + token.raw);
+					stack.push(token.tag);
+				}
 
-                break;
+				break;
 
-            case "close":
-                if(isInline(token.tag)) {
-                    buffer += token.raw;
+			case "close":
+				if(isInline(token.tag)) {
+					buffer += token.raw;
 
-                    (stack[stack.length - 1] === token.tag)
+					(stack[stack.length - 1] === token.tag)
 						&& stack.pop();
-                } else {
-                    while(stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
+				} else {
+					while(stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
 
-                    stack.length
+					stack.length
 						&& stack.pop();
 
-                    flushBuffer();
+					flushBuffer();
 
-                    lines.push(indent.repeat(stack.length) + token.raw);
-                }
+					lines.push(indent.repeat(stack.length) + token.raw);
+				}
 
-                break;
-        }
-    }
+				break;
+		}
+	}
 
-    flushBuffer();
+	flushBuffer();
 
-    return lines.join("\n");
+	return lines.join("\n");
+}
+
+export function dissolveToplevelTags(html: string): string {
+	const tokens: Token[] = tokenize(html);
+	const outputParts: string[] = [];
+
+	let nestingDepth: number = 0;
+
+	for(const token of tokens) {
+		switch(token.kind) {
+			case "open": {
+				const isTopLevel: boolean = nestingDepth === 0;
+
+				!isTopLevel
+                    && outputParts.push(token.raw);
+
+				nestingDepth++;
+
+				break;
+			}
+
+			case "close": {
+				const isTopLevel: boolean = nestingDepth === 1;
+
+				!isTopLevel
+                    && outputParts.push(token.raw);
+
+				nestingDepth = Math.max(0, nestingDepth - 1);
+
+				break;
+			}
+			case "void": {
+				const isTopLevel: boolean = nestingDepth === 0;
+
+				!isTopLevel
+                    && outputParts.push(token.raw);
+
+				break;
+			}
+			case "raw": {
+				if(nestingDepth === 0) {
+					outputParts.push(token.content);
+				} else {
+					outputParts.push(
+						[
+							token.openRaw, token.content, token.closeRaw
+						].join("")
+					);
+				}
+
+				break;
+			}
+			case "text":
+			case "comment":
+			case "doctype":
+			case "cdata":
+				outputParts.push(token.raw);
+
+				break;
+		}
+	}
+
+	return outputParts.join("");
 }

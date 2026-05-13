@@ -86,14 +86,14 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        1120,
+        2370,
         -1,
         "Invalid DOM snapshot original size"
     );
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.44,
+        0.45,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -115,7 +115,7 @@ await test("Take DOM snapshot (M)", async() => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.28,
+        0.33,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -137,7 +137,7 @@ await test("Take DOM snapshot (S)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.21,
+        0.27,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -159,7 +159,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.29,
+        0.37,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -299,6 +299,36 @@ await test("Take DOM snapshot (options.skipMarkdown)", async () => {
     );
 });
 
+await test("Take DOM snapshot (options.skipTextRank)", async () => {
+    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 1, {
+        debug: true,
+        skipTextRank: true
+    });
+
+    writeActual("pizza.options.skip-textrank", snapshot.html);
+    const expected = readExpected("pizza.options.skip-textrank");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(expected),
+        "Invalid DOM snapshot (without TextRank)"
+    );
+
+    const snapshotNoSkip = await d2Snap(await readFile("pizza"), Infinity, 1, 1, {
+        debug: true,
+        skipTextRank: false
+    });
+
+    writeActual("pizza.options.textrank", snapshotNoSkip.html);
+    const expectedNoSkip = readExpected("pizza.options.textrank");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotNoSkip.html),
+        flattenDOMSnapshot(expectedNoSkip),
+        "Invalid DOM snapshot (with TextRank)"
+    );
+});
+
 await test("Take DOM snapshot (options.debug)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
         debug: false
@@ -327,20 +357,5 @@ await test("Take DOM snapshot (options.debug)", async () => {
         "\n",
         snapshotDebug.html,
         "Invalid DOM snapshot (debug)"
-    );
-});
-
-await test("Take DOM snapshot (verbose)", async () => {
-    const snapshot = await d2Snap(await readFile("verbose"), 0.6, 0.4, 0.2, {
-        debug: true
-    });
-
-    writeActual("verbose", snapshot.html);
-    const expected = readExpected("verbose");
-
-    assertEqual(
-        flattenDOMSnapshot(snapshot.html),
-        flattenDOMSnapshot(expected),
-        "Invalid DOM snapshot"
     );
 });
