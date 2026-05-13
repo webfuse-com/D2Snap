@@ -6,9 +6,6 @@
 import { type TextRankOptions } from "./types.js";
 
 
-type Vector = number[];
-type Matrix = number[][];
-
 interface TextRankSentence {
 	index: number;
 	sentence: string;
@@ -16,14 +13,10 @@ interface TextRankSentence {
 }
 
 
-function initArray(n: number, value: number = 0): number[] {
-	return Array.from({ length: n }, () => value);
+function initArray<T>(n: number): (T | null)[] {
+	return Array.from({ length: n }, () => null);
 }
 
-function initMatrix(n: number, m: number = n): number[][] {
-	return initArray(n)
-        .map(() => initArray(m));
-}
 
 export function tokenizeSentences(text: string): string[] {
 	return text
@@ -34,74 +27,169 @@ export function tokenizeSentences(text: string): string[] {
 
 
 export function textRank(sentences: string[], options: Partial<TextRankOptions> = {}): TextRankSentence[] {
-	if(!sentences.length) return [];
+	if (!sentences.length) return [];
 
 	const optionsWithDefaults: TextRankOptions = {
 		damping: 0.75,
 		maxIterations: 20,
-
+		minSimilarity: 0,
+		tolerance: 1e-4,
 		...options
 	};
 
-	const sentenceTokens: string[][] = sentences
-        .map((sentence: string) => sentence
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .split(/\s+/)
-            .filter(token => !!token.trim()));
-	const n: number = sentences.length;
+	const sentenceCount: number = sentences.length;
 
-	const similarityMatrix: Matrix = initMatrix(n);
-	for (let i = 0; i < n; i++) {
-		for (let j = 0; j < n; j++) {
-			if (i === j) continue;
+	const termFrequencyPerSentence = initArray<Map<string, number>>(sentenceCount);
+	const sentenceVectorNorms: Float64Array = new Float64Array(sentenceCount);
+	const tokenPattern: RegExp = /[a-z0-9]+/g;
 
-			const vector1: Vector = [];
-			const vector2: Vector = [];
-			for(const token of new Set(sentenceTokens[i].concat(sentenceTokens[j]))) {
-				vector1.push(sentenceTokens[i].filter(w => w === token).length);
-				vector2.push(sentenceTokens[j].filter(w => w === token).length);
+	for(let i = 0; i < sentenceCount; i++) {
+		const termFrequencies: Map<string, number> = new Map<string, number>();
+		const lowercaseSentence: string = sentences[i].toLowerCase();
+
+		let tokenMatch: RegExpExecArray | null;
+		while((tokenMatch = tokenPattern.exec(lowercaseSentence)) !== null) {
+			const token: string = tokenMatch[0];
+			const previousCount: number = termFrequencies.get(token) ?? 0;
+			termFrequencies.set(token, previousCount + 1);
+		}
+
+		termFrequencyPerSentence[i] = termFrequencies;
+
+		let sumOfSquaredCounts: number = 0;
+		for(const count of termFrequencies.values()) {
+			sumOfSquaredCounts += count * count;
+		}
+
+		sentenceVectorNorms[i] = Math.sqrt(sumOfSquaredCounts);
+	}
+
+	const tokenPostings: Map<string, number[]> = new Map<string, number[]>();
+
+	for(let i = 0; i < sentenceCount; i++) {
+		for(const token of termFrequencyPerSentence[i]!.keys()) {
+			let postingList: number[] | undefined = tokenPostings.get(token);
+
+			if(!postingList) {
+				postingList = [];
+
+				tokenPostings.set(token, postingList);
 			}
 
-			let dotProduct: number = 0;
-			let normA: number = 0;
-			let normB: number = 0;
-			for(let i = 0; i < vector1.length; i++) {
-				dotProduct += vector1[i] * vector2[i];
-				normA += vector1[i] * vector1[i];
-				normB += vector2[i] * vector2[i];
-			}
-			similarityMatrix[i][j] = dotProduct / (normA**0.5 * normB**0.5 + 1e-10);
+			postingList.push(i);
 		}
 	}
 
-	const scores: Vector = initArray(n, 1);
-	for(let iteration = 0; iteration < optionsWithDefaults.maxIterations; iteration++) {
-		for(let i = 0; i < n; i++) {
-			let sum: number = 0;
-			for(let j = 0; j < n; j++) {
-				if (i === j) continue;
+	const neighborIndicesPerSentence = initArray<number[]>(sentenceCount);
+	const neighborWeightsPerSentence = initArray<Float64Array>(sentenceCount);
+	const weightedOutDegree: Float64Array = new Float64Array(sentenceCount);
+	const dotProductAccumulator: Float64Array = new Float64Array(sentenceCount);
+	const touchedNeighbors: number[] = [];
 
-				let norm: number = 0;
-				for(let i = 0; i < similarityMatrix[j].length; i++) {
-					norm += similarityMatrix[j][i] * similarityMatrix[i][i];
+	for(let i = 0; i < sentenceCount; i++) {
+		const sourceNorm: number = sentenceVectorNorms[i];
+
+		if(sourceNorm === 0) {
+			neighborIndicesPerSentence[i] = [];
+			neighborWeightsPerSentence[i] = new Float64Array(0);
+
+			continue;
+		}
+
+		const sourceTermFrequencies: Map<string, number> = termFrequencyPerSentence[i]!;
+
+		for(const [token, sourceCount] of sourceTermFrequencies) {
+			const postingList: number[] = tokenPostings.get(token)!;
+
+			for(let j = 0; j < postingList.length; j++) {
+				const targetIndex: number = postingList[j];
+				if(targetIndex === i) continue;
+
+				if(dotProductAccumulator[targetIndex] === 0) {
+					touchedNeighbors.push(targetIndex);
 				}
-				sum += (similarityMatrix[j][i] / (norm || 1)) * scores[j];
+
+				const targetCount: number = termFrequencyPerSentence[targetIndex]!.get(token)!;
+
+				dotProductAccumulator[targetIndex] += sourceCount * targetCount;
+			}
+		}
+
+		const neighborIndices: number[] = [];
+		const neighborWeights: number[] = [];
+
+		let outDegreeSum: number = 0;
+
+		for(let k = 0; k < touchedNeighbors.length; k++) {
+			const targetIndex: number = touchedNeighbors[k];
+			const dotProduct: number = dotProductAccumulator[targetIndex];
+			const targetNorm: number = sentenceVectorNorms[targetIndex];
+
+			if(dotProduct > 0 && targetNorm > 0) {
+				const cosineSimilarity: number = dotProduct / (sourceNorm * targetNorm);
+				if (cosineSimilarity > optionsWithDefaults.minSimilarity) {
+					neighborIndices.push(targetIndex);
+					neighborWeights.push(cosineSimilarity);
+					outDegreeSum += cosineSimilarity;
+				}
 			}
 
-			scores[i] = optionsWithDefaults.damping * sum + (1 - optionsWithDefaults.damping);
+			dotProductAccumulator[targetIndex] = 0;
 		}
+
+		touchedNeighbors.length = 0;
+
+		neighborIndicesPerSentence[i] = neighborIndices;
+		neighborWeightsPerSentence[i] = Float64Array.from(neighborWeights);
+		weightedOutDegree[i] = outDegreeSum;
+	}
+
+	let currentScores: Float64Array = new Float64Array(sentenceCount).fill(1);
+	let nextScores: Float64Array = new Float64Array(sentenceCount);
+
+	const damping: number = optionsWithDefaults.damping;
+	const teleportTerm: number = 1 - damping;
+	const tolerance: number = optionsWithDefaults.tolerance;
+	const maxIterations: number = optionsWithDefaults.maxIterations;
+
+	for(let i = 0; i < maxIterations; i++) {
+		let totalAbsoluteDelta: number = 0;
+
+		for(let j = 0; j < sentenceCount; j++) {
+			const neighborIndices: number[] = neighborIndicesPerSentence[j]!;
+			const neighborWeights: Float64Array = neighborWeightsPerSentence[j]!;
+			let weightedScoreSum: number = 0;
+
+			for (let k = 0; k < neighborIndices.length; k++) {
+				const neighborIndex: number = neighborIndices[k];
+				const neighborOutDegree: number = weightedOutDegree[neighborIndex];
+				if (neighborOutDegree > 0) {
+					weightedScoreSum += (neighborWeights[k] / neighborOutDegree) * currentScores[neighborIndex];
+				}
+			}
+
+			const updatedScore: number = teleportTerm + damping * weightedScoreSum;
+			const scoreDifference: number = updatedScore - currentScores[j];
+
+			nextScores[j] = updatedScore;
+			totalAbsoluteDelta += scoreDifference < 0 ? -scoreDifference : scoreDifference;
+		}
+
+		const swapBuffer: Float64Array = currentScores;
+
+		currentScores = nextScores;
+		nextScores = swapBuffer;
+
+		if(totalAbsoluteDelta < (tolerance * sentenceCount)) break;
 	}
 
 	return sentences
-        .map((sentence: string, i: number) => {
-        	return {
-        		sentence,
-        		index: i,
-        		score: scores[i]
-        	};
-        })
-        .sort((a, b) => b.score - a.score);
+		.map((sentence, i) => ({
+			sentence,
+			index: i,
+			score: currentScores[i]
+		}))
+		.sort((a: TextRankSentence, b: TextRankSentence) => b.score - a.score);
 }
 
 export function transform(

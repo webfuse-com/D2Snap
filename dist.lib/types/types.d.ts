@@ -27,6 +27,8 @@ export interface HTMLElementWithDepth extends HTMLElement {
 export interface TextRankOptions {
     damping: number;
     maxIterations: number;
+    minSimilarity: number;
+    tolerance: number;
 }
 export interface D2SnapOptions {
     debug: boolean;
