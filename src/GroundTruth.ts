@@ -1,8 +1,6 @@
 import { type GroundTruthJSON } from "./types.js";
 
-
 type ElementType = "container" | "actionable" | "textFormatting";
-
 
 const HARD_FALLBACK_RATING: number = 0.0;
 const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
@@ -11,98 +9,92 @@ const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
 ];
 const ATTRIBUTE_SUFFIX_WILDCARD: string = "*";
 
-
 export class GroundTruth {
 	private readonly groundTruth: GroundTruthJSON;
 
+	private readonly elementsByType: Record<ElementType, string[]>;
+	private readonly elementTypeSets: Record<ElementType, Set<string>>;
+	private readonly nonContainerTagNames: Set<string>;
+	private readonly containerRatings: Record<string, number>;
+	private readonly containerFallbackRating: number;
+	private readonly attributeRatings: Record<string, number>;
+	private readonly attributeFallbackRating: number | undefined;
+	private readonly attributeRatingCache: Map<string, number> = new Map();
+
 	constructor(groundTruth: GroundTruthJSON) {
 		this.groundTruth = groundTruth;
+
+		this.elementsByType = {
+			container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
+			actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
+			textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? []
+		};
+		this.elementTypeSets = {
+			container: new Set(this.elementsByType.container.map(t => t.toLowerCase())),
+			actionable: new Set(this.elementsByType.actionable.map(t => t.toLowerCase())),
+			textFormatting: new Set(this.elementsByType.textFormatting.map(t => t.toLowerCase()))
+		};
+		this.nonContainerTagNames = new Set([
+			...this.elementTypeSets.actionable,
+			...this.elementTypeSets.textFormatting
+		]);
+
+		this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
+		this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
+
+		this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
+		this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
 	}
 
 	public getElementsByType(type: ElementType): string[] {
-		return (
-			this.groundTruth
-				?.typeElement[type]
-				?.tagNames
-		) ?? [];
+		return [ ...this.elementsByType[type] ];
 	}
 
 	public isElementType(type: ElementType, tagName: string): boolean {
-		const isNativeElement: boolean = this.getElementsByType(type)
-			.includes(tagName.toLowerCase());
+		const lowerTagName: string = tagName.toLowerCase();
 
+		const isNativeElement: boolean = this.elementTypeSets[type].has(lowerTagName);
 		if(isNativeElement) return true;
-
 		if(type !== "container") return isNativeElement;
 
-		const isCustomElement: boolean = ![
-			...this.groundTruth
-                    ?.typeElement
-                    .actionable
-                    ?.tagNames ?? [],
-			...this.groundTruth
-                    ?.typeElement
-                    .textFormatting
-                    ?.tagNames ?? []
-		]
-            .includes(tagName.toLowerCase());
-
+		const isCustomElement: boolean = !this.nonContainerTagNames.has(lowerTagName);
 		return isCustomElement;
 	}
 
 	public getContainerRating(tagName: string): number {
 		if(!tagName) return -Infinity;
 
-		const rating: number | undefined = (
-			(
-				this.groundTruth
-                    ?.typeElement
-                    ?.container
-                    ?.ratings
-			) ?? {}
-		)[tagName.toLowerCase()];
+		const rating: number | undefined = this.containerRatings[tagName.toLowerCase()];
 		if(rating !== undefined) return rating;
 
-		const fallbackRating: number | undefined = this.groundTruth
-            ?.typeElement
-            ?.container
-            ?.fallbackRating;
-
-		return fallbackRating ?? HARD_FALLBACK_RATING;
+		return this.containerFallbackRating;
 	}
 
 	public getAttributeRatingPrecise(attributeName: string): number | undefined {
 		if(!attributeName) return -Infinity;
 
-		const rating: number | undefined = (
-			(
-				this.groundTruth
-                    ?.typeAttribute
-                    ?.ratings
-			) ?? {}
-		)[attributeName.toLowerCase()];
+		const rating: number | undefined = this.attributeRatings[attributeName.toLowerCase()];
 		if(rating !== undefined) return rating;
 
-		const fallbackRating: number | undefined = this.groundTruth
-            ?.typeAttribute
-            ?.fallbackRating;
-
-		return fallbackRating;
+		return this.attributeFallbackRating;
 	}
 
 	public getAttributeRating(attributeName: string): number {
-		let rating: number | undefined = this.getAttributeRatingPrecise(attributeName);
+		const cached: number | undefined = this.attributeRatingCache.get(attributeName);
+		if(cached !== undefined) return cached;
 
+		let rating: number | undefined = this.getAttributeRatingPrecise(attributeName);
 		if(!rating) {
 			for(const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
 				if(!attributeName.toLocaleLowerCase().startsWith(prefix)) continue;
 
 				rating = this.getAttributeRatingPrecise(`${prefix}${ATTRIBUTE_SUFFIX_WILDCARD}`);
-
 				break;
 			}
 		}
 
-		return rating ?? HARD_FALLBACK_RATING;
+		const finalRating: number = rating ?? HARD_FALLBACK_RATING;
+		this.attributeRatingCache.set(attributeName, finalRating);
+		return finalRating;
 	}
 }
