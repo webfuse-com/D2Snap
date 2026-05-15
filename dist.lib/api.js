@@ -5,7 +5,7 @@ async function d2Snap(domOrString, ...args) {
   return _d2Snap(await ensureDOM(domOrString), ...args);
 }
 async function adaptiveD2Snap(domOrString, ...args) {
-  return _adaptiveD2Snap(d2Snap, await ensureDOM(domOrString), ...args);
+  return _adaptiveD2Snap(_d2Snap, await ensureDOM(domOrString), ...args);
 }
 export {
   adaptiveD2Snap,

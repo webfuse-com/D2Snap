@@ -6,7 +6,7 @@ export enum NodeFilter {
     SHOW_TEXT = 4
 };
 
-export enum Node {
+export enum NodeType {
     ELEMENT_NODE = 1,
     ATTRIBUTE_NODE = 2,
     TEXT_NODE = 3,
@@ -58,13 +58,13 @@ export interface D2SnapOptions {
 };
 
 export interface D2SnapResult {
+    html: string;
     meta: {
         tokenEstimate: number;
         originalSize: number;
         sizeRatio: number;
         snapshotSize: number;
     }
-    html: string;
 };
 
 export interface GroundTruthJSON extends JSONObject {

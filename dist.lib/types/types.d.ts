@@ -5,7 +5,7 @@ export declare enum NodeFilter {
     SHOW_COMMENT = 128,
     SHOW_TEXT = 4
 }
-export declare enum Node {
+export declare enum NodeType {
     ELEMENT_NODE = 1,
     ATTRIBUTE_NODE = 2,
     TEXT_NODE = 3,
@@ -42,13 +42,13 @@ export interface D2SnapOptions {
     uniqueIDs: boolean;
 }
 export interface D2SnapResult {
+    html: string;
     meta: {
         tokenEstimate: number;
         originalSize: number;
         sizeRatio: number;
         snapshotSize: number;
     };
-    html: string;
 }
 export interface GroundTruthJSON extends JSONObject {
     typeElement: {

@@ -22,7 +22,7 @@ await test("Translate markup to markdown via Turndown", async () => {
         <div>
             <ul>
                 <li>
-                    Centrum <button onclick="info('centrum')"><i>i</i></button>
+                    Centrum <button onclick="info('centrum')"><em>i</em></button>
                 </li>
                 <li>Noord</li>
                 <li>Zuid</li>
@@ -75,7 +75,7 @@ await test("Translate markup to markdown via Turndown", async () => {
 
             ## District
 
-            -   Centrum <button onclick="info('centrum')"><i>i</i></button>
+            -   Centrum <button onclick="info('centrum')"><em>i</em></button>
             -   Noord
             -   Zuid
             -   Oost

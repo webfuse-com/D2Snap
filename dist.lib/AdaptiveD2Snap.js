@@ -21,12 +21,13 @@ function* generateHalton() {
     ];
   }
 }
-async function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
+function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
   const S = (typeof dom !== "string" ? resolveRoot(dom).outerHTML : dom).length;
   const M = 1e6;
   let i = 0;
   let sCalc = S;
-  let parameters, snapshot;
+  let snapshot;
+  let parameters;
   const haltonGenerator = generateHalton();
   while (true) {
     const haltonPoint = haltonGenerator.next().value;
@@ -36,7 +37,7 @@ async function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5
       rA: computeParam(haltonPoint[1]),
       rT: computeParam(haltonPoint[2])
     };
-    snapshot = await d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
+    snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
     sCalc = sCalc ** 1.125;
     if (snapshot.meta.tokenEstimate <= maxTokens)
       break;

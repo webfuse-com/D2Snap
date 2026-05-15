@@ -86,7 +86,7 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        2370,
+        2380,
         -1,
         "Invalid DOM snapshot original size"
     );

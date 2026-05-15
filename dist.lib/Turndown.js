@@ -11,7 +11,7 @@ class Turndown {
     const normalizedKeepTagNames = new Set(keepTagNames.map((tag) => tag.toLowerCase()));
     this.service.addRule("keep", {
       filter: (node) => node.nodeType === 1 && normalizedKeepTagNames.has(node.tagName.toLowerCase()),
-      replacement: (_content, node) => node.nodeType === 1 ? node.outerHTML : ""
+      replacement: (_content, node) => node.outerHTML
     });
     this.service.use(gfm);
   }

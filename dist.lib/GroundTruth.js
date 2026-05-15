@@ -6,37 +6,61 @@ const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
 const ATTRIBUTE_SUFFIX_WILDCARD = "*";
 class GroundTruth {
   groundTruth;
+  elementsByType;
+  elementTypeSets;
+  nonContainerTagNames;
+  containerRatings;
+  containerFallbackRating;
+  attributeRatings;
+  attributeFallbackRating;
+  attributeRatingCache = /* @__PURE__ */ new Map();
   constructor(groundTruth) {
     this.groundTruth = groundTruth;
+    this.elementsByType = {
+      container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
+      actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
+      textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? []
+    };
+    this.elementTypeSets = {
+      container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
+      actionable: new Set(this.elementsByType.actionable.map((t) => t.toLowerCase())),
+      textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase()))
+    };
+    this.nonContainerTagNames = /* @__PURE__ */ new Set([
+      ...this.elementTypeSets.actionable,
+      ...this.elementTypeSets.textFormatting
+    ]);
+    this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
+    this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
+    this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
+    this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
   }
   getElementsByType(type) {
-    return this.groundTruth?.typeElement[type]?.tagNames ?? [];
+    return [...this.elementsByType[type]];
   }
   isElementType(type, tagName) {
-    const isNativeElement = this.getElementsByType(type).includes(tagName.toLowerCase());
+    const lowerTagName = tagName.toLowerCase();
+    const isNativeElement = this.elementTypeSets[type].has(lowerTagName);
     if (isNativeElement) return true;
     if (type !== "container") return isNativeElement;
-    const isCustomElement = ![
-      ...this.groundTruth?.typeElement.actionable?.tagNames ?? [],
-      ...this.groundTruth?.typeElement.textFormatting?.tagNames ?? []
-    ].includes(tagName.toLowerCase());
+    const isCustomElement = !this.nonContainerTagNames.has(lowerTagName);
     return isCustomElement;
   }
   getContainerRating(tagName) {
     if (!tagName) return -Infinity;
-    const rating = (this.groundTruth?.typeElement?.container?.ratings ?? {})[tagName.toLowerCase()];
+    const rating = this.containerRatings[tagName.toLowerCase()];
     if (rating !== void 0) return rating;
-    const fallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating;
-    return fallbackRating ?? HARD_FALLBACK_RATING;
+    return this.containerFallbackRating;
   }
   getAttributeRatingPrecise(attributeName) {
     if (!attributeName) return -Infinity;
-    const rating = (this.groundTruth?.typeAttribute?.ratings ?? {})[attributeName.toLowerCase()];
+    const rating = this.attributeRatings[attributeName.toLowerCase()];
     if (rating !== void 0) return rating;
-    const fallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
-    return fallbackRating;
+    return this.attributeFallbackRating;
   }
   getAttributeRating(attributeName) {
+    const cached = this.attributeRatingCache.get(attributeName);
+    if (cached !== void 0) return cached;
     let rating = this.getAttributeRatingPrecise(attributeName);
     if (!rating) {
       for (const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
@@ -45,7 +69,9 @@ class GroundTruth {
         break;
       }
     }
-    return rating ?? HARD_FALLBACK_RATING;
+    const finalRating = rating ?? HARD_FALLBACK_RATING;
+    this.attributeRatingCache.set(attributeName, finalRating);
+    return finalRating;
   }
 }
 export {

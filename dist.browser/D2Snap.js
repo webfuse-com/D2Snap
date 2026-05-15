@@ -61,26 +61,28 @@
   function resolveRoot(node) {
     return node?.body ?? node?.documentElement ?? node;
   }
-  async function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb) {
+  function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb) {
     const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
     const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
     const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
-    const nodes = [];
     const stack = [];
     for (let i = root2.childNodes.length - 1; i >= 0; i--) {
       stack.push(root2.childNodes[i]);
     }
     while (stack.length) {
       const node = stack.pop();
-      const passes = filter === 4294967295 /* SHOW_ALL */ || node.nodeType === 1 /* ELEMENT_NODE */ && showElement || node.nodeType === 3 /* TEXT_NODE */ && showText || node.nodeType === 8 /* COMMENT_NODE */ && showComment;
-      passes && nodes.push(node);
-      const children = node.childNodes;
+      const children = [...node.childNodes];
+      const childIndex = stack.length;
+      const childCount = children.length;
       for (let i = children.length - 1; i >= 0; i--) {
         stack.push(children[i]);
       }
-    }
-    while (nodes.length) {
-      await cb(nodes.shift());
+      const passes = filter === 4294967295 /* SHOW_ALL */ || node.nodeType === 1 /* ELEMENT_NODE */ && showElement || node.nodeType === 3 /* TEXT_NODE */ && showText || node.nodeType === 8 /* COMMENT_NODE */ && showComment;
+      if (!passes) continue;
+      const replacingNodes = cb(node);
+      if (!replacingNodes?.length) continue;
+      stack.splice(childIndex, childCount, ...replacingNodes);
+      stack.push(...replacingNodes.reverse());
     }
   }
 
@@ -397,37 +399,61 @@
   var ATTRIBUTE_SUFFIX_WILDCARD = "*";
   var GroundTruth = class {
     groundTruth;
+    elementsByType;
+    elementTypeSets;
+    nonContainerTagNames;
+    containerRatings;
+    containerFallbackRating;
+    attributeRatings;
+    attributeFallbackRating;
+    attributeRatingCache = /* @__PURE__ */ new Map();
     constructor(groundTruth) {
       this.groundTruth = groundTruth;
+      this.elementsByType = {
+        container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
+        actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
+        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? []
+      };
+      this.elementTypeSets = {
+        container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
+        actionable: new Set(this.elementsByType.actionable.map((t) => t.toLowerCase())),
+        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase()))
+      };
+      this.nonContainerTagNames = /* @__PURE__ */ new Set([
+        ...this.elementTypeSets.actionable,
+        ...this.elementTypeSets.textFormatting
+      ]);
+      this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
+      this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
+      this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
+      this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
     }
     getElementsByType(type) {
-      return this.groundTruth?.typeElement[type]?.tagNames ?? [];
+      return [...this.elementsByType[type]];
     }
     isElementType(type, tagName) {
-      const isNativeElement = this.getElementsByType(type).includes(tagName.toLowerCase());
+      const lowerTagName = tagName.toLowerCase();
+      const isNativeElement = this.elementTypeSets[type].has(lowerTagName);
       if (isNativeElement) return true;
       if (type !== "container") return isNativeElement;
-      const isCustomElement = ![
-        ...this.groundTruth?.typeElement.actionable?.tagNames ?? [],
-        ...this.groundTruth?.typeElement.textFormatting?.tagNames ?? []
-      ].includes(tagName.toLowerCase());
+      const isCustomElement = !this.nonContainerTagNames.has(lowerTagName);
       return isCustomElement;
     }
     getContainerRating(tagName) {
       if (!tagName) return -Infinity;
-      const rating = (this.groundTruth?.typeElement?.container?.ratings ?? {})[tagName.toLowerCase()];
+      const rating = this.containerRatings[tagName.toLowerCase()];
       if (rating !== void 0) return rating;
-      const fallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating;
-      return fallbackRating ?? HARD_FALLBACK_RATING;
+      return this.containerFallbackRating;
     }
     getAttributeRatingPrecise(attributeName) {
       if (!attributeName) return -Infinity;
-      const rating = (this.groundTruth?.typeAttribute?.ratings ?? {})[attributeName.toLowerCase()];
+      const rating = this.attributeRatings[attributeName.toLowerCase()];
       if (rating !== void 0) return rating;
-      const fallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
-      return fallbackRating;
+      return this.attributeFallbackRating;
     }
     getAttributeRating(attributeName) {
+      const cached = this.attributeRatingCache.get(attributeName);
+      if (cached !== void 0) return cached;
       let rating = this.getAttributeRatingPrecise(attributeName);
       if (!rating) {
         for (const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
@@ -436,7 +462,9 @@
           break;
         }
       }
-      return rating ?? HARD_FALLBACK_RATING;
+      const finalRating = rating ?? HARD_FALLBACK_RATING;
+      this.attributeRatingCache.set(attributeName, finalRating);
+      return finalRating;
     }
   };
 
@@ -1099,7 +1127,7 @@
   function isPreOrCode(node) {
     return node.nodeName === "PRE" || node.nodeName === "CODE";
   }
-  function Node2(node, options) {
+  function Node(node, options) {
     node.isBlock = isBlock(node);
     node.isCode = node.nodeName === "CODE" || node.parentNode.isCode;
     node.isBlank = isBlank(node);
@@ -1286,7 +1314,7 @@
   function process(parentNode) {
     var self = this;
     return reduce.call(parentNode.childNodes, function(output, node) {
-      node = new Node2(node, self.options);
+      node = new Node(node, self.options);
       var replacement = "";
       if (node.nodeType === 3) {
         replacement = node.isCode ? node.nodeValue : self.escape(node.nodeValue);
@@ -1442,7 +1470,7 @@
       const normalizedKeepTagNames = new Set(keepTagNames.map((tag) => tag.toLowerCase()));
       this.service.addRule("keep", {
         filter: (node) => node.nodeType === 1 && normalizedKeepTagNames.has(node.tagName.toLowerCase()),
-        replacement: (_content, node) => node.nodeType === 1 ? node.outerHTML : ""
+        replacement: (_content, node) => node.outerHTML
       });
       this.service.use(gfm);
     }
@@ -1647,7 +1675,7 @@
       throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
     }
   }
-  async function d2Snap(dom, rE, rA, rT, options = {}) {
+  function d2Snap(dom, rE, rA, rT, options = {}) {
     validateParameter("rE", rE, true);
     validateParameter("rA", rA);
     validateParameter("rT", rT);
@@ -1668,6 +1696,9 @@
     );
     const turndown = new Turndown(
       groundTruth.getElementsByType("actionable")
+    );
+    const filteredTagNames = new Set(
+      optionsWithDefaults.filteredTagNames.map((t) => t.toUpperCase())
     );
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
@@ -1747,7 +1778,9 @@
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-      elementNode.replaceWith(...[document3.createTextNode(" "), ...markdownNodesFragment.childNodes, document3.createTextNode(" ")]);
+      const replacingNodes = [...markdownNodesFragment.childNodes];
+      elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
+      return replacingNodes;
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
@@ -1773,7 +1806,7 @@
     const rootElement = resolveRoot(dom);
     const originalSize = rootElement.innerHTML.length;
     let n = 0;
-    optionsWithDefaults.uniqueIDs && await traverseDom(
+    optionsWithDefaults.uniqueIDs && traverseDom(
       rootElement,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
@@ -1782,16 +1815,18 @@
       }
     );
     const virtualDom = rootElement.cloneNode(true);
-    await traverseDom(
+    let domTreeHeight = 0;
+    traverseDom(
       virtualDom,
-      128 /* SHOW_COMMENT */,
-      (node) => node.parentNode?.removeChild(node)
-    );
-    await traverseDom(
-      virtualDom,
-      1 /* SHOW_ELEMENT */,
-      (elementNode) => {
-        if (optionsWithDefaults.filteredTagNames.includes(elementNode.tagName.toUpperCase())) {
+      4294967295 /* SHOW_ALL */,
+      (node) => {
+        if (node.nodeType === 8 /* COMMENT_NODE */) {
+          node.parentNode?.removeChild(node);
+          return;
+        }
+        if (node.nodeType !== 1 /* ELEMENT_NODE */) return;
+        const elementNode = node;
+        if (filteredTagNames.has(elementNode.tagName.toUpperCase())) {
           elementNode.remove();
           return;
         }
@@ -1799,29 +1834,22 @@
           if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
           elementNode.removeAttribute(attr.name);
         }
-      }
-    );
-    let domTreeHeight = 0;
-    await traverseDom(
-      virtualDom,
-      1 /* SHOW_ELEMENT */,
-      (elementNode) => {
         const depth = (elementNode.parentNode.depth ?? 0) + 1;
         elementNode.depth = depth;
         domTreeHeight = Math.max(depth, domTreeHeight);
       }
     );
-    await traverseDom(
+    traverseDom(
       virtualDom,
       4 /* SHOW_TEXT */,
       (node) => snapTextNode(node, rT)
     );
-    await traverseDom(
+    traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapElementTextFormattingNode(document2, node)
     );
-    await traverseDom(
+    traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => {
@@ -1829,7 +1857,7 @@
         return snapElementContainerNode(document2, node, rE, domTreeHeight);
       }
     );
-    await traverseDom(
+    traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapAttributeNode(node, rA)
@@ -1878,12 +1906,13 @@
       ];
     }
   }
-  async function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
+  function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
     const S = (typeof dom !== "string" ? resolveRoot(dom).outerHTML : dom).length;
     const M = 1e6;
     let i = 0;
     let sCalc = S;
-    let parameters, snapshot;
+    let snapshot;
+    let parameters;
     const haltonGenerator = generateHalton();
     while (true) {
       const haltonPoint = haltonGenerator.next().value;
@@ -1893,7 +1922,7 @@
         rA: computeParam(haltonPoint[1]),
         rT: computeParam(haltonPoint[2])
       };
-      snapshot = await d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
+      snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
       sCalc = sCalc ** 1.125;
       if (snapshot.meta.tokenEstimate <= maxTokens)
         break;
@@ -1914,7 +1943,7 @@
     return d2Snap(await ensureDOM(domOrString), ...args);
   }
   async function adaptiveD2Snap2(domOrString, ...args) {
-    return adaptiveD2Snap(d2Snap2, await ensureDOM(domOrString), ...args);
+    return adaptiveD2Snap(d2Snap, await ensureDOM(domOrString), ...args);
   }
 
   // src/api.browser.ts

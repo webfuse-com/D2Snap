@@ -7,18 +7,18 @@ var NodeFilter = /* @__PURE__ */ ((NodeFilter2) => {
   return NodeFilter2;
 })(NodeFilter || {});
 ;
-var Node = /* @__PURE__ */ ((Node2) => {
-  Node2[Node2["ELEMENT_NODE"] = 1] = "ELEMENT_NODE";
-  Node2[Node2["ATTRIBUTE_NODE"] = 2] = "ATTRIBUTE_NODE";
-  Node2[Node2["TEXT_NODE"] = 3] = "TEXT_NODE";
-  Node2[Node2["COMMENT_NODE"] = 8] = "COMMENT_NODE";
-  return Node2;
-})(Node || {});
+var NodeType = /* @__PURE__ */ ((NodeType2) => {
+  NodeType2[NodeType2["ELEMENT_NODE"] = 1] = "ELEMENT_NODE";
+  NodeType2[NodeType2["ATTRIBUTE_NODE"] = 2] = "ATTRIBUTE_NODE";
+  NodeType2[NodeType2["TEXT_NODE"] = 3] = "TEXT_NODE";
+  NodeType2[NodeType2["COMMENT_NODE"] = 8] = "COMMENT_NODE";
+  return NodeType2;
+})(NodeType || {});
 ;
 ;
 ;
 ;
 export {
-  Node,
-  NodeFilter
+  NodeFilter,
+  NodeType
 };

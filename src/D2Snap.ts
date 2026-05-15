@@ -1,6 +1,6 @@
 import {
 	NodeFilter,
-	Node,
+	NodeType,
 	type TextNode,
 	type HTMLElementWithDepth,
 	type DOM,
@@ -33,11 +33,11 @@ function validateParameter(name: string, value: number, allowInfinity: boolean =
 }
 
 
-export async function d2Snap(
+export function d2Snap(
 	dom: DOM,
 	rE: number, rA: number, rT: number,
 	options: Partial<D2SnapOptions> = {}
-): Promise<D2SnapResult> {
+): D2SnapResult {
 	validateParameter("rE", rE, true);
 	validateParameter("rA", rA);
 	validateParameter("rT", rT);
@@ -66,8 +66,12 @@ export async function d2Snap(
 		groundTruth.getElementsByType("actionable")
 	);
 
+	const filteredTagNames: Set<string> = new Set(
+		optionsWithDefaults.filteredTagNames.map(t => t.toUpperCase())
+	);
+
 	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
-		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("container", elementNode.tagName)) return;
 		if(!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
 
@@ -136,7 +140,7 @@ export async function d2Snap(
 				const child: ChildNode = before[i];
 
 				if(targetElement.childNodes.length && (i === (before.length - 1))) {
-					if(child.nodeType === Node.TEXT_NODE) {
+					if(child.nodeType === NodeType.TEXT_NODE) {
 						child.textContent = `${child.textContent} `;
 					} else {
 						child.appendChild(document.createTextNode(" "));
@@ -149,7 +153,7 @@ export async function d2Snap(
 				const child: ChildNode = after[i];
 
 				if(targetElement.childNodes.length && (i === 0)) {
-					if(child.nodeType === Node.TEXT_NODE) {
+					if(child.nodeType === NodeType.TEXT_NODE) {
 						child.textContent = ` ${child.textContent}`;
 					} else {
 						child.insertBefore(document.createTextNode(" "), child.firstChild);
@@ -172,7 +176,7 @@ export async function d2Snap(
 	}
 
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
-		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
 		if(optionsWithDefaults.skipMarkdown) return;
 
@@ -182,12 +186,16 @@ export async function d2Snap(
             .createRange()
             .createContextualFragment(markdown);
 
+		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
+
 		elementNode
-            .replaceWith(...[ document.createTextNode(" "), ...markdownNodesFragment.childNodes, document.createTextNode(" ") ]);
+            .replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
+
+		return replacingNodes;
 	}
 
 	function snapTextNode(textNode: TextNode, rT: number) {
-		if(textNode.nodeType !== Node.TEXT_NODE) return;
+		if(textNode.nodeType !== NodeType.TEXT_NODE) return;
 
 		const text: string | null = (textNode?.innerText ?? textNode.textContent);
     	if(!(text ?? "").trim().length) return;
@@ -203,7 +211,7 @@ export async function d2Snap(
 	}
 
 	function snapAttributeNode(elementNode: HTMLElement, rA: number) {
-		if(elementNode.nodeType !== Node.ELEMENT_NODE) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
 		for(const attr of Array.from(elementNode.attributes)) {
 			if(groundTruth.getAttributeRating(attr.name) >= rA) continue;
@@ -220,7 +228,7 @@ export async function d2Snap(
 
 	let n = 0;
 	optionsWithDefaults.uniqueIDs
-        && await traverseDom<Element>(
+        && traverseDom<Element>(
         	rootElement,
         	NodeFilter.SHOW_ELEMENT,
         	elementNode => {
@@ -235,22 +243,22 @@ export async function d2Snap(
 
 	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
 
-	// Prepare
-	await traverseDom<Comment>(
+	let domTreeHeight: number = 0;
+	traverseDom<Node>(
 		virtualDom,
-		NodeFilter.SHOW_COMMENT,
-		node => node.parentNode?.removeChild(node)
-	);
+		NodeFilter.SHOW_ALL,
+		(node: Node) => {
+			if(node.nodeType === NodeType.COMMENT_NODE) {
+				node.parentNode?.removeChild(node);
 
-	await traverseDom<Element>(
-		virtualDom,
-		NodeFilter.SHOW_ELEMENT,
-		elementNode => {
-			if(
-				optionsWithDefaults
-					.filteredTagNames
-					.includes(elementNode.tagName.toUpperCase())
-			) {
+				return;
+			}
+
+			if(node.nodeType !== NodeType.ELEMENT_NODE) return;
+
+			const elementNode = node as Element;
+
+			if(filteredTagNames.has(elementNode.tagName.toUpperCase())) {
 				elementNode.remove();
 
 				return;
@@ -264,14 +272,7 @@ export async function d2Snap(
 
 				elementNode.removeAttribute(attr.name);
 			}
-		}
-	);
 
-	let domTreeHeight: number = 0;
-	await traverseDom<Element>(
-		virtualDom,
-		NodeFilter.SHOW_ELEMENT,
-		elementNode => {
 			const depth: number = ((elementNode.parentNode as HTMLElementWithDepth).depth ?? 0) + 1;
 
 			(elementNode as HTMLElementWithDepth).depth = depth;
@@ -281,21 +282,21 @@ export async function d2Snap(
 	);
 
 	// Text nodes first
-	await traverseDom<TextNode>(
+	traverseDom<TextNode>(
 		virtualDom,
 		NodeFilter.SHOW_TEXT,
 		(node: TextNode) => snapTextNode(node, rT)
 	);
 
 	// Text formatting element nodes
-	await traverseDom<HTMLElement>(
+	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapElementTextFormattingNode(document, node),
 	);
 
 	// Container element nodes
-	await traverseDom<HTMLElementWithDepth>(
+	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElementWithDepth) => {
@@ -305,15 +306,15 @@ export async function d2Snap(
 		}
 	);
 
-	// Actionable element nodes
-	// Designated no-op
-
 	// Attribute nodes
-	await traverseDom<HTMLElement>(
+	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element
 	);
+
+	// Actionable element nodes
+	// Designated no-op
 
 	const snapshot = virtualDom.innerHTML;
 	// Minify

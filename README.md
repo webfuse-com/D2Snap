@@ -26,6 +26,7 @@ D2Snap.adaptiveD2Snap(
 ): Promise<{
   html: string;
   meta: {};
+  parameters: {};
 }>
 ```
 

@@ -22,13 +22,9 @@ export class Turndown {
 			.addRule("keep", {
 				filter: (node: Node) => (
 					(node.nodeType === 1)
-					&& normalizedKeepTagNames.has((node as Element).tagName.toLowerCase())
+						&& normalizedKeepTagNames.has((node as Element).tagName.toLowerCase())
 				),
-				replacement: (_content: string, node: Node) => (
-					node.nodeType === 1
-						? (node as Element).outerHTML
-						: ""
-				)
+				replacement: (_content: string, node: Node) => (node as Element).outerHTML
 			});
 
 		this.service.use(gfm);
