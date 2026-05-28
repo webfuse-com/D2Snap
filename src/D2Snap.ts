@@ -224,6 +224,10 @@ export function d2Snap(
 		elementNode
             .replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
 
+		// Strip same-tag replacements before returning for re-traversal:
+		// Turndown passes some textFormatting elements through verbatim
+		// (e.g. <table> without <thead>), and re-visiting them would feed
+		// the same input back to Turndown forever.
 		const sourceTagName: string = elementNode.tagName.toLowerCase();
 
 		return replacingNodes.filter(n => (

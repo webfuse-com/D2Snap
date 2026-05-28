@@ -475,6 +475,45 @@ await test("labeledExtract is no-op when default ground-truth list is empty (cob
     assertIn("<svg", snapshot.html, "Default (empty list) labeledExtract should not strip svg");
 });
 
+await test("Markdown pass terminates on Turndown HTML passthrough (table without <thead>)", async () => {
+    // Regression: Turndown's gfm plugin passes <table> elements without a
+    // <thead> through as raw HTML. The textFormatting pass returned the
+    // markdown fragment for re-traversal so nested elements like <em>
+    // inside a kept <button> get converted; but a passed-through <table>
+    // re-parsed into another <table>, which fed itself back into Turndown
+    // forever. Real-world reproducer: futurumshop product page (>1MB HTML
+    // with <table class="product-description-table"> and no <thead>).
+    // Asserts termination via a hard wall-clock budget — if the loop is
+    // reintroduced, this hangs and the test runner times out.
+    const dom = `<html><body><table class="product-description-table">
+        <tbody>
+            <tr><td>Ademend vermogen:</td><td>5/5</td></tr>
+            <tr><td>Gewicht:</td><td>150g</td></tr>
+        </tbody>
+    </table></body></html>`;
+
+    const start = Date.now();
+    const snapshot = await d2Snap(dom, 0.5, 0.5, 0.5, { debug: true });
+    const elapsedMs = Date.now() - start;
+
+    assertLess(elapsedMs, 2000, `Markdown pass took ${elapsedMs}ms — infinite-loop regression?`);
+    assertIn("Ademend vermogen", snapshot.html, "Table content was lost");
+});
+
+await test("Markdown pass converts nested textFormatting inside kept actionable (<em> in <button>)", async () => {
+    // Regression guard for the OTHER side of the fix: the textFormatting
+    // pass MUST still re-traverse markdown-replacement fragments so that
+    // nested textFormatting elements (e.g. <em>) inside a kept actionable
+    // (e.g. <button>) get converted. Without re-traversal, <em> would
+    // survive as raw HTML instead of being rendered as _i_.
+    const dom = `<html><body><li>Info <button onclick="x()"><em>i</em></button></li></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.3, 0.3, 0.3, { debug: true });
+
+    assertIn("_i_", snapshot.html, "<em> inside kept <button> was not converted to markdown");
+    assertNotIn("<em>", snapshot.html, "Raw <em> leaked through textFormatting pass");
+});
+
 await test("Take DOM snapshot (options.debug)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
         debug: false
