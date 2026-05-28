@@ -391,6 +391,8 @@
 
   // src/GroundTruth.ts
   var HARD_FALLBACK_RATING = 0;
+  var DEFAULT_LABEL_ATTRS = ["aria-label", "title", "alt"];
+  var DEFAULT_LABEL_CHILD_TAGS = ["title", "desc"];
   var SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
     "aria-",
     "data-"
@@ -406,29 +408,44 @@
     attributeRatings;
     attributeFallbackRating;
     attributeRatingCache = /* @__PURE__ */ new Map();
+    labelAttrs;
+    labelChildTagsSet;
     constructor(groundTruth) {
       this.groundTruth = groundTruth;
       this.elementsByType = {
         container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
         actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
-        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? []
+        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? [],
+        labeledExtract: this.groundTruth?.typeElement?.labeledExtract?.tagNames ?? []
       };
       this.elementTypeSets = {
         container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
         actionable: new Set(this.elementsByType.actionable.map((t) => t.toLowerCase())),
-        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase()))
+        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase())),
+        labeledExtract: new Set(this.elementsByType.labeledExtract.map((t) => t.toLowerCase()))
       };
       this.nonContainerTagNames = /* @__PURE__ */ new Set([
         ...this.elementTypeSets.actionable,
-        ...this.elementTypeSets.textFormatting
+        ...this.elementTypeSets.textFormatting,
+        ...this.elementTypeSets.labeledExtract
       ]);
       this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
       this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
       this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
       this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
+      this.labelAttrs = (this.groundTruth?.typeElement?.labeledExtract?.labelAttrs ?? DEFAULT_LABEL_ATTRS).map((a) => a.toLowerCase());
+      this.labelChildTagsSet = new Set(
+        (this.groundTruth?.typeElement?.labeledExtract?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
+      );
     }
     getElementsByType(type) {
       return [...this.elementsByType[type]];
+    }
+    getLabelAttrs() {
+      return [...this.labelAttrs];
+    }
+    isLabelChildTag(tagName) {
+      return this.labelChildTagsSet.has(tagName.toLowerCase());
     }
     isElementType(type, tagName) {
       const lowerTagName = tagName.toLowerCase();
@@ -1772,6 +1789,34 @@
       }
       sourceElement.parentNode?.removeChild(sourceElement);
     }
+    function snapElementLabeledExtractNode(document3, elementNode) {
+      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
+      if (!groundTruth.isElementType("labeledExtract", elementNode.tagName)) return;
+      let label = null;
+      for (const attrName of groundTruth.getLabelAttrs()) {
+        const value = elementNode.getAttribute(attrName);
+        const trimmed = (value ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+      if (!label) {
+        for (const child of Array.from(elementNode.children)) {
+          if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+          const trimmed = (child.textContent ?? "").trim();
+          if (trimmed) {
+            label = trimmed;
+            break;
+          }
+        }
+      }
+      if (label !== null) {
+        elementNode.replaceWith(document3.createTextNode(label));
+      } else {
+        elementNode.remove();
+      }
+    }
     function snapElementTextFormattingNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
@@ -1839,6 +1884,11 @@
         elementNode.depth = depth;
         domTreeHeight = Math.max(depth, domTreeHeight);
       }
+    );
+    traverseDom(
+      virtualDom,
+      1 /* SHOW_ELEMENT */,
+      (node) => snapElementLabeledExtractNode(document2, node)
     );
     traverseDom(
       virtualDom,

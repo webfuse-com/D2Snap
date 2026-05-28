@@ -65,6 +65,11 @@ export interface GroundTruthJSON extends JSONObject {
         textFormatting: {
             tagNames: string[];
         };
+        labeledExtract?: {
+            tagNames: string[];
+            labelAttrs?: string[];
+            labelChildTags?: string[];
+        };
     };
     typeAttribute: {
         ratings: Record<string, number>;

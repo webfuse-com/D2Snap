@@ -329,6 +329,152 @@ await test("Take DOM snapshot (options.skipTextRank)", async () => {
     );
 });
 
+// ---------------------------------------------------------------------------
+// Cobro <-> D2Snap quality mapping helper.
+//
+//   cobro `quality` -> d2snap `rE = rA = rT = 1 - quality`
+//   (server: src/cobro/app/automation/automation.see.ts:340-349)
+//
+//   cobro q=0.1  -> d2snap rE=rA=rT=0.9   (HEAVIEST downsampling — what the
+//                                         LLM sees in act-only mode)
+//   cobro q=0.5  -> d2snap rE=rA=rT=0.5   (medium)
+//   cobro q=0.9  -> d2snap rE=rA=rT=0.1   (lightest, near-raw)
+//   cobro q=1.0  -> bypass d2snap entirely (handled at the server layer)
+//
+// The labeledExtract pass is UNCONDITIONAL — it runs before rE/rA/rT pruning
+// — so it must yield the same label-preservation guarantee at every cobro q
+// in [0, 1). Tests sweep that range to lock the contract in.
+// ---------------------------------------------------------------------------
+function d2snapArgsForCobroQuality(q) {
+    const r = 1 - q;
+    return { rE: r, rA: r, rT: r };
+}
+
+const FUTURUMSHOP_HAMBURGER_DOM = `<html><body><button class="hamburger js-mobileNavToggle" wf-id="463">
+            <svg class="icon-hamburger" aria-label="Open menu" wf-id="465">
+                <use href="#icon-hamburger" wf-id="467"></use>
+            </svg>
+        </button></body></html>`;
+
+const SVG_LABELED_EXTRACT_GROUND_TRUTH = {
+    typeElement: {
+        labeledExtract: { tagNames: [ "svg" ] }
+    },
+    typeAttribute: {
+        ratings: { "wf-id": 1.0 }
+    }
+};
+
+for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
+    await test(`Lift svg aria-label out of icon-only button (futurumshop regression, cobro q=${cobroQ})`, async () => {
+        // Exact <button> snippet captured from
+        // https://www.futurumshop.nl/futurum-jona-merino-fietsshirt-korte-mouwen-lichtblauw-heren.phtml
+        // The hamburger menu icon button: no visible text, only the svg's
+        // aria-label "Open menu" identifies it.
+        //
+        // Before labeledExtract, at cobro q=0.1 (d2snap rE=rA=rT=0.9) this
+        // collapsed to <button wf-id="463"><svg wf-id="465"></svg></button>
+        // — unidentifiable. aria-label was rated 0.6 (dropped at rA=0.9),
+        // and even if preserved it would have stayed on the svg, not the
+        // button.
+        //
+        // With svg in labeledExtract, the aria-label is lifted out as a
+        // text node BEFORE TextRank / container merging / attribute pruning,
+        // so the label survives at every cobro q in [0, 1) — not just at
+        // the heavy-downsampling extreme where it would otherwise be lost.
+        const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
+
+        const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, rE, rA, rT, {
+            debug: true,
+            groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        });
+
+        writeActual(`futurumshop.hamburger.q=${cobroQ}`, snapshot.html);
+
+        assertIn(
+            "Open menu",
+            snapshot.html,
+            `Icon button's aria-label was lost at cobro q=${cobroQ}`
+        );
+        assertNotIn(
+            "<svg",
+            snapshot.html,
+            `Empty <svg> wrapper leaked through labeledExtract at cobro q=${cobroQ}`
+        );
+        assertIn(
+            "<button",
+            snapshot.html,
+            `Actionable <button> was lost at cobro q=${cobroQ}`
+        );
+        assertIn(
+            "wf-id=\"463\"",
+            snapshot.html,
+            `Button's wf-id interaction handle was lost at cobro q=${cobroQ}`
+        );
+    });
+}
+
+await test("Lift svg aria-label out of icon-only button at d2snap rE=rA=rT=1.0 (maximum downsampling)", async () => {
+    // Edge: the most aggressive setting d2snap accepts (cobro q=0). Even
+    // here labeledExtract must preserve the label.
+    const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, 1.0, 1.0, 1.0, {
+        debug: true,
+        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+    });
+
+    assertIn("Open menu", snapshot.html, "Label lost at maximum downsampling");
+    assertNotIn("<svg", snapshot.html, "Empty <svg> survived at maximum downsampling");
+});
+
+await test("Drop labeledExtract element with no recoverable label (cobro q=0.1)", async () => {
+    // Decorative SVG with no aria-label, no title attr, no <title> child —
+    // pure cosmetic icon, nothing to surface. The svg should disappear,
+    // leaving the actionable button as a bare interaction handle.
+    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const dom = `<html><body><button wf-id="1"><svg wf-id="2"><path d="M0,0L10,10"/></svg></button></body></html>`;
+
+    const snapshot = await d2Snap(dom, rE, rA, rT, {
+        debug: true,
+        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+    });
+
+    assertNotIn("<svg", snapshot.html, "Unlabeled svg should have been dropped");
+    assertIn("<button", snapshot.html, "Button must remain");
+});
+
+await test("labeledExtract recovers label from <title> child element (cobro q=0.1)", async () => {
+    // The "proper" accessibility pattern: SVG with a <title> child element
+    // rather than aria-label. Common in icon-font frameworks (Octicons etc.)
+    // and in some component libraries.
+    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const dom = `<html><body><a href="/trash" wf-id="9"><svg wf-id="10"><title>Delete item</title><path d="M0,0"/></svg></a></body></html>`;
+
+    const snapshot = await d2Snap(dom, rE, rA, rT, {
+        debug: true,
+        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+    });
+
+    assertIn("Delete item", snapshot.html, "Label from <title> child was not lifted");
+    assertNotIn("<svg", snapshot.html, "svg wrapper should be gone");
+    assertIn("href=\"/trash\"", snapshot.html, "Anchor href must be preserved");
+});
+
+await test("labeledExtract is no-op when default ground-truth list is empty (cobro q=0.1)", async () => {
+    // Sanity check: pre-fix behaviour must still be reachable. With the
+    // default ground truth (no labeledExtract entry), svg passes through
+    // untouched.
+    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const dom = `<html><body><button wf-id="1"><svg aria-label="X" wf-id="2"></svg></button></body></html>`;
+
+    const snapshot = await d2Snap(dom, rE, rA, rT, {
+        debug: true,
+        groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
+    });
+
+    // No labeledExtract config → svg survives.
+    assertIn("<svg", snapshot.html, "Default (empty list) labeledExtract should not strip svg");
+});
+
 await test("Take DOM snapshot (options.debug)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
         debug: false

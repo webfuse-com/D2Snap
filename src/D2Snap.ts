@@ -175,6 +175,39 @@ export function d2Snap(
             ?.removeChild(sourceElement);
 	}
 
+	function snapElementLabeledExtractNode(document: Document, elementNode: HTMLElement) {
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(!groundTruth.isElementType("labeledExtract", elementNode.tagName)) return;
+
+		// Find an accessibility label, preferring attributes over child elements.
+		// Attribute order is taken from the ground truth (default: aria-label, title, alt).
+		let label: string | null = null;
+		for(const attrName of groundTruth.getLabelAttrs()) {
+			const value: string | null = elementNode.getAttribute(attrName);
+			const trimmed: string = (value ?? "").trim();
+			if(trimmed) { label = trimmed; break; }
+		}
+		if(!label) {
+			for(const child of Array.from(elementNode.children)) {
+				if(!groundTruth.isLabelChildTag(child.tagName)) continue;
+				const trimmed: string = (child.textContent ?? "").trim();
+				if(trimmed) { label = trimmed; break; }
+			}
+		}
+
+		if(label !== null) {
+			// Replace element with a single text node carrying the label.
+			// Subsequent passes (snapTextNode etc.) will see this as plain text;
+			// because it ends up under the labeledExtract element's former parent,
+			// if that parent is actionable, TextRank will skip it (good for icon
+			// buttons: <button><svg aria-label="X"/></button> -> <button>X</button>).
+			elementNode.replaceWith(document.createTextNode(label));
+		} else {
+			// No label found anywhere — element is pure decoration. Drop it.
+			elementNode.remove();
+		}
+	}
+
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
@@ -286,7 +319,18 @@ export function d2Snap(
 		}
 	);
 
-	// Text nodes first
+	// Labeled-extract element nodes first: lift accessibility labels out of
+	// elements like <svg>/<canvas> and into the surrounding context as plain
+	// text. Done before TextRank so the lifted label survives downstream
+	// passes; done before container merging so empty svg wrappers don't
+	// linger around an actionable parent (e.g. icon buttons).
+	traverseDom<HTMLElement>(
+		virtualDom,
+		NodeFilter.SHOW_ELEMENT,
+		(node: HTMLElement) => snapElementLabeledExtractNode(document, node),
+	);
+
+	// Text nodes
 	traverseDom<TextNode>(
 		virtualDom,
 		NodeFilter.SHOW_TEXT,

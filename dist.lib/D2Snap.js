@@ -116,6 +116,34 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
+  function snapElementLabeledExtractNode(document2, elementNode) {
+    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+    if (!groundTruth.isElementType("labeledExtract", elementNode.tagName)) return;
+    let label = null;
+    for (const attrName of groundTruth.getLabelAttrs()) {
+      const value = elementNode.getAttribute(attrName);
+      const trimmed = (value ?? "").trim();
+      if (trimmed) {
+        label = trimmed;
+        break;
+      }
+    }
+    if (!label) {
+      for (const child of Array.from(elementNode.children)) {
+        if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+        const trimmed = (child.textContent ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+    }
+    if (label !== null) {
+      elementNode.replaceWith(document2.createTextNode(label));
+    } else {
+      elementNode.remove();
+    }
+  }
   function snapElementTextFormattingNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
@@ -183,6 +211,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       elementNode.depth = depth;
       domTreeHeight = Math.max(depth, domTreeHeight);
     }
+  );
+  traverseDom(
+    virtualDom,
+    NodeFilter.SHOW_ELEMENT,
+    (node) => snapElementLabeledExtractNode(document, node)
   );
   traverseDom(
     virtualDom,
