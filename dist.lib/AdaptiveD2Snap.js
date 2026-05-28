@@ -1,4 +1,3 @@
-import { resolveRoot } from "./util.dom.js";
 function* generateHalton() {
   const halton = (index, base) => {
     let result = 0;
@@ -15,42 +14,47 @@ function* generateHalton() {
   while (true) {
     i++;
     yield [
-      halton(i, 7),
+      halton(i, 2),
       halton(i, 3),
-      halton(i, 3)
+      halton(i, 5)
     ];
   }
 }
 function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
-  const S = (typeof dom !== "string" ? resolveRoot(dom).outerHTML : dom).length;
-  const M = 1e6;
-  let i = 0;
-  let sCalc = S;
-  let snapshot;
-  let parameters;
   const haltonGenerator = generateHalton();
-  while (true) {
-    const haltonPoint = haltonGenerator.next().value;
-    const computeParam = (haltonValue) => Math.min(sCalc / M * haltonValue, 1);
-    parameters = {
-      rE: computeParam(haltonPoint[0]),
-      rA: computeParam(haltonPoint[1]),
-      rT: computeParam(haltonPoint[2])
-    };
-    snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
-    sCalc = sCalc ** 1.125;
-    if (snapshot.meta.tokenEstimate <= maxTokens)
-      break;
-    if (i++ === maxIterations)
-      throw new RangeError("Unable to create snapshot below given token threshold");
-  }
-  return {
-    ...snapshot,
-    parameters: {
-      ...parameters,
-      adaptiveIterations: i
-    }
+  const parameters = {
+    rE: 0,
+    rA: 0,
+    rT: 0
   };
+  let aggressiveness = 0;
+  let snapshot;
+  for (let i = 0; i <= maxIterations; i++) {
+    const haltonPoint = haltonGenerator.next().value;
+    const jitter = (h) => 0.5 + 0.5 * h;
+    parameters.rE = Math.min(aggressiveness * jitter(haltonPoint[0]), 1);
+    parameters.rA = Math.min(aggressiveness * jitter(haltonPoint[1]), 1);
+    parameters.rT = Math.min(aggressiveness * jitter(haltonPoint[2]), 1);
+    snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
+    if (snapshot.meta.tokenEstimate <= maxTokens) {
+      return {
+        ...snapshot,
+        parameters,
+        adaptiveIterations: i
+      };
+    }
+    const overshoot = snapshot.meta.tokenEstimate / maxTokens;
+    if (i === 0) {
+      aggressiveness = Math.min(0.9, 1 - 1 / overshoot);
+      continue;
+    }
+    const logOver = Math.log2(overshoot);
+    const step = Math.max(0.05, 0.15 * logOver);
+    aggressiveness = Math.min(1, aggressiveness + step);
+  }
+  throw new RangeError(
+    `Unable to create snapshot below ${maxTokens} tokens (last estimate: ${snapshot?.meta.tokenEstimate})`
+  );
 }
 export {
   adaptiveD2Snap

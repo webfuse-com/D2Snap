@@ -27,6 +27,7 @@ D2Snap.adaptiveD2Snap(
   html: string;
   meta: {};
   parameters: {};
+  adaptiveIterations: number;
 }>
 ```
 
