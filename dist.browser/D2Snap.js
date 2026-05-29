@@ -1744,7 +1744,10 @@
           targetElement.removeAttribute(attr.name);
         }
         for (const attr of mergedAttributes) {
-          targetElement.setAttribute(attr.name, attr.value);
+          try {
+            targetElement.setAttribute(attr.name, attr.value);
+          } catch {
+          }
         }
       }
       if (!isTopdownMerge) {
