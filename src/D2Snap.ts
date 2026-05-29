@@ -22,6 +22,14 @@ import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
 const WHITESPACE_REGEX: RegExp = /^\s$/;
+// Void elements cannot hold children. The "custom element is a container"
+// heuristic otherwise classifies unlisted void tags (e.g. <br>, <wbr>) as
+// containers, and a top-down merge then moves the parent's children into the
+// void target — which serialize away, destroying content. Never merge them.
+const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
+	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT",
+	"LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
+]);
 
 
 function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
@@ -73,6 +81,7 @@ export function d2Snap(
 	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(!groundTruth.isElementType("container", elementNode.tagName)) return;
+		if(VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
 		if(!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
 
 		// merge

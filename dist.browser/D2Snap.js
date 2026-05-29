@@ -1686,6 +1686,22 @@
   var DATA_URL_ATTRIBUTE_NAME = "src";
   var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
   var WHITESPACE_REGEX = /^\s$/;
+  var VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
+    "AREA",
+    "BASE",
+    "BR",
+    "COL",
+    "EMBED",
+    "HR",
+    "IMG",
+    "INPUT",
+    "LINK",
+    "META",
+    "PARAM",
+    "SOURCE",
+    "TRACK",
+    "WBR"
+  ]);
   function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
@@ -1720,6 +1736,7 @@
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("container", elementNode.tagName)) return;
+      if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
       if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
       const mergeLevels = Math.max(
         Math.round(domTreeHeight2 * Math.min(1, rE2)),

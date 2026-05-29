@@ -13,6 +13,22 @@ import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const WHITESPACE_REGEX = /^\s$/;
+const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
+  "AREA",
+  "BASE",
+  "BR",
+  "COL",
+  "EMBED",
+  "HR",
+  "IMG",
+  "INPUT",
+  "LINK",
+  "META",
+  "PARAM",
+  "SOURCE",
+  "TRACK",
+  "WBR"
+]);
 function validateParameter(name, value, allowInfinity = false) {
   if (allowInfinity && value === Infinity) return;
   if (value < 0 || value > 1) {
@@ -47,6 +63,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("container", elementNode.tagName)) return;
+    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
     if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
     const mergeLevels = Math.max(
       Math.round(domTreeHeight2 * Math.min(1, rE2)),

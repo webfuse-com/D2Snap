@@ -514,42 +514,88 @@ await test("Markdown pass converts nested textFormatting inside kept actionable 
     assertNotIn("<em>", snapshot.html, "Raw <em> leaked through textFormatting pass");
 });
 
+await test("Container merge never moves content into a void element", async () => {
+    // Root cause of the futurumshop collapse: void elements (<br>, <img>, ...)
+    // are not listed in the ground truth, so the "custom element is a
+    // container" heuristic classifies them as containers — and with a high
+    // container fallbackRating they outrank their parent. A top-down merge then
+    // moves the parent's children INTO the void element, which serializes
+    // without children, silently destroying everything around it.
+    const gt = {
+        typeElement: {
+            container: { tagNames: [ "body", "div" ], ratings: { body: 0.9, div: 0.3 }, fallbackRating: 1.0 }
+        },
+        typeAttribute: { ratings: { id: 0.8 }, fallbackRating: 0.5 }
+    };
+    for(const voidTag of [ "br", "img", "hr", "wbr" ]) {
+        const dom = `<html><body><div id="d"><${voidTag}><p>IMPORTANT CONTENT one two three four five.</p></div></body></html>`;
+        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
+
+        assertIn("IMPORTANT CONTENT", snapshot.html, `Content was merged into void <${voidTag}> and lost`);
+    }
+});
+
 // ---------------------------------------------------------------------------
 // End-to-end regression guard on the full, real-world futurumshop product
-// page (~1MB). Two regressions converge on this single fixture:
+// page (~1MB). Three regressions converge on this single fixture:
 //
-//   1. Content collapse — commit 034a010 returned the markdown-replacement
-//      fragment for re-traversal, feeding Turndown's own output back through
-//      the textFormatting pass. On a page this size it spun (the infinite
-//      loop / mem leak fixed in 71aee90) and shed almost all content: the
-//      survey showed q<=0.8 snapshots crater from ~150KB to ~2KB.
-//   2. setAttribute crash — the container-merge top-down branch copies a
-//      child's attributes onto its parent via setAttribute(). Real pages
-//      carry framework attributes whose names fail the DOM Name production
-//      (Vue's `@click`, `:href`, Angular's `*ngIf`), and setAttribute throws
-//      InvalidCharacterError, aborting the whole snapshot. This page has
-//      `<div id="futurumClient" @click="autoCloseProfile($event)">`.
+//   1. Void-element merge — <br>/<img> etc. classified as containers get
+//      content merged into them and dropped on serialization. This is what
+//      cratered the survey: q<=0.8 snapshots fell from ~150KB to ~2KB. It only
+//      surfaces with a ground truth where `span` is `textFormatting` (so the
+//      surrounding spans are non-containers), which is why we use one here.
+//   2. Markdown re-traversal — commit 034a010 fed Turndown's own output back
+//      through the textFormatting pass, spinning on passthrough HTML (the
+//      infinite loop / mem leak fixed in 71aee90).
+//   3. setAttribute crash — the top-down merge copies a child's attributes
+//      onto its parent via setAttribute(). Framework attribute names that fail
+//      the DOM Name production (Vue's `@click`) throw InvalidCharacterError and
+//      abort the snapshot. This page has `@click="autoCloseProfile($event)"`.
 //
-// The page must snapshot without throwing, terminate quickly, and retain a
-// substantial, content-bearing result at every cobro quality.
+// The GT below mirrors the deployed cobro ground truth (span as textFormatting,
+// svg as labeledExtract, container fallbackRating 1.0) so this fixture exercises
+// the real-world collapse path.
 // ---------------------------------------------------------------------------
+const COBRO_LIKE_GROUND_TRUTH = {
+    typeElement: {
+        container: {
+            tagNames: [ "article", "aside", "body", "div", "footer", "header", "html", "main", "nav", "section" ],
+            ratings: { article: 0.95, body: 0.9, header: 0.75, main: 0.85, nav: 0.8, section: 0.9, footer: 0.7, aside: 0.85, div: 0.3, html: 0.1 },
+            fallbackRating: 1.0
+        },
+        actionable: { tagNames: [ "a", "button", "details", "form", "input", "label", "select", "summary", "textarea" ] },
+        labeledExtract: { tagNames: [ "svg" ] },
+        textFormatting: { tagNames: [ "b", "em", "strong", "small", "span", "p", "ul", "ol", "li", "table", "tbody", "tr", "td", "th", "thead", "h1", "h2", "h3", "h4", "h5", "h6", "img", "hr", "code", "pre", "blockquote", "figure", "figcaption", "sub", "sup", "address" ] }
+    },
+    typeAttribute: { ratings: { "wf-id": 1.0, alt: 0.9, href: 0.9, src: 0.8, id: 0.8, class: 0.7, "aria-*": 0.6 }, fallbackRating: 0.5 }
+};
+
 for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
     await test(`Snapshot full futurumshop product page without crash or collapse (cobro q=${cobroQ})`, async () => {
         const dom = readFile("futurumshop.product");
         const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
 
         const start = Date.now();
-        // Must not throw on the page's Vue `@click` attribute during the
-        // container-merge attribute copy.
-        const snapshot = await d2Snap(dom, rE, rA, rT, { debug: true, uniqueIDs: true });
+        const snapshot = await d2Snap(dom, rE, rA, rT, {
+            debug: true,
+            uniqueIDs: true,
+            groundTruth: COBRO_LIKE_GROUND_TRUTH,
+            groundTruthReplaceDefault: true
+        });
         const elapsedMs = Date.now() - start;
 
         writeActual(`futurumshop.product.q=${cobroQ}`, snapshot.html);
 
         assertLess(elapsedMs, 10000, `Snapshot took ${elapsedMs}ms — re-traversal blow-up regression?`);
-        // Content must survive: the collapse regression sheared >1MB down to
-        // ~2KB. A healthy snapshot of this page stays well above 20KB.
-        assertMore(snapshot.html.length, 20000, `Snapshot collapsed to ${snapshot.html.length} chars — content was destroyed`);
+        // THE regression threshold: the collapse sheared this >1MB page down to
+        // ~1.8KB at aggressive quality (the survey showed q=0.1 at 1,766 bytes
+        // instead of ~150KB). A healthy snapshot must stay above 100KB even at
+        // the most aggressive cobro q=0.1.
+        assertMore(
+            snapshot.html.length,
+            100 * 1024,
+            `Snapshot collapsed to ${snapshot.html.length} bytes (< 100KB) — content was destroyed`
+        );
         assertIn(
             "Merino Fietsshirt Korte Mouwen Lichtblauw Heren",
             snapshot.html,
