@@ -1702,6 +1702,15 @@
     "TRACK",
     "WBR"
   ]);
+  function unwrapColonTaggedElements(parent) {
+    for (const child of Array.from(parent.childNodes)) {
+      if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
+      unwrapColonTaggedElements(child);
+      if (!child.tagName.includes(":")) continue;
+      while (child.firstChild) parent.insertBefore(child.firstChild, child);
+      parent.removeChild(child);
+    }
+  }
   function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
@@ -1843,6 +1852,7 @@
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
+      unwrapColonTaggedElements(markdownNodesFragment);
       const replacingNodes = [...markdownNodesFragment.childNodes];
       elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
       const sourceTagName = elementNode.tagName.toLowerCase();

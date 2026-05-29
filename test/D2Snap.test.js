@@ -535,6 +535,45 @@ await test("Container merge never moves content into a void element", async () =
     }
 });
 
+await test("Markdown autolink URL does not become a bogus container element", async () => {
+    // A URL wrapped in angle brackets — a markdown autolink, or markdown's
+    // pointy-bracket destination syntax that Turndown emits for URLs CONTAINING
+    // SPACES (`<https://host/a b c.svg>`) — re-parses via createContextualFragment
+    // into a bogus `<https:>` element (path/space segments become attributes).
+    // That element then acts as a container (fallbackRating 1.0) and swallows
+    // its siblings, renaming a real section to `<https:>`. Seen on the
+    // futurumshop page: `<https: fonl="" futurum="" ... wf-id="1817">`.
+    const gt = {
+        typeElement: {
+            container: { tagNames: [ "body", "main", "section" ], ratings: { body: 0.9, main: 0.85, section: 0.8 }, fallbackRating: 1.0 },
+            textFormatting: { tagNames: [ "p", "span" ] }
+        },
+        typeAttribute: { ratings: { id: 0.8 }, fallbackRating: 0.5 }
+    };
+    for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
+        const dom = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
+        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
+
+        assertNotIn("<https:", snapshot.html, `URL <${url}> re-parsed into a bogus <https:> element`);
+        assertNotIn("<mailto:", snapshot.html, `URL <${url}> re-parsed into a bogus <mailto:> element`);
+        assertIn("IMPORTANT trailing content", snapshot.html, `Content swallowed by bogus element from <${url}>`);
+    }
+
+    // Unwrapping the bogus `<scheme:>` elements must NOT disturb a kept
+    // actionable (`<a …>`) sitting alongside the autolink in the same markdown.
+    const linkGt = {
+        typeElement: {
+            container: { tagNames: [ "body", "main", "p" ], ratings: { body: 0.9, main: 0.85, p: 0.5 }, fallbackRating: 1.0 },
+            actionable: { tagNames: [ "a" ] }
+        },
+        typeAttribute: { ratings: { href: 0.9 }, fallbackRating: 0.5 }
+    };
+    const linkDom = `<html><body><main><p>visit &lt;https://example.com follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
+    const linkSnapshot = await d2Snap(linkDom, 0.9, 0.9, 0.9, { debug: true, groundTruth: linkGt, groundTruthReplaceDefault: true });
+    assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");
+    assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
+});
+
 // ---------------------------------------------------------------------------
 // End-to-end regression guard on the full, real-world futurumshop product
 // page (~1MB). Three regressions converge on this single fixture:

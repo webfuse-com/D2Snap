@@ -30,6 +30,29 @@ const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
 	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT",
 	"LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
 ]);
+// Markdown is re-parsed as HTML (see snapElementTextFormattingNode), so a
+// markdown autolink — `<https://example.com>`, or the pointy-bracket
+// destination Turndown emits for URLs containing spaces, `<https://h/a b.svg>`
+// — parses into a bogus element whose tag name is the URL scheme (`https:`,
+// `mailto:`). Those then act as containers and capture surrounding content.
+// A real HTML-parsed tag name is never a `scheme:` (it can't contain a colon),
+// so we detect the artifacts on the PARSED fragment and unwrap them: lift their
+// children out, drop the wrapper. Operating on the DOM (not the markdown string)
+// handles nested/adjacent kept tags that a textual scrub would corrupt.
+function unwrapColonTaggedElements(parent: Node): void {
+	for(const child of Array.from(parent.childNodes)) {
+		if(child.nodeType !== NodeType.ELEMENT_NODE) continue;
+
+		// Recurse first so nested artifacts (and kept content) are resolved
+		// before this element is potentially unwrapped.
+		unwrapColonTaggedElements(child);
+
+		if(!(child as Element).tagName.includes(":")) continue;
+
+		while(child.firstChild) parent.insertBefore(child.firstChild, child);
+		parent.removeChild(child);
+	}
+}
 
 
 function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
@@ -236,6 +259,10 @@ export function d2Snap(
 		const markdownNodesFragment = resolveDocument(dom)!
             .createRange()
             .createContextualFragment(markdown);
+
+		// Drop bogus `<scheme:>` elements the HTML parser synthesises from
+		// markdown autolinks before they enter the tree (and become containers).
+		unwrapColonTaggedElements(markdownNodesFragment);
 
 		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
 
