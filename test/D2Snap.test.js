@@ -514,6 +514,50 @@ await test("Markdown pass converts nested textFormatting inside kept actionable 
     assertNotIn("<em>", snapshot.html, "Raw <em> leaked through textFormatting pass");
 });
 
+// ---------------------------------------------------------------------------
+// End-to-end regression guard on the full, real-world futurumshop product
+// page (~1MB). Two regressions converge on this single fixture:
+//
+//   1. Content collapse — commit 034a010 returned the markdown-replacement
+//      fragment for re-traversal, feeding Turndown's own output back through
+//      the textFormatting pass. On a page this size it spun (the infinite
+//      loop / mem leak fixed in 71aee90) and shed almost all content: the
+//      survey showed q<=0.8 snapshots crater from ~150KB to ~2KB.
+//   2. setAttribute crash — the container-merge top-down branch copies a
+//      child's attributes onto its parent via setAttribute(). Real pages
+//      carry framework attributes whose names fail the DOM Name production
+//      (Vue's `@click`, `:href`, Angular's `*ngIf`), and setAttribute throws
+//      InvalidCharacterError, aborting the whole snapshot. This page has
+//      `<div id="futurumClient" @click="autoCloseProfile($event)">`.
+//
+// The page must snapshot without throwing, terminate quickly, and retain a
+// substantial, content-bearing result at every cobro quality.
+// ---------------------------------------------------------------------------
+for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
+    await test(`Snapshot full futurumshop product page without crash or collapse (cobro q=${cobroQ})`, async () => {
+        const dom = readFile("futurumshop.product");
+        const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
+
+        const start = Date.now();
+        // Must not throw on the page's Vue `@click` attribute during the
+        // container-merge attribute copy.
+        const snapshot = await d2Snap(dom, rE, rA, rT, { debug: true, uniqueIDs: true });
+        const elapsedMs = Date.now() - start;
+
+        writeActual(`futurumshop.product.q=${cobroQ}`, snapshot.html);
+
+        assertLess(elapsedMs, 10000, `Snapshot took ${elapsedMs}ms — re-traversal blow-up regression?`);
+        // Content must survive: the collapse regression sheared >1MB down to
+        // ~2KB. A healthy snapshot of this page stays well above 20KB.
+        assertMore(snapshot.html.length, 20000, `Snapshot collapsed to ${snapshot.html.length} chars — content was destroyed`);
+        assertIn(
+            "Merino Fietsshirt Korte Mouwen Lichtblauw Heren",
+            snapshot.html,
+            "Product title (main content) was lost"
+        );
+    });
+}
+
 await test("Take DOM snapshot (options.debug)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
         debug: false

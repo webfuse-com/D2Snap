@@ -107,7 +107,16 @@ export function d2Snap(
 				targetElement.removeAttribute(attr.name);
 			}
 			for(const attr of mergedAttributes) {
-				targetElement.setAttribute(attr.name, attr.value);
+				// Framework attributes carry names that violate the DOM Name
+				// production (Vue `@click`/`:href`, Angular `*ngIf`), and
+				// setAttribute throws InvalidCharacterError on them. Skip the
+				// offending attribute rather than aborting the whole snapshot —
+				// such bound attributes hold no value for a static snapshot.
+				try {
+					targetElement.setAttribute(attr.name, attr.value);
+				} catch {
+					/* invalid attribute name — drop it */
+				}
 			}
 		}
 
