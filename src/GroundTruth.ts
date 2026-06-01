@@ -1,6 +1,6 @@
 import { type GroundTruthJSON } from "./types.js";
 
-type ElementType = "container" | "actionable" | "textFormatting" | "labeledExtract";
+type ElementType = "container" | "actionable" | "textFormatting" | "replaceWithLabel";
 
 const HARD_FALLBACK_RATING: number = 0.0;
 const DEFAULT_LABEL_ATTRS: string[] = [ "aria-label", "title", "alt" ];
@@ -32,18 +32,18 @@ export class GroundTruth {
 			container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
 			actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
 			textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? [],
-			labeledExtract: this.groundTruth?.typeElement?.labeledExtract?.tagNames ?? []
+			replaceWithLabel: this.groundTruth?.typeElement?.replaceWithLabel?.tagNames ?? []
 		};
 		this.elementTypeSets = {
 			container: new Set(this.elementsByType.container.map(t => t.toLowerCase())),
 			actionable: new Set(this.elementsByType.actionable.map(t => t.toLowerCase())),
 			textFormatting: new Set(this.elementsByType.textFormatting.map(t => t.toLowerCase())),
-			labeledExtract: new Set(this.elementsByType.labeledExtract.map(t => t.toLowerCase()))
+			replaceWithLabel: new Set(this.elementsByType.replaceWithLabel.map(t => t.toLowerCase()))
 		};
 		this.nonContainerTagNames = new Set([
 			...this.elementTypeSets.actionable,
 			...this.elementTypeSets.textFormatting,
-			...this.elementTypeSets.labeledExtract
+			...this.elementTypeSets.replaceWithLabel
 		]);
 
 		this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
@@ -52,10 +52,10 @@ export class GroundTruth {
 		this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
 		this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
 
-		this.labelAttrs = (this.groundTruth?.typeElement?.labeledExtract?.labelAttrs ?? DEFAULT_LABEL_ATTRS)
+		this.labelAttrs = (this.groundTruth?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS)
 			.map(a => a.toLowerCase());
 		this.labelChildTagsSet = new Set(
-			(this.groundTruth?.typeElement?.labeledExtract?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS)
+			(this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS)
 				.map(t => t.toLowerCase())
 		);
 	}

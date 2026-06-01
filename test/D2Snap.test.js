@@ -341,7 +341,7 @@ await test("Take DOM snapshot (options.skipTextRank)", async () => {
 //   cobro q=0.9  -> d2snap rE=rA=rT=0.1   (lightest, near-raw)
 //   cobro q=1.0  -> bypass d2snap entirely (handled at the server layer)
 //
-// The labeledExtract pass is UNCONDITIONAL — it runs before rE/rA/rT pruning
+// The replaceWithLabel pass is UNCONDITIONAL — it runs before rE/rA/rT pruning
 // — so it must yield the same label-preservation guarantee at every cobro q
 // in [0, 1). Tests sweep that range to lock the contract in.
 // ---------------------------------------------------------------------------
@@ -358,7 +358,7 @@ const FUTURUMSHOP_HAMBURGER_DOM = `<html><body><button class="hamburger js-mobil
 
 const SVG_LABELED_EXTRACT_GROUND_TRUTH = {
     typeElement: {
-        labeledExtract: { tagNames: [ "svg" ] }
+        replaceWithLabel: { tagNames: [ "svg" ] }
     },
     typeAttribute: {
         ratings: { "wf-id": 1.0 }
@@ -372,13 +372,13 @@ for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
         // The hamburger menu icon button: no visible text, only the svg's
         // aria-label "Open menu" identifies it.
         //
-        // Before labeledExtract, at cobro q=0.1 (d2snap rE=rA=rT=0.9) this
+        // Before replaceWithLabel, at cobro q=0.1 (d2snap rE=rA=rT=0.9) this
         // collapsed to <button wf-id="463"><svg wf-id="465"></svg></button>
         // — unidentifiable. aria-label was rated 0.6 (dropped at rA=0.9),
         // and even if preserved it would have stayed on the svg, not the
         // button.
         //
-        // With svg in labeledExtract, the aria-label is lifted out as a
+        // With svg in replaceWithLabel, the aria-label is lifted out as a
         // text node BEFORE TextRank / container merging / attribute pruning,
         // so the label survives at every cobro q in [0, 1) — not just at
         // the heavy-downsampling extreme where it would otherwise be lost.
@@ -399,7 +399,7 @@ for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
         assertNotIn(
             "<svg",
             snapshot.html,
-            `Empty <svg> wrapper leaked through labeledExtract at cobro q=${cobroQ}`
+            `Empty <svg> wrapper leaked through replaceWithLabel at cobro q=${cobroQ}`
         );
         assertIn(
             "<button",
@@ -416,7 +416,7 @@ for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
 
 await test("Lift svg aria-label out of icon-only button at d2snap rE=rA=rT=1.0 (maximum downsampling)", async () => {
     // Edge: the most aggressive setting d2snap accepts (cobro q=0). Even
-    // here labeledExtract must preserve the label.
+    // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, 1.0, 1.0, 1.0, {
         debug: true,
         groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
@@ -426,7 +426,7 @@ await test("Lift svg aria-label out of icon-only button at d2snap rE=rA=rT=1.0 (
     assertNotIn("<svg", snapshot.html, "Empty <svg> survived at maximum downsampling");
 });
 
-await test("Drop labeledExtract element with no recoverable label (cobro q=0.1)", async () => {
+await test("Drop replaceWithLabel element with no recoverable label (cobro q=0.1)", async () => {
     // Decorative SVG with no aria-label, no title attr, no <title> child —
     // pure cosmetic icon, nothing to surface. The svg should disappear,
     // leaving the actionable button as a bare interaction handle.
@@ -442,7 +442,7 @@ await test("Drop labeledExtract element with no recoverable label (cobro q=0.1)"
     assertIn("<button", snapshot.html, "Button must remain");
 });
 
-await test("labeledExtract recovers label from <title> child element (cobro q=0.1)", async () => {
+await test("replaceWithLabel recovers label from <title> child element (cobro q=0.1)", async () => {
     // The "proper" accessibility pattern: SVG with a <title> child element
     // rather than aria-label. Common in icon-font frameworks (Octicons etc.)
     // and in some component libraries.
@@ -459,9 +459,9 @@ await test("labeledExtract recovers label from <title> child element (cobro q=0.
     assertIn("href=\"/trash\"", snapshot.html, "Anchor href must be preserved");
 });
 
-await test("labeledExtract is no-op when default ground-truth list is empty (cobro q=0.1)", async () => {
+await test("replaceWithLabel is no-op when default ground-truth list is empty (cobro q=0.1)", async () => {
     // Sanity check: pre-fix behaviour must still be reachable. With the
-    // default ground truth (no labeledExtract entry), svg passes through
+    // default ground truth (no replaceWithLabel entry), svg passes through
     // untouched.
     const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
     const dom = `<html><body><button wf-id="1"><svg aria-label="X" wf-id="2"></svg></button></body></html>`;
@@ -471,8 +471,8 @@ await test("labeledExtract is no-op when default ground-truth list is empty (cob
         groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
     });
 
-    // No labeledExtract config → svg survives.
-    assertIn("<svg", snapshot.html, "Default (empty list) labeledExtract should not strip svg");
+    // No replaceWithLabel config → svg survives.
+    assertIn("<svg", snapshot.html, "Default (empty list) replaceWithLabel should not strip svg");
 });
 
 await test("Markdown pass terminates on Turndown HTML passthrough (table without <thead>)", async () => {
@@ -592,7 +592,7 @@ await test("Markdown autolink URL does not become a bogus container element", as
 //      abort the snapshot. This page has `@click="autoCloseProfile($event)"`.
 //
 // The GT below mirrors the deployed cobro ground truth (span as textFormatting,
-// svg as labeledExtract, container fallbackRating 1.0) so this fixture exercises
+// svg as replaceWithLabel, container fallbackRating 1.0) so this fixture exercises
 // the real-world collapse path.
 // ---------------------------------------------------------------------------
 const COBRO_LIKE_GROUND_TRUTH = {
@@ -603,7 +603,7 @@ const COBRO_LIKE_GROUND_TRUTH = {
             fallbackRating: 1.0
         },
         actionable: { tagNames: [ "a", "button", "details", "form", "input", "label", "select", "summary", "textarea" ] },
-        labeledExtract: { tagNames: [ "svg" ] },
+        replaceWithLabel: { tagNames: [ "svg" ] },
         textFormatting: { tagNames: [ "b", "em", "strong", "small", "span", "p", "ul", "ol", "li", "table", "tbody", "tr", "td", "th", "thead", "h1", "h2", "h3", "h4", "h5", "h6", "img", "hr", "code", "pre", "blockquote", "figure", "figcaption", "sub", "sup", "address" ] }
     },
     typeAttribute: { ratings: { "wf-id": 1.0, alt: 0.9, href: 0.9, src: 0.8, id: 0.8, class: 0.7, "aria-*": 0.6 }, fallbackRating: 0.5 }

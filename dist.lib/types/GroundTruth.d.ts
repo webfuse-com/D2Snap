@@ -1,5 +1,5 @@
 import { type GroundTruthJSON } from "./types.js";
-type ElementType = "container" | "actionable" | "textFormatting" | "labeledExtract";
+type ElementType = "container" | "actionable" | "textFormatting" | "replaceWithLabel";
 export declare class GroundTruth {
     private readonly groundTruth;
     private readonly elementsByType;

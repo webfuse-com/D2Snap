@@ -82,7 +82,7 @@ export interface GroundTruthJSON extends JSONObject {
         textFormatting: {
             tagNames: string[];
         };
-        labeledExtract?: {
+        replaceWithLabel?: {
             tagNames: string[];
             labelAttrs?: string[];
             labelChildTags?: string[];

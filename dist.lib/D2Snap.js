@@ -145,9 +145,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
-  function snapElementLabeledExtractNode(document2, elementNode) {
+  function snapElementReplaceWithLabelNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (!groundTruth.isElementType("labeledExtract", elementNode.tagName)) return;
+    if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
     let label = null;
     for (const attrName of groundTruth.getLabelAttrs()) {
       const value = elementNode.getAttribute(attrName);
@@ -245,7 +245,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementLabeledExtractNode(document, node)
+    (node) => snapElementReplaceWithLabelNode(document, node)
   );
   traverseDom(
     virtualDom,
