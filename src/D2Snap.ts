@@ -31,22 +31,12 @@ const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
 	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT",
 	"LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
 ]);
-// Markdown is re-parsed as HTML (see snapElementTextFormattingNode), so a
-// markdown autolink — `<https://example.com>`, or the pointy-bracket
-// destination Turndown emits for URLs containing spaces, `<https://h/a b.svg>`
-// — parses into a bogus element whose tag name is the URL scheme (`https:`,
-// `mailto:`). Those then act as containers and capture surrounding content.
-// Scheme artifacts come in two shapes depending on whether the URL contains `//`:
-//   – Scheme-only  (`HTTPS:`, `HTTP:`)  — the parser stops the tag name at the
-//     first `/`, leaving just the bare scheme with its trailing colon.
-//   – Full path    (`MAILTO:X@Y.COM`)   — no slash, so the entire URI path is
-//     folded into the tag name.
-// Both must be unwrapped. Legitimate namespaced custom elements (`FB:LIKE`,
-// `SVG:RECT`) have a valid XML NCName after the colon and must NOT be unwrapped.
-// The negative lookahead rejects matches where everything after `:` is a valid
-// NCName (`[a-z_][a-z0-9_.-]*` to end-of-string), which covers real namespaces
-// while leaving scheme-only (empty tail) and URI-path tails (contain `@`, `/`,
-// `?`, …) unprotected.
+// Markdown autolinks re-parse (see snapElementTextFormattingNode) into bogus
+// elements tagged with the URL scheme — `<https://x>` -> `HTTPS:` (parser stops
+// at `/`), `<mailto:x@y.com>` -> `MAILTO:X@Y.COM` (no `/`, whole URI folds in).
+// Both act as containers and swallow siblings, so both must be unwrapped. The
+// negative lookahead spares real namespaced custom elements (`FB:LIKE`), whose
+// tail after `:` is a valid NCName.
 const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
 function unwrapColonTaggedElements(parent: Node): void {
 	for (const child of Array.from(parent.childNodes)) {
@@ -148,15 +138,12 @@ export function d2Snap(
 				targetElement.removeAttribute(attr.name);
 			}
 			for (const attr of mergedAttributes) {
-				// Framework attributes carry names that violate the DOM Name
-				// production (Vue `@click`/`:href`, Angular `*ngIf`), and
-				// setAttribute throws InvalidCharacterError on them. Skip the
-				// offending attribute rather than aborting the whole snapshot —
-				// such bound attributes hold no value for a static snapshot.
-				// NOTE: Do NOT use `instanceof DOMException` — JSDOM and other
-				// environments expose their own DOMException class that is not
-				// the same object as globalThis.DOMException, making instanceof
-				// return false. Checking `.name` is portable across all environments.
+				// Framework attribute names (Vue `@click`, Angular `*ngIf`) violate
+				// the DOM Name production; setAttribute throws InvalidCharacterError.
+				// Drop the offending attribute rather than abort the snapshot — bound
+				// attributes hold no value in a static snapshot anyway.
+				// Match on `.name`, not `instanceof DOMException`: jsdom's DOMException
+				// isn't globalThis.DOMException, so instanceof is unreliable across envs.
 				try {
 					targetElement.setAttribute(attr.name, attr.value);
 				} catch (e) {
@@ -251,11 +238,9 @@ export function d2Snap(
 		}
 
 		if (label !== null) {
-			// Replace element with a single text node carrying the label.
-			// Subsequent passes (snapTextNode etc.) will see this as plain text;
-			// because it ends up under the replaceWithLabel element's former parent,
-			// if that parent is actionable, TextRank will skip it (good for icon
-			// buttons: <button><svg aria-label="X"/></button> -> <button>X</button>).
+			// Replace with a plain text node carrying the label. It lands under the
+			// element's former parent, so an actionable parent keeps it (icon buttons:
+			// <button><svg aria-label="X"/></button> -> <button>X</button>).
 			elementNode.replaceWith(document.createTextNode(label));
 		} else {
 			// No label found anywhere — element is pure decoration. Drop it.
@@ -390,13 +375,8 @@ export function d2Snap(
 	);
 	timings.init = t() - t0;
 
-	// Labeled-extract element nodes first: lift accessibility labels out of
-	// elements like <svg>/<canvas> and into the surrounding context as plain
-	// text. Done before TextRank so the lifted label survives downstream
-	// passes; done before container merging so empty svg wrappers don't
-	// linger around an actionable parent (e.g. icon buttons).
-	// Guard: skip the full DOM walk when no tag names are configured (the
-	// default ground truth ships with an empty list).
+	// Lift accessibility labels into plain text before TextRank and container
+	// merging, so the label survives and empty wrappers don't linger.
 	t0 = t();
 	if (groundTruth.getElementsByType("replaceWithLabel").length) {
 		traverseDom<HTMLElement>(
