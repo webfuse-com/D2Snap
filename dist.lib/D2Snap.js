@@ -29,7 +29,7 @@ const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
   "TRACK",
   "WBR"
 ]);
-const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:$/i;
+const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
 function unwrapColonTaggedElements(parent) {
   for (const child of Array.from(parent.childNodes)) {
     if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
@@ -101,7 +101,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         try {
           targetElement.setAttribute(attr.name, attr.value);
         } catch (e) {
-          if (!(e instanceof DOMException) || e.name !== "InvalidCharacterError") throw e;
+          if (e.name !== "InvalidCharacterError") throw e;
         }
       }
     }

@@ -36,10 +36,18 @@ const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
 // destination Turndown emits for URLs containing spaces, `<https://h/a b.svg>`
 // — parses into a bogus element whose tag name is the URL scheme (`https:`,
 // `mailto:`). Those then act as containers and capture surrounding content.
-// Scheme-only artifacts have a colon at the END of the tag name (e.g. `HTTPS:`);
-// legitimate namespaced custom elements (`FB:LIKE`, `SVG:RECT`) have a local
-// name after the colon and must NOT be unwrapped.
-const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:$/i;
+// Scheme artifacts come in two shapes depending on whether the URL contains `//`:
+//   – Scheme-only  (`HTTPS:`, `HTTP:`)  — the parser stops the tag name at the
+//     first `/`, leaving just the bare scheme with its trailing colon.
+//   – Full path    (`MAILTO:X@Y.COM`)   — no slash, so the entire URI path is
+//     folded into the tag name.
+// Both must be unwrapped. Legitimate namespaced custom elements (`FB:LIKE`,
+// `SVG:RECT`) have a valid XML NCName after the colon and must NOT be unwrapped.
+// The negative lookahead rejects matches where everything after `:` is a valid
+// NCName (`[a-z_][a-z0-9_.-]*` to end-of-string), which covers real namespaces
+// while leaving scheme-only (empty tail) and URI-path tails (contain `@`, `/`,
+// `?`, …) unprotected.
+const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
 function unwrapColonTaggedElements(parent: Node): void {
 	for (const child of Array.from(parent.childNodes)) {
 		if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
@@ -145,10 +153,14 @@ export function d2Snap(
 				// setAttribute throws InvalidCharacterError on them. Skip the
 				// offending attribute rather than aborting the whole snapshot —
 				// such bound attributes hold no value for a static snapshot.
+				// NOTE: Do NOT use `instanceof DOMException` — JSDOM and other
+				// environments expose their own DOMException class that is not
+				// the same object as globalThis.DOMException, making instanceof
+				// return false. Checking `.name` is portable across all environments.
 				try {
 					targetElement.setAttribute(attr.name, attr.value);
 				} catch (e) {
-					if (!(e instanceof DOMException) || e.name !== "InvalidCharacterError") throw e;
+					if ((e as { name?: string }).name !== "InvalidCharacterError") throw e;
 					/* invalid attribute name — drop it */
 				}
 			}

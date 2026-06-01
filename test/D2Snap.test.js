@@ -1,7 +1,7 @@
-import { join } from "path";
 import { readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
-import { d2Snap, adaptiveD2Snap } from "../dist.lib/api.js";
+import { adaptiveD2Snap, d2Snap } from "../dist.lib/api.js";
 
 
 function path(fileName) {
@@ -57,7 +57,7 @@ await test("Take adaptive DOM snapshot (4096)", async () => {
     );
 });
 
-await test("Take adaptive DOM snapshot (2048)", async() => {
+await test("Take adaptive DOM snapshot (2048)", async () => {
     const snapshot = await adaptiveD2Snap(await readFile("agents"), 2048, 5, {
         debug: true
     });
@@ -105,7 +105,7 @@ await test("Take DOM snapshot (L)", async () => {
     );
 });
 
-await test("Take DOM snapshot (M)", async() => {
+await test("Take DOM snapshot (M)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.4, 0.8, 0.6, {
         debug: true
     });
@@ -358,14 +358,14 @@ const FUTURUMSHOP_HAMBURGER_DOM = `<html><body><button class="hamburger js-mobil
 
 const SVG_LABELED_EXTRACT_GROUND_TRUTH = {
     typeElement: {
-        replaceWithLabel: { tagNames: [ "svg" ] }
+        replaceWithLabel: { tagNames: ["svg"] }
     },
     typeAttribute: {
         ratings: { "wf-id": 1.0 }
     }
 };
 
-for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
+for (const cobroQ of [0.1, 0.5, 0.9]) {
     await test(`Lift svg aria-label out of icon-only button (futurumshop regression, cobro q=${cobroQ})`, async () => {
         // Exact <button> snippet captured from
         // https://www.futurumshop.nl/futurum-jona-merino-fietsshirt-korte-mouwen-lichtblauw-heren.phtml
@@ -523,11 +523,11 @@ await test("Container merge never moves content into a void element", async () =
     // without children, silently destroying everything around it.
     const gt = {
         typeElement: {
-            container: { tagNames: [ "body", "div" ], ratings: { body: 0.9, div: 0.3 }, fallbackRating: 1.0 }
+            container: { tagNames: ["body", "div"], ratings: { body: 0.9, div: 0.3 }, fallbackRating: 1.0 }
         },
         typeAttribute: { ratings: { id: 0.8 }, fallbackRating: 0.5 }
     };
-    for(const voidTag of [ "br", "img", "hr", "wbr" ]) {
+    for (const voidTag of ["br", "img", "hr", "wbr"]) {
         const dom = `<html><body><div id="d"><${voidTag}><p>IMPORTANT CONTENT one two three four five.</p></div></body></html>`;
         const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
 
@@ -545,12 +545,12 @@ await test("Markdown autolink URL does not become a bogus container element", as
     // futurumshop page: `<https: fonl="" futurum="" ... wf-id="1817">`.
     const gt = {
         typeElement: {
-            container: { tagNames: [ "body", "main", "section" ], ratings: { body: 0.9, main: 0.85, section: 0.8 }, fallbackRating: 1.0 },
-            textFormatting: { tagNames: [ "p", "span" ] }
+            container: { tagNames: ["body", "main", "section"], ratings: { body: 0.9, main: 0.85, section: 0.8 }, fallbackRating: 1.0 },
+            textFormatting: { tagNames: ["p", "span"] }
         },
         typeAttribute: { ratings: { id: 0.8 }, fallbackRating: 0.5 }
     };
-    for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
+    for (const url of ["https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com"]) {
         const dom = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
         const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
 
@@ -563,8 +563,8 @@ await test("Markdown autolink URL does not become a bogus container element", as
     // actionable (`<a …>`) sitting alongside the autolink in the same markdown.
     const linkGt = {
         typeElement: {
-            container: { tagNames: [ "body", "main", "p" ], ratings: { body: 0.9, main: 0.85, p: 0.5 }, fallbackRating: 1.0 },
-            actionable: { tagNames: [ "a" ] }
+            container: { tagNames: ["body", "main", "p"], ratings: { body: 0.9, main: 0.85, p: 0.5 }, fallbackRating: 1.0 },
+            actionable: { tagNames: ["a"] }
         },
         typeAttribute: { ratings: { href: 0.9 }, fallbackRating: 0.5 }
     };
@@ -572,6 +572,70 @@ await test("Markdown autolink URL does not become a bogus container element", as
     const linkSnapshot = await d2Snap(linkDom, 0.9, 0.9, 0.9, { debug: true, groundTruth: linkGt, groundTruthReplaceDefault: true });
     assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");
     assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
+});
+
+// ---------------------------------------------------------------------------
+// setAttribute crash isolation: a container element carrying a Vue / Angular
+// framework attribute (@click, *ngIf, :href) is involved in a top-down merge.
+// The merge copies source attributes onto the target via setAttribute(); those
+// names violate the DOM Name production and throw InvalidCharacterError in both
+// browsers and JSDOM. The fix checks `e.name` instead of `instanceof DOMException`
+// because JSDOM's DOMException class is not the same object as globalThis.DOMException,
+// making instanceof return false and the exception escape.
+// ---------------------------------------------------------------------------
+await test("Container top-down merge does not crash on framework attribute names (@click, *ngIf, :href)", async () => {
+    // GT: body and section both containers, div (low) rating < section (high) rating
+    // → top-down merge is triggered for section, copying div's attrs to section.
+    const gt = {
+        typeElement: {
+            container: {
+                tagNames: ["div", "section"],
+                ratings: { div: 0.3, section: 0.8 }
+            }
+        },
+        typeAttribute: { ratings: {}, fallbackRating: 0.5 }
+    };
+    for (const [name, val] of [["@click", "doIt()"], ["*ngIf", "show"], [":href", "/path"]]) {
+        // Place the framework attribute on the low-rating div (= sourceElement in
+        // top-down merge), which forces setAttribute() to be called with it.
+        const dom = `<html><body><div ${name}="${val}"><section><p>IMPORTANT content</p></section></div></body></html>`;
+        const snapshot = await d2Snap(dom, 1.0, 1.0, 1.0, {
+            groundTruth: gt,
+            groundTruthReplaceDefault: true
+        });
+        assertIn("IMPORTANT content", snapshot.html,
+            `Content lost when merging element carrying framework attr ${name}`);
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Scheme-tag regex guard: namespace-qualified custom elements (FB:LIKE style)
+// must NOT be unwrapped by unwrapColonTaggedElements. The COLON_SCHEME_TAG_REGEX
+// negative lookahead only skips matches where a valid XML NCName follows the
+// colon, so FB:LIKE / NS:WIDGET are preserved while MAILTO:X@Y.COM is stripped.
+// ---------------------------------------------------------------------------
+await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrapped as scheme artifacts", async () => {
+    // ns:widget is in the actionable list so Turndown keeps its outerHTML verbatim.
+    // createContextualFragment then parses it back with tagName NS:WIDGET, and
+    // unwrapColonTaggedElements must leave it intact (regex must not match).
+    const gt = {
+        typeElement: {
+            container: {
+                tagNames: ["body", "section"],
+                ratings: { body: 0.9, section: 0.8 }
+            },
+            actionable: { tagNames: ["ns:widget"] },
+            textFormatting: { tagNames: ["p"] }
+        },
+        typeAttribute: { ratings: {}, fallbackRating: 0.5 }
+    };
+    const dom = `<html><body><section><p>visit <ns:widget>KEPTCONTENT</ns:widget> for help</p></section></body></html>`;
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        groundTruth: gt,
+        groundTruthReplaceDefault: true
+    });
+    assertIn("KEPTCONTENT", snapshot.html,
+        "Namespace-qualified element content was stripped (false positive in scheme regex)");
 });
 
 // ---------------------------------------------------------------------------
@@ -598,18 +662,18 @@ await test("Markdown autolink URL does not become a bogus container element", as
 const COBRO_LIKE_GROUND_TRUTH = {
     typeElement: {
         container: {
-            tagNames: [ "article", "aside", "body", "div", "footer", "header", "html", "main", "nav", "section" ],
+            tagNames: ["article", "aside", "body", "div", "footer", "header", "html", "main", "nav", "section"],
             ratings: { article: 0.95, body: 0.9, header: 0.75, main: 0.85, nav: 0.8, section: 0.9, footer: 0.7, aside: 0.85, div: 0.3, html: 0.1 },
             fallbackRating: 1.0
         },
-        actionable: { tagNames: [ "a", "button", "details", "form", "input", "label", "select", "summary", "textarea" ] },
-        replaceWithLabel: { tagNames: [ "svg" ] },
-        textFormatting: { tagNames: [ "b", "em", "strong", "small", "span", "p", "ul", "ol", "li", "table", "tbody", "tr", "td", "th", "thead", "h1", "h2", "h3", "h4", "h5", "h6", "img", "hr", "code", "pre", "blockquote", "figure", "figcaption", "sub", "sup", "address" ] }
+        actionable: { tagNames: ["a", "button", "details", "form", "input", "label", "select", "summary", "textarea"] },
+        replaceWithLabel: { tagNames: ["svg"] },
+        textFormatting: { tagNames: ["b", "em", "strong", "small", "span", "p", "ul", "ol", "li", "table", "tbody", "tr", "td", "th", "thead", "h1", "h2", "h3", "h4", "h5", "h6", "img", "hr", "code", "pre", "blockquote", "figure", "figcaption", "sub", "sup", "address"] }
     },
     typeAttribute: { ratings: { "wf-id": 1.0, alt: 0.9, href: 0.9, src: 0.8, id: 0.8, class: 0.7, "aria-*": 0.6 }, fallbackRating: 0.5 }
 };
 
-for(const cobroQ of [ 0.1, 0.5, 0.9 ]) {
+for (const cobroQ of [0.1, 0.5, 0.9]) {
     await test(`Snapshot full futurumshop product page without crash or collapse (cobro q=${cobroQ})`, async () => {
         const dom = readFile("futurumshop.product");
         const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
