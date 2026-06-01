@@ -315,6 +315,10 @@ export function d2Snap(
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
 
+	const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+	let t0: number = t();
+	const timings: D2SnapTimings = { uniqueIDs: 0, clone: 0, init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0, serialize: 0, minify: 0, formatDebugOnly: 0 };
+
 	let n = 0;
 	optionsWithDefaults.uniqueIDs
 		&& traverseDom<Element>(
@@ -329,12 +333,11 @@ export function d2Snap(
 				elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
 			}
 		);
+	timings.uniqueIDs = t() - t0;
 
+	t0 = t();
 	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
-
-	const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
-	let t0: number = t();
-	const timings: D2SnapTimings = { init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0 };
+	timings.clone = t() - t0;
 
 	let domTreeHeight: number = 0;
 	traverseDom<Node>(
@@ -435,8 +438,12 @@ export function d2Snap(
 	// Actionable element nodes
 	// Designated no-op
 
+	t0 = t();
 	const snapshot = virtualDom.innerHTML;
+	timings.serialize = t() - t0;
+
 	// Minify
+	t0 = t();
 	let html = snapshot
 		.replace(/\s+/g, " ")
 		.replace(/>\s+</g, "><")
@@ -448,9 +455,12 @@ export function d2Snap(
 	if (rE === Infinity) {
 		html = dissolveToplevelTags(html);
 	}
+	timings.minify = t() - t0;
 	// Format if is debug mode
 	if (optionsWithDefaults.debug) {
+		t0 = t();
 		html = formatHTML(html);
+		timings.formatDebugOnly = t() - t0;
 	}
 
 	return {

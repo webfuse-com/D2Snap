@@ -58,12 +58,18 @@ export interface D2SnapOptions {
 };
 
 export interface D2SnapTimings {
+    uniqueIDs: number;
+    clone: number;
     init: number;
     replaceWithLabel: number;
     textNodes: number;
     textFormatting: number;
     containers: number;
     attributes: number;
+    serialize: number;
+    minify: number;
+    /** @internal Only non-zero when `debug: true` — formatHTML is skipped in production. */
+    formatDebugOnly: number;
 }
 
 export interface D2SnapResult {
