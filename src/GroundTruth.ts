@@ -64,8 +64,8 @@ export class GroundTruth {
 		return [...this.elementsByType[type]];
 	}
 
-	public getLabelAttrs(): string[] {
-		return [...this.labelAttrs];
+	public getLabelAttrs(): readonly string[] {
+		return this.labelAttrs;
 	}
 
 	public isLabelChildTag(tagName: string): boolean {
