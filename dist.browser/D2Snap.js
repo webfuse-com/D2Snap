@@ -1702,7 +1702,7 @@
     "TRACK",
     "WBR"
   ]);
-  var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:$/i;
+  var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
   function unwrapColonTaggedElements(parent) {
     for (const child of Array.from(parent.childNodes)) {
       if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
@@ -1774,7 +1774,7 @@
           try {
             targetElement.setAttribute(attr.name, attr.value);
           } catch (e) {
-            if (!(e instanceof DOMException) || e.name !== "InvalidCharacterError") throw e;
+            if (e.name !== "InvalidCharacterError") throw e;
           }
         }
       }
