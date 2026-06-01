@@ -31,7 +31,7 @@ export type JSONValue =
     | JSONObject;
 
 export interface JSONObject {
-	[ key: string ]: JSONValue;
+    [key: string]: JSONValue;
 }
 
 export interface HTMLElementWithDepth extends HTMLElement {
@@ -72,7 +72,7 @@ export interface GroundTruthJSON extends JSONObject {
         container: {
             tagNames: string[];
             ratings: {
-                [ key: string ]: number;
+                [key: string]: number;
             };
             fallbackRating: number;
         };
@@ -83,7 +83,7 @@ export interface GroundTruthJSON extends JSONObject {
             tagNames: string[];
         };
         replaceWithLabel?: {
-            tagNames: string[];
+            tagNames?: string[];
             labelAttrs?: string[];
             labelChildTags?: string[];
         };
