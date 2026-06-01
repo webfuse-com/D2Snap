@@ -1,13 +1,13 @@
+import { GroundTruth } from "./GroundTruth.js";
+import { transform } from "./TextRank.js";
+import { Turndown } from "./Turndown.js";
 import {
   NodeFilter,
   NodeType
 } from "./types.js";
-import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
+import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { dissolveToplevelTags, formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
-import { GroundTruth } from "./GroundTruth.js";
-import { transform } from "./TextRank.js";
-import { Turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
@@ -29,11 +29,12 @@ const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
   "TRACK",
   "WBR"
 ]);
+const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:$/i;
 function unwrapColonTaggedElements(parent) {
   for (const child of Array.from(parent.childNodes)) {
     if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
     unwrapColonTaggedElements(child);
-    if (!child.tagName.includes(":")) continue;
+    if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
     while (child.firstChild) parent.insertBefore(child.firstChild, child);
     parent.removeChild(child);
   }
@@ -99,7 +100,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       for (const attr of mergedAttributes) {
         try {
           targetElement.setAttribute(attr.name, attr.value);
-        } catch {
+        } catch (e) {
+          if (!(e instanceof DOMException) || e.name !== "InvalidCharacterError") throw e;
         }
       }
     }
@@ -242,11 +244,13 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       domTreeHeight = Math.max(depth, domTreeHeight);
     }
   );
-  traverseDom(
-    virtualDom,
-    NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementReplaceWithLabelNode(document, node)
-  );
+  if (groundTruth.getElementsByType("replaceWithLabel").length) {
+    traverseDom(
+      virtualDom,
+      NodeFilter.SHOW_ELEMENT,
+      (node) => snapElementReplaceWithLabelNode(document, node)
+    );
+  }
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_TEXT,

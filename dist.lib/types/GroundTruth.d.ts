@@ -14,7 +14,7 @@ export declare class GroundTruth {
     private readonly labelChildTagsSet;
     constructor(groundTruth: GroundTruthJSON);
     getElementsByType(type: ElementType): string[];
-    getLabelAttrs(): string[];
+    getLabelAttrs(): readonly string[];
     isLabelChildTag(tagName: string): boolean;
     isElementType(type: ElementType, tagName: string): boolean;
     getContainerRating(tagName: string): number;

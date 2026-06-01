@@ -50,7 +50,7 @@ class GroundTruth {
     return [...this.elementsByType[type]];
   }
   getLabelAttrs() {
-    return [...this.labelAttrs];
+    return this.labelAttrs;
   }
   isLabelChildTag(tagName) {
     return this.labelChildTagsSet.has(tagName.toLowerCase());

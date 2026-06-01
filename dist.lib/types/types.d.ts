@@ -66,7 +66,7 @@ export interface GroundTruthJSON extends JSONObject {
             tagNames: string[];
         };
         replaceWithLabel?: {
-            tagNames: string[];
+            tagNames?: string[];
             labelAttrs?: string[];
             labelChildTags?: string[];
         };
