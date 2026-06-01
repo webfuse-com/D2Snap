@@ -1741,7 +1741,7 @@
       groundTruth.getElementsByType("actionable")
     );
     const filteredTagNames = new Set(
-      optionsWithDefaults.filteredTagNames.map((t) => t.toUpperCase())
+      optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
@@ -1893,6 +1893,9 @@
       }
     );
     const virtualDom = rootElement.cloneNode(true);
+    const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+    let t0 = t();
+    const timings = { init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0 };
     let domTreeHeight = 0;
     traverseDom(
       virtualDom,
@@ -1917,6 +1920,8 @@
         domTreeHeight = Math.max(depth, domTreeHeight);
       }
     );
+    timings.init = t() - t0;
+    t0 = t();
     if (groundTruth.getElementsByType("replaceWithLabel").length) {
       traverseDom(
         virtualDom,
@@ -1924,16 +1929,22 @@
         (node) => snapElementReplaceWithLabelNode(document2, node)
       );
     }
+    timings.replaceWithLabel = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       4 /* SHOW_TEXT */,
       (node) => snapTextNode(node, rT)
     );
+    timings.textNodes = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapElementTextFormattingNode(document2, node)
     );
+    timings.textFormatting = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
@@ -1942,12 +1953,15 @@
         return snapElementContainerNode(document2, node, rE, domTreeHeight);
       }
     );
+    timings.containers = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapAttributeNode(node, rA)
       // work on parent element
     );
+    timings.attributes = t() - t0;
     const snapshot = virtualDom.innerHTML;
     let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
     if (rE === Infinity) {
@@ -1962,8 +1976,9 @@
         originalSize,
         snapshotSize: snapshot.length,
         sizeRatio: snapshot.length / originalSize,
-        tokenEstimate: Math.round(snapshot.length / 4)
+        tokenEstimate: Math.round(snapshot.length / 4),
         // according to https://platform.openai.com/tokenizer
+        ...optionsWithDefaults.debug && { timings }
       }
     };
   }

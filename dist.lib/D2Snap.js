@@ -68,7 +68,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     groundTruth.getElementsByType("actionable")
   );
   const filteredTagNames = new Set(
-    optionsWithDefaults.filteredTagNames.map((t) => t.toUpperCase())
+    optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
@@ -220,6 +220,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
   );
   const virtualDom = rootElement.cloneNode(true);
+  const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+  let t0 = t();
+  const timings = { init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0 };
   let domTreeHeight = 0;
   traverseDom(
     virtualDom,
@@ -244,6 +247,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       domTreeHeight = Math.max(depth, domTreeHeight);
     }
   );
+  timings.init = t() - t0;
+  t0 = t();
   if (groundTruth.getElementsByType("replaceWithLabel").length) {
     traverseDom(
       virtualDom,
@@ -251,16 +256,22 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       (node) => snapElementReplaceWithLabelNode(document, node)
     );
   }
+  timings.replaceWithLabel = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_TEXT,
     (node) => snapTextNode(node, rT)
   );
+  timings.textNodes = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapElementTextFormattingNode(document, node)
   );
+  timings.textFormatting = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
@@ -269,12 +280,15 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       return snapElementContainerNode(document, node, rE, domTreeHeight);
     }
   );
+  timings.containers = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapAttributeNode(node, rA)
     // work on parent element
   );
+  timings.attributes = t() - t0;
   const snapshot = virtualDom.innerHTML;
   let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
   if (rE === Infinity) {
@@ -289,8 +303,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       originalSize,
       snapshotSize: snapshot.length,
       sizeRatio: snapshot.length / originalSize,
-      tokenEstimate: Math.round(snapshot.length / 4)
+      tokenEstimate: Math.round(snapshot.length / 4),
       // according to https://platform.openai.com/tokenizer
+      ...optionsWithDefaults.debug && { timings }
     }
   };
 }
