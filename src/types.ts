@@ -57,6 +57,15 @@ export interface D2SnapOptions {
     uniqueIDs: boolean;
 };
 
+export interface D2SnapTimings {
+    init: number;
+    replaceWithLabel: number;
+    textNodes: number;
+    textFormatting: number;
+    containers: number;
+    attributes: number;
+}
+
 export interface D2SnapResult {
     html: string;
     meta: {
@@ -64,6 +73,8 @@ export interface D2SnapResult {
         originalSize: number;
         sizeRatio: number;
         snapshotSize: number;
+        /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
+        timings?: D2SnapTimings;
     }
 };
 

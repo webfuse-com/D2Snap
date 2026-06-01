@@ -6,6 +6,7 @@ import {
 	NodeType,
 	type D2SnapOptions,
 	type D2SnapResult,
+	type D2SnapTimings,
 	type DOM,
 	type GroundTruthJSON,
 	type HTMLElementWithDepth,
@@ -331,6 +332,10 @@ export function d2Snap(
 
 	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
 
+	const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+	let t0: number = t();
+	const timings: D2SnapTimings = { init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0 };
+
 	let domTreeHeight: number = 0;
 	traverseDom<Node>(
 		virtualDom,
@@ -368,6 +373,7 @@ export function d2Snap(
 			domTreeHeight = Math.max(depth, domTreeHeight);
 		}
 	);
+	timings.init = t() - t0;
 
 	// Labeled-extract element nodes first: lift accessibility labels out of
 	// elements like <svg>/<canvas> and into the surrounding context as plain
@@ -376,6 +382,7 @@ export function d2Snap(
 	// linger around an actionable parent (e.g. icon buttons).
 	// Guard: skip the full DOM walk when no tag names are configured (the
 	// default ground truth ships with an empty list).
+	t0 = t();
 	if (groundTruth.getElementsByType("replaceWithLabel").length) {
 		traverseDom<HTMLElement>(
 			virtualDom,
@@ -383,22 +390,28 @@ export function d2Snap(
 			(node: HTMLElement) => snapElementReplaceWithLabelNode(document, node),
 		);
 	}
+	timings.replaceWithLabel = t() - t0;
 
 	// Text nodes
+	t0 = t();
 	traverseDom<TextNode>(
 		virtualDom,
 		NodeFilter.SHOW_TEXT,
 		(node: TextNode) => snapTextNode(node, rT)
 	);
+	timings.textNodes = t() - t0;
 
 	// Text formatting element nodes
+	t0 = t();
 	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapElementTextFormattingNode(document, node),
 	);
+	timings.textFormatting = t() - t0;
 
 	// Container element nodes
+	t0 = t();
 	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
@@ -408,13 +421,16 @@ export function d2Snap(
 			return snapElementContainerNode(document, node, rE, domTreeHeight);
 		}
 	);
+	timings.containers = t() - t0;
 
 	// Attribute nodes
+	t0 = t();
 	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element
 	);
+	timings.attributes = t() - t0;
 
 	// Actionable element nodes
 	// Designated no-op
@@ -443,7 +459,8 @@ export function d2Snap(
 			originalSize,
 			snapshotSize: snapshot.length,
 			sizeRatio: snapshot.length / originalSize,
-			tokenEstimate: Math.round(snapshot.length / 4)    // according to https://platform.openai.com/tokenizer
+			tokenEstimate: Math.round(snapshot.length / 4),    // according to https://platform.openai.com/tokenizer
+			...(optionsWithDefaults.debug && { timings })
 		}
 	};
 }
