@@ -36,6 +36,7 @@ export const GROUND_TRUTH = {
 				"input",
 				"label",
 				"select",
+				"option",
 				"summary",
 				"textarea"
 			]
