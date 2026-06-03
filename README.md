@@ -161,10 +161,14 @@ npm run test
 > Provide LLM API provider key(s) to .env (compare [example](./.env.example)).
 
 ``` console
-npm run eval:<snapshot>
+cs eval && pip install -r requirements.txt
 ```
 
-> `<snapshot>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }
+``` console
+npm run eval:<subject>
+```
+
+> `<subject>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }
 
 ``` console
 npm run eval:D2Snap -- --verbose --split 10,20 --provider openai --model gpt-4o

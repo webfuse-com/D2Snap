@@ -79,7 +79,6 @@ export function traverseDom<T>(
 
 		if(!replacingNodes?.length) continue;
 
-		stack.splice(childIndex, childCount, ...replacingNodes);
-		stack.push(...replacingNodes.reverse());
+		stack.splice(childIndex, childCount, ...[ ...replacingNodes ].reverse());
 	}
 }

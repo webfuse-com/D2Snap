@@ -50,8 +50,7 @@ function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
     if (!passes) continue;
     const replacingNodes = cb(node);
     if (!replacingNodes?.length) continue;
-    stack.splice(childIndex, childCount, ...replacingNodes);
-    stack.push(...replacingNodes.reverse());
+    stack.splice(childIndex, childCount, ...[...replacingNodes].reverse());
   }
 }
 export {
