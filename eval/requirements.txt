@@ -1,0 +1,7 @@
+python-dotenv>=1.0
+openai>=1.40.0
+anthropic>=0.34.0
+pydantic>=2.0
+lxml>=5.0
+cssselect>=1.2
+Pillow>=10.0

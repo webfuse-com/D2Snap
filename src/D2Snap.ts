@@ -191,7 +191,12 @@ export function d2Snap(
 		elementNode
             .replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
 
-		return replacingNodes;
+		const sourceTagName: string = elementNode.tagName.toLowerCase();
+
+		return replacingNodes.filter(n => (
+			(n.nodeType !== NodeType.ELEMENT_NODE)
+            || ((n as Element).tagName.toLowerCase() !== sourceTagName)
+		));
 	}
 
 	function snapTextNode(textNode: TextNode, rT: number) {

@@ -124,7 +124,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
     const replacingNodes = [...markdownNodesFragment.childNodes];
     elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
-    return replacingNodes;
+    const sourceTagName = elementNode.tagName.toLowerCase();
+    return replacingNodes.filter((n2) => n2.nodeType !== NodeType.ELEMENT_NODE || n2.tagName.toLowerCase() !== sourceTagName);
   }
   function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== NodeType.TEXT_NODE) return;

@@ -81,8 +81,7 @@
       if (!passes) continue;
       const replacingNodes = cb(node);
       if (!replacingNodes?.length) continue;
-      stack.splice(childIndex, childCount, ...replacingNodes);
-      stack.push(...replacingNodes.reverse());
+      stack.splice(childIndex, childCount, ...[...replacingNodes].reverse());
     }
   }
 
@@ -1548,6 +1547,7 @@
           "input",
           "label",
           "select",
+          "option",
           "summary",
           "textarea"
         ]
@@ -1780,7 +1780,8 @@
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
       const replacingNodes = [...markdownNodesFragment.childNodes];
       elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
-      return replacingNodes;
+      const sourceTagName = elementNode.tagName.toLowerCase();
+      return replacingNodes.filter((n2) => n2.nodeType !== 1 /* ELEMENT_NODE */ || n2.tagName.toLowerCase() !== sourceTagName);
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;

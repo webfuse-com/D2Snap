@@ -3,14 +3,4 @@
 .env
 
 node_modules/
-
-test/files/*.actual.html
-test/files/*.actual.serial.html
-
-snapshots/candidates
-
-eval/summary.json
-eval/results/
-eval/logs/
-
 tmp/
