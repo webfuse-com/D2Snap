@@ -9,7 +9,7 @@ from eval import run_evaluation
 from eval_shared import INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyze_result_dom
 
 
-MAX_SNAPSHOT_SIZE_TOKENS = 2 ** 16
+MAX_SNAPSHOT_SIZE_TOKENS = 2 ** 15  # 32768
 MAX_SNAPSHOT_SIZE_B = MAX_SNAPSHOT_SIZE_TOKENS * 4
 
 
@@ -18,13 +18,20 @@ def _loader(data, _id):
 
     after_head = full_html.split("</head>", 1)[-1]
 
-    snapshot = after_head[:MAX_SNAPSHOT_SIZE_B]
+    length = len(after_head)
+
+    if length <= MAX_SNAPSHOT_SIZE_B:
+        snapshot = after_head
+    else:
+        start = (length - MAX_SNAPSHOT_SIZE_B) // 2
+        end = start + MAX_SNAPSHOT_SIZE_B
+        snapshot = after_head[start:end]
 
     return [
         {
             "type": "text",
             "data": snapshot,
-            "size": len(snapshot)
+            "size": len(snapshot),
         }
     ]
 

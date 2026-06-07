@@ -18,7 +18,7 @@ process.stdin.on("end", async () => {
 
         const snapshot = config.maxTokens
             ? await adaptiveD2Snap(document, config.maxTokens, 5, options)
-            : await d2Snap(document, config.rE, config.rA, config.rT, options);
+            : await d2Snap(document, ((config.rE === "Infinity") ? Infinity : config.rE), config.rA, config.rT, options);
 
         process.stdout.write(
             JSON.stringify({

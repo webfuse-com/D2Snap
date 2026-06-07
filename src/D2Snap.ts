@@ -266,7 +266,7 @@ export function d2Snap(
 		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
 
 		elementNode
-			.replaceWith(...[document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ")]);
+			  .replaceWith(...[document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ")]);
 
 		// Strip same-tag replacements before returning for re-traversal:
 		// Turndown passes some textFormatting elements through verbatim

@@ -23,6 +23,7 @@ def summarize(date: str) -> dict:
         raise ReferenceError(f"Results do not exist '{date}'")
 
     summary: dict = {}
+
     for results_file in sorted(results_dir.iterdir()):
         if results_file.name == SUMMARY_FILENAME or results_file.suffix != ".json":
             continue
@@ -38,6 +39,7 @@ def summarize(date: str) -> dict:
             "totalEstimatedTokens": 0,
             "totalRTT": 0.0,
         }
+
         for r in entries:
             s["successCases"] += int(bool(r.get("success")))
             s["failureCases"] += int(not r.get("success"))
@@ -56,6 +58,15 @@ def summarize(date: str) -> dict:
         s["meanRTT"] = _mean(s["totalRTT"], non_error)
 
         summary[results_file.name] = s
+
+    summary = {
+        k: v
+        for k, v in sorted(
+            summary.items(),
+            key=lambda item: item[1]["successRate"],
+            reverse=True,
+        )
+    }
 
     Logger(str(Path("..") / "results" / date), clean_dir=False).write(
         SUMMARY_FILENAME, json.dumps(summary, indent=2)
