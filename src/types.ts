@@ -31,7 +31,7 @@ export type JSONValue =
     | JSONObject;
 
 export interface JSONObject {
-	[ key: string ]: JSONValue;
+    [key: string]: JSONValue;
 }
 
 export interface HTMLElementWithDepth extends HTMLElement {
@@ -57,6 +57,21 @@ export interface D2SnapOptions {
     uniqueIDs: boolean;
 };
 
+export interface D2SnapTimings {
+    uniqueIDs: number;
+    clone: number;
+    init: number;
+    replaceWithLabel: number;
+    textNodes: number;
+    textFormatting: number;
+    containers: number;
+    attributes: number;
+    serialize: number;
+    minify: number;
+    /** @internal Only non-zero when `debug: true` — formatHTML is skipped in production. */
+    formatDebugOnly: number;
+}
+
 export interface D2SnapResult {
     html: string;
     meta: {
@@ -64,6 +79,8 @@ export interface D2SnapResult {
         originalSize: number;
         sizeRatio: number;
         snapshotSize: number;
+        /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
+        timings?: D2SnapTimings;
     }
 };
 
@@ -72,7 +89,7 @@ export interface GroundTruthJSON extends JSONObject {
         container: {
             tagNames: string[];
             ratings: {
-                [ key: string ]: number;
+                [key: string]: number;
             };
             fallbackRating: number;
         };
@@ -81,6 +98,11 @@ export interface GroundTruthJSON extends JSONObject {
         };
         textFormatting: {
             tagNames: string[];
+        };
+        replaceWithLabel?: {
+            tagNames?: string[];
+            labelAttrs?: string[];
+            labelChildTags?: string[];
         };
     }
     typeAttribute: {

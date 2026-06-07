@@ -79,6 +79,9 @@ export function traverseDom<T>(
 
 		if(!replacingNodes?.length) continue;
 
+		// Swap the original (now-detached) children on the stack with the
+		// replacement nodes. Insert reversed so the first replacement is at
+		// the top of the stack and gets popped first.
 		stack.splice(childIndex, childCount, ...[ ...replacingNodes ].reverse());
 	}
 }
