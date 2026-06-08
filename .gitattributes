@@ -2,3 +2,4 @@ dataset/dom/*.html filter=lfs diff=lfs merge=lfs -text
 dataset/gui/*.png filter=lfs diff=lfs merge=lfs -text
 dataset/bu/*.png filter=lfs diff=lfs merge=lfs -text
 dataset/bu/*.txt filter=lfs diff=lfs merge=lfs -text
+test/files/futurumshop.product.html filter=lfs diff=lfs merge=lfs -text
