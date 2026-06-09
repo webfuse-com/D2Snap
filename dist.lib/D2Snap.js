@@ -1,18 +1,44 @@
+import { GroundTruth } from "./GroundTruth.js";
+import { transform } from "./TextRank.js";
+import { Turndown } from "./Turndown.js";
 import {
   NodeFilter,
   NodeType
 } from "./types.js";
-import { traverseDom, resolveDocument, resolveRoot } from "./util.dom.js";
+import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { dissolveToplevelTags, formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
-import { GroundTruth } from "./GroundTruth.js";
-import { transform } from "./TextRank.js";
-import { Turndown } from "./Turndown.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const WHITESPACE_REGEX = /^\s$/;
+const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
+  "AREA",
+  "BASE",
+  "BR",
+  "COL",
+  "EMBED",
+  "HR",
+  "IMG",
+  "INPUT",
+  "LINK",
+  "META",
+  "PARAM",
+  "SOURCE",
+  "TRACK",
+  "WBR"
+]);
+const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
+function unwrapColonTaggedElements(parent) {
+  for (const child of Array.from(parent.childNodes)) {
+    if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
+    unwrapColonTaggedElements(child);
+    if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
+    while (child.firstChild) parent.insertBefore(child.firstChild, child);
+    parent.removeChild(child);
+  }
+}
 function validateParameter(name, value, allowInfinity = false) {
   if (allowInfinity && value === Infinity) return;
   if (value < 0 || value > 1) {
@@ -42,11 +68,12 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     groundTruth.getElementsByType("actionable")
   );
   const filteredTagNames = new Set(
-    optionsWithDefaults.filteredTagNames.map((t) => t.toUpperCase())
+    optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("container", elementNode.tagName)) return;
+    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
     if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
     const mergeLevels = Math.max(
       Math.round(domTreeHeight2 * Math.min(1, rE2)),
@@ -71,7 +98,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         targetElement.removeAttribute(attr.name);
       }
       for (const attr of mergedAttributes) {
-        targetElement.setAttribute(attr.name, attr.value);
+        try {
+          targetElement.setAttribute(attr.name, attr.value);
+        } catch (e) {
+          if (e.name !== "InvalidCharacterError") throw e;
+        }
       }
     }
     if (!isTopdownMerge) {
@@ -116,12 +147,41 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
+  function snapElementReplaceWithLabelNode(document2, elementNode) {
+    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+    if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+    let label = null;
+    for (const attrName of groundTruth.getLabelAttrs()) {
+      const value = elementNode.getAttribute(attrName);
+      const trimmed = (value ?? "").trim();
+      if (trimmed) {
+        label = trimmed;
+        break;
+      }
+    }
+    if (!label) {
+      for (const child of Array.from(elementNode.children)) {
+        if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+        const trimmed = (child.textContent ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+    }
+    if (label !== null) {
+      elementNode.replaceWith(document2.createTextNode(label));
+    } else {
+      elementNode.remove();
+    }
+  }
   function snapElementTextFormattingNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
+    unwrapColonTaggedElements(markdownNodesFragment);
     const replacingNodes = [...markdownNodesFragment.childNodes];
     elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
     const sourceTagName = elementNode.tagName.toLowerCase();
@@ -150,6 +210,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
   const rootElement = resolveRoot(dom);
   const originalSize = rootElement.innerHTML.length;
+  const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+  let t0 = t();
+  const timings = { uniqueIDs: 0, clone: 0, init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0, serialize: 0, minify: 0, formatDebugOnly: 0 };
   let n = 0;
   optionsWithDefaults.uniqueIDs && traverseDom(
     rootElement,
@@ -159,7 +222,10 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
     }
   );
+  timings.uniqueIDs = t() - t0;
+  t0 = t();
   const virtualDom = rootElement.cloneNode(true);
+  timings.clone = t() - t0;
   let domTreeHeight = 0;
   traverseDom(
     virtualDom,
@@ -184,16 +250,31 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       domTreeHeight = Math.max(depth, domTreeHeight);
     }
   );
+  timings.init = t() - t0;
+  t0 = t();
+  if (groundTruth.getElementsByType("replaceWithLabel").length) {
+    traverseDom(
+      virtualDom,
+      NodeFilter.SHOW_ELEMENT,
+      (node) => snapElementReplaceWithLabelNode(document, node)
+    );
+  }
+  timings.replaceWithLabel = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_TEXT,
     (node) => snapTextNode(node, rT)
   );
+  timings.textNodes = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapElementTextFormattingNode(document, node)
   );
+  timings.textFormatting = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
@@ -202,19 +283,28 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       return snapElementContainerNode(document, node, rE, domTreeHeight);
     }
   );
+  timings.containers = t() - t0;
+  t0 = t();
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapAttributeNode(node, rA)
     // work on parent element
   );
+  timings.attributes = t() - t0;
+  t0 = t();
   const snapshot = virtualDom.innerHTML;
+  timings.serialize = t() - t0;
+  t0 = t();
   let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
   if (rE === Infinity) {
     html = dissolveToplevelTags(html);
   }
+  timings.minify = t() - t0;
   if (optionsWithDefaults.debug) {
+    t0 = t();
     html = formatHTML(html);
+    timings.formatDebugOnly = t() - t0;
   }
   return {
     html,
@@ -222,8 +312,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       originalSize,
       snapshotSize: snapshot.length,
       sizeRatio: snapshot.length / originalSize,
-      tokenEstimate: Math.round(snapshot.length / 4)
+      tokenEstimate: Math.round(snapshot.length / 4),
       // according to https://platform.openai.com/tokenizer
+      ...optionsWithDefaults.debug && { timings }
     }
   };
 }

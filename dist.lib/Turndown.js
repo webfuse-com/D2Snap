@@ -1,5 +1,5 @@
 import TurndownService from "turndown";
-import { gfm } from "turndown-plugin-gfm";
+import { gfm } from "@truto/turndown-plugin-gfm";
 class Turndown {
   service;
   constructor(keepTagNames) {

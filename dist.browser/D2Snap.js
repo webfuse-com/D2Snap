@@ -85,312 +85,10 @@
     }
   }
 
-  // src/util.html.ts
-  var INLINE_TAG_NAMES = [
-    "A",
-    "ABBR",
-    "B",
-    "BDI",
-    "BDO",
-    "CITE",
-    "CODE",
-    "DATA",
-    "DFN",
-    "EM",
-    "I",
-    "KBD",
-    "MARK",
-    "Q",
-    "RP",
-    "RT",
-    "RUBY",
-    "S",
-    "SAMP",
-    "SMALL",
-    "SPAN",
-    "STRONG",
-    "SUB",
-    "SUP",
-    "TIME",
-    "U",
-    "VAR",
-    "WBR",
-    "BR"
-  ];
-  var RAW_TEXT_TAG_NAMES = [
-    "SCRIPT",
-    "STYLE",
-    "TEXTAREA",
-    "TITLE"
-  ];
-  var VOID_TAG_NAMES = [
-    "AREA",
-    "BASE",
-    "BR",
-    "COL",
-    "EMBED",
-    "HR",
-    "IMG",
-    "INPUT",
-    "LINK",
-    "META",
-    "SOURCE",
-    "TRACK",
-    "WBR"
-  ];
-  function tokenize(html) {
-    const tokens = [];
-    const n = html.length;
-    let i = 0;
-    while (i < n) {
-      if (html[i] !== "<") {
-        const start = i;
-        while (i < n && html[i] !== "<") i++;
-        const raw2 = html.slice(start, i);
-        if (raw2.trim()) tokens.push({
-          kind: "text",
-          raw: raw2
-        });
-        continue;
-      }
-      if (html.startsWith("<!--", i)) {
-        const end = html.indexOf("-->", i + 4);
-        const stop = end < 0 ? n : end + 3;
-        tokens.push({
-          kind: "comment",
-          raw: html.slice(i, stop)
-        });
-        i = stop;
-        continue;
-      }
-      const tagStart = i;
-      i++;
-      const isClose = html[i] === "/";
-      isClose && i++;
-      let quote = null;
-      while (i < n) {
-        const c = html[i];
-        if (quote) {
-          if (c === quote) quote = null;
-          i++;
-          continue;
-        }
-        if (c === '"' || c === "'") {
-          quote = c;
-          i++;
-          continue;
-        }
-        if (c === ">") break;
-        i++;
-      }
-      if (i >= n) {
-        tokens.push({
-          kind: "text",
-          raw: html.slice(tagStart)
-        });
-        break;
-      }
-      i++;
-      const raw = html.slice(tagStart, i);
-      const inner = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
-      const selfClosing = inner.endsWith("/");
-      const tagName = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
-      if (!tagName) {
-        tokens.push({
-          kind: "text",
-          raw
-        });
-        continue;
-      }
-      if (isClose) {
-        tokens.push({
-          kind: "close",
-          tag: tagName,
-          raw
-        });
-        continue;
-      }
-      if (VOID_TAG_NAMES.includes(tagName) || selfClosing) {
-        tokens.push({
-          kind: "void",
-          tag: tagName,
-          raw
-        });
-        continue;
-      }
-      if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
-        const rest = html.slice(i);
-        const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
-        if (!m) {
-          tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
-          i = n;
-          continue;
-        }
-        const contentEnd = i + m.index;
-        const content = html.slice(i, contentEnd);
-        const closeRaw = html.slice(contentEnd, contentEnd + m[0].length);
-        tokens.push({
-          kind: "raw",
-          tag: tagName,
-          openRaw: raw,
-          content,
-          closeRaw
-        });
-        i = contentEnd + m[0].length;
-        continue;
-      }
-      tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
-    }
-    return tokens;
-  }
-  function formatHTML(html, indentSize = 2) {
-    const indent = " ".repeat(indentSize);
-    const tokens = tokenize(html);
-    const lines = [];
-    const stack = [];
-    let buffer = "";
-    let bufferDepth = 0;
-    const flushBuffer = () => {
-      const text = buffer.replace(/\s+/g, " ").trim();
-      text && lines.push(indent.repeat(bufferDepth) + text);
-      buffer = "";
-    };
-    const emit = (line, depth) => {
-      flushBuffer();
-      lines.push(indent.repeat(depth) + line);
-    };
-    const isInline = (tag) => {
-      return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
-    };
-    for (const token of tokens) {
-      switch (token.kind) {
-        case "text":
-          if (buffer === "") {
-            bufferDepth = stack.length;
-          }
-          buffer += token.raw;
-          break;
-        case "comment":
-        case "doctype":
-        case "cdata":
-          emit(token.raw, stack.length);
-          break;
-        case "void":
-          if (isInline(token.tag)) {
-            if (buffer === "") {
-              bufferDepth = stack.length;
-            }
-            buffer += token.raw;
-          } else {
-            emit(token.raw, stack.length);
-          }
-          break;
-        case "raw":
-          emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
-          break;
-        case "open":
-          if (isInline(token.tag)) {
-            if (buffer === "") {
-              bufferDepth = stack.length;
-            }
-            buffer += token.raw;
-            stack.push(token.tag);
-          } else {
-            flushBuffer();
-            lines.push(indent.repeat(stack.length) + token.raw);
-            stack.push(token.tag);
-          }
-          break;
-        case "close":
-          if (isInline(token.tag)) {
-            buffer += token.raw;
-            stack[stack.length - 1] === token.tag && stack.pop();
-          } else {
-            while (stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
-            stack.length && stack.pop();
-            flushBuffer();
-            lines.push(indent.repeat(stack.length) + token.raw);
-          }
-          break;
-      }
-    }
-    flushBuffer();
-    return lines.join("\n");
-  }
-  function dissolveToplevelTags(html) {
-    const tokens = tokenize(html);
-    const outputParts = [];
-    let nestingDepth = 0;
-    for (const token of tokens) {
-      switch (token.kind) {
-        case "open": {
-          const isTopLevel = nestingDepth === 0;
-          !isTopLevel && outputParts.push(token.raw);
-          nestingDepth++;
-          break;
-        }
-        case "close": {
-          const isTopLevel = nestingDepth === 1;
-          !isTopLevel && outputParts.push(token.raw);
-          nestingDepth = Math.max(0, nestingDepth - 1);
-          break;
-        }
-        case "void": {
-          const isTopLevel = nestingDepth === 0;
-          !isTopLevel && outputParts.push(token.raw);
-          break;
-        }
-        case "raw": {
-          if (nestingDepth === 0) {
-            outputParts.push(token.content);
-          } else {
-            outputParts.push(
-              [
-                token.openRaw,
-                token.content,
-                token.closeRaw
-              ].join("")
-            );
-          }
-          break;
-        }
-        case "text":
-        case "comment":
-        case "doctype":
-        case "cdata":
-          outputParts.push(token.raw);
-          break;
-      }
-    }
-    return outputParts.join("");
-  }
-
-  // src/util.json.ts
-  function isObject(value) {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-  function mergeJSONs(source, target) {
-    const result = {
-      ...source
-    };
-    for (const key of Object.keys(target)) {
-      const sourceValue = result[key];
-      const targetValue = target[key];
-      if (isObject(sourceValue) && isObject(targetValue)) {
-        result[key] = mergeJSONs(sourceValue, targetValue);
-        continue;
-      }
-      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
-        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
-        continue;
-      }
-      result[key] = targetValue;
-    }
-    return result;
-  }
-
   // src/GroundTruth.ts
   var HARD_FALLBACK_RATING = 0;
+  var DEFAULT_LABEL_ATTRS = ["aria-label", "title", "alt"];
+  var DEFAULT_LABEL_CHILD_TAGS = ["title", "desc"];
   var SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
     "aria-",
     "data-"
@@ -406,29 +104,44 @@
     attributeRatings;
     attributeFallbackRating;
     attributeRatingCache = /* @__PURE__ */ new Map();
+    labelAttrs;
+    labelChildTagsSet;
     constructor(groundTruth) {
       this.groundTruth = groundTruth;
       this.elementsByType = {
         container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
         actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
-        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? []
+        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? [],
+        replaceWithLabel: this.groundTruth?.typeElement?.replaceWithLabel?.tagNames ?? []
       };
       this.elementTypeSets = {
         container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
         actionable: new Set(this.elementsByType.actionable.map((t) => t.toLowerCase())),
-        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase()))
+        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase())),
+        replaceWithLabel: new Set(this.elementsByType.replaceWithLabel.map((t) => t.toLowerCase()))
       };
       this.nonContainerTagNames = /* @__PURE__ */ new Set([
         ...this.elementTypeSets.actionable,
-        ...this.elementTypeSets.textFormatting
+        ...this.elementTypeSets.textFormatting,
+        ...this.elementTypeSets.replaceWithLabel
       ]);
       this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
       this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
       this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
       this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
+      this.labelAttrs = (this.groundTruth?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS).map((a) => a.toLowerCase());
+      this.labelChildTagsSet = new Set(
+        (this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
+      );
     }
     getElementsByType(type) {
       return [...this.elementsByType[type]];
+    }
+    getLabelAttrs() {
+      return this.labelAttrs;
+    }
+    isLabelChildTag(tagName) {
+      return this.labelChildTagsSet.has(tagName.toLowerCase());
     }
     isElementType(type, tagName) {
       const lowerTagName = tagName.toLowerCase();
@@ -1351,8 +1064,8 @@
   }
   var turndown_browser_es_default = TurndownService;
 
-  // node_modules/turndown-plugin-gfm/lib/turndown-plugin-gfm.es.js
-  var highlightRegExp = /highlight-(?:text|source)-([a-z0-9]+)/;
+  // node_modules/@truto/turndown-plugin-gfm/lib/index.js
+  var highlightRegExp = /highlight-(?:(?:text|source)-)?([a-z0-9]+)/;
   function highlightedCodeBlock(turndownService) {
     turndownService.addRule("highlightedCodeBlock", {
       filter: function(node) {
@@ -1370,44 +1083,147 @@
     turndownService.addRule("strikethrough", {
       filter: ["del", "s", "strike"],
       replacement: function(content) {
-        return "~" + content + "~";
+        return "~~" + content + "~~";
       }
     });
   }
-  var indexOf = Array.prototype.indexOf;
-  var every = Array.prototype.every;
   var rules2 = {};
+  function cleanCellContent(content) {
+    if (!content) return "   ";
+    let cleaned = content.trim().replace(/\s+/g, " ").replace(/\|/g, "\\|").replace(/\\/g, "\\\\").replace(/\n+/g, " ").replace(/\r+/g, " ");
+    if (!cleaned || cleaned.match(/^\s*$/)) {
+      return "   ";
+    }
+    if (cleaned.length < 3) {
+      cleaned += " ".repeat(3 - cleaned.length);
+    }
+    return cleaned;
+  }
+  function cell(content, node, index) {
+    if (index === null && node && node.parentNode) {
+      index = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+    }
+    if (index === null) index = 0;
+    var prefix = " ";
+    if (index === 0) prefix = "| ";
+    let cellContent = cleanCellContent(content);
+    let colspan = 1;
+    if (node && node.getAttribute) {
+      colspan = parseInt(node.getAttribute("colspan") || "1", 10);
+      if (isNaN(colspan) || colspan < 1) colspan = 1;
+    }
+    let result = prefix + cellContent + " |";
+    for (let i = 1; i < colspan; i++) {
+      result += "   |";
+    }
+    return result;
+  }
+  function isHeadingRow(tr) {
+    if (!tr || !tr.parentNode) return false;
+    var parentNode = tr.parentNode;
+    if (parentNode.nodeName === "THEAD") return true;
+    if (parentNode.firstChild === tr && (parentNode.nodeName === "TABLE" || parentNode.nodeName === "TBODY")) {
+      var cellNodes = Array.prototype.filter.call(tr.childNodes, function(n) {
+        return n.nodeType === 1;
+      });
+      if (cellNodes.length === 0) return false;
+      return Array.prototype.every.call(cellNodes, function(n) {
+        return n.nodeName === "TH";
+      });
+    }
+    return false;
+  }
+  function getTableColCount(table) {
+    if (!table || !table.rows) return 0;
+    let maxCols = 0;
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      if (!row || !row.childNodes) continue;
+      let colCount = 0;
+      for (let j = 0; j < row.childNodes.length; j++) {
+        const cell2 = row.childNodes[j];
+        if (cell2.nodeType === 1 && (cell2.nodeName === "TD" || cell2.nodeName === "TH")) {
+          const colspan = parseInt(cell2.getAttribute("colspan") || "1", 10);
+          colCount += isNaN(colspan) ? 1 : Math.max(1, colspan);
+        }
+      }
+      if (colCount > maxCols) maxCols = colCount;
+    }
+    return maxCols;
+  }
+  function shouldSkipTable(table) {
+    if (!table) return true;
+    if (!table.rows || table.rows.length === 0) return true;
+    let contentCells = 0;
+    let totalCells = 0;
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      if (!row || !row.childNodes) continue;
+      for (let j = 0; j < row.childNodes.length; j++) {
+        const cell2 = row.childNodes[j];
+        if (cell2.nodeType === 1 && (cell2.nodeName === "TD" || cell2.nodeName === "TH")) {
+          totalCells++;
+          if (cell2.textContent && cell2.textContent.trim()) {
+            contentCells++;
+          }
+        }
+      }
+    }
+    if (totalCells === 0) return true;
+    if (totalCells === 1 && contentCells === 0) return true;
+    return false;
+  }
   rules2.tableCell = {
     filter: ["th", "td"],
     replacement: function(content, node) {
-      return cell(content, node);
+      return cell(content, node, null);
     }
   };
   rules2.tableRow = {
     filter: "tr",
     replacement: function(content, node) {
+      if (!content || !content.trim()) return "";
       var borderCells = "";
-      var alignMap = { left: ":--", right: "--:", center: ":-:" };
       if (isHeadingRow(node)) {
-        for (var i = 0; i < node.childNodes.length; i++) {
-          var border = "---";
-          var align = (node.childNodes[i].getAttribute("align") || "").toLowerCase();
-          if (align) border = alignMap[align] || border;
-          borderCells += cell(border, node.childNodes[i]);
+        const table = node.closest("table");
+        if (table) {
+          const colCount = getTableColCount(table);
+          if (colCount > 0) {
+            for (var i = 0; i < colCount; i++) {
+              const prefix = i === 0 ? "| " : " ";
+              borderCells += prefix + "--- |";
+            }
+          }
         }
       }
       return "\n" + content + (borderCells ? "\n" + borderCells : "");
     }
   };
   rules2.table = {
-    // Only convert tables with a heading row.
-    // Tables with no heading row are kept using `keep` (see below).
-    filter: function(node) {
-      return node.nodeName === "TABLE" && isHeadingRow(node.rows[0]);
-    },
-    replacement: function(content) {
-      content = content.replace("\n\n", "\n");
-      return "\n\n" + content + "\n\n";
+    filter: "table",
+    replacement: function(content, node) {
+      if (shouldSkipTable(node)) {
+        return "";
+      }
+      content = content.replace(/\n+/g, "\n").trim();
+      if (!content) return "";
+      const lines = content.split("\n").filter((line) => line.trim());
+      if (lines.length === 0) return "";
+      const hasHeaderSeparator = lines.length >= 2 && /\|\s*-+/.test(lines[1]);
+      let result = lines.join("\n");
+      if (!hasHeaderSeparator && lines.length >= 1) {
+        const firstLine = lines[0];
+        const colCount = (firstLine.match(/\|/g) || []).length - 1;
+        if (colCount > 0) {
+          let separator = "|";
+          for (let i = 0; i < colCount; i++) {
+            separator += " --- |";
+          }
+          const resultLines = [lines[0], separator, ...lines.slice(1)];
+          result = resultLines.join("\n");
+        }
+      }
+      return "\n\n" + result + "\n\n";
     }
   };
   rules2.tableSection = {
@@ -1416,27 +1232,22 @@
       return content;
     }
   };
-  function isHeadingRow(tr) {
-    var parentNode = tr.parentNode;
-    return parentNode.nodeName === "THEAD" || parentNode.firstChild === tr && (parentNode.nodeName === "TABLE" || isFirstTbody(parentNode)) && every.call(tr.childNodes, function(n) {
-      return n.nodeName === "TH";
-    });
-  }
-  function isFirstTbody(element) {
-    var previousSibling = element.previousSibling;
-    return element.nodeName === "TBODY" && (!previousSibling || previousSibling.nodeName === "THEAD" && /^\s*$/i.test(previousSibling.textContent));
-  }
-  function cell(content, node) {
-    var index = indexOf.call(node.parentNode.childNodes, node);
-    var prefix = " ";
-    if (index === 0) prefix = "| ";
-    return prefix + content + " |";
-  }
+  rules2.tableCaption = {
+    filter: ["caption"],
+    replacement: function() {
+      return "";
+    }
+  };
+  rules2.tableColgroup = {
+    filter: ["colgroup", "col"],
+    replacement: function() {
+      return "";
+    }
+  };
   function tables(turndownService) {
-    turndownService.keep(function(node) {
-      return node.nodeName === "TABLE" && !isHeadingRow(node.rows[0]);
-    });
-    for (var key in rules2) turndownService.addRule(key, rules2[key]);
+    for (var key in rules2) {
+      turndownService.addRule(key, rules2[key]);
+    }
   }
   function taskListItems(turndownService) {
     turndownService.addRule("taskListItems", {
@@ -1477,6 +1288,310 @@
       return this.service.turndown(html).trim();
     }
   };
+
+  // src/util.html.ts
+  var INLINE_TAG_NAMES = [
+    "A",
+    "ABBR",
+    "B",
+    "BDI",
+    "BDO",
+    "CITE",
+    "CODE",
+    "DATA",
+    "DFN",
+    "EM",
+    "I",
+    "KBD",
+    "MARK",
+    "Q",
+    "RP",
+    "RT",
+    "RUBY",
+    "S",
+    "SAMP",
+    "SMALL",
+    "SPAN",
+    "STRONG",
+    "SUB",
+    "SUP",
+    "TIME",
+    "U",
+    "VAR",
+    "WBR",
+    "BR"
+  ];
+  var RAW_TEXT_TAG_NAMES = [
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "TITLE"
+  ];
+  var VOID_TAG_NAMES = [
+    "AREA",
+    "BASE",
+    "BR",
+    "COL",
+    "EMBED",
+    "HR",
+    "IMG",
+    "INPUT",
+    "LINK",
+    "META",
+    "SOURCE",
+    "TRACK",
+    "WBR"
+  ];
+  function tokenize(html) {
+    const tokens = [];
+    const n = html.length;
+    let i = 0;
+    while (i < n) {
+      if (html[i] !== "<") {
+        const start = i;
+        while (i < n && html[i] !== "<") i++;
+        const raw2 = html.slice(start, i);
+        if (raw2.trim()) tokens.push({
+          kind: "text",
+          raw: raw2
+        });
+        continue;
+      }
+      if (html.startsWith("<!--", i)) {
+        const end = html.indexOf("-->", i + 4);
+        const stop = end < 0 ? n : end + 3;
+        tokens.push({
+          kind: "comment",
+          raw: html.slice(i, stop)
+        });
+        i = stop;
+        continue;
+      }
+      const tagStart = i;
+      i++;
+      const isClose = html[i] === "/";
+      isClose && i++;
+      let quote = null;
+      while (i < n) {
+        const c = html[i];
+        if (quote) {
+          if (c === quote) quote = null;
+          i++;
+          continue;
+        }
+        if (c === '"' || c === "'") {
+          quote = c;
+          i++;
+          continue;
+        }
+        if (c === ">") break;
+        i++;
+      }
+      if (i >= n) {
+        tokens.push({
+          kind: "text",
+          raw: html.slice(tagStart)
+        });
+        break;
+      }
+      i++;
+      const raw = html.slice(tagStart, i);
+      const inner = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
+      const selfClosing = inner.endsWith("/");
+      const tagName = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
+      if (!tagName) {
+        tokens.push({
+          kind: "text",
+          raw
+        });
+        continue;
+      }
+      if (isClose) {
+        tokens.push({
+          kind: "close",
+          tag: tagName,
+          raw
+        });
+        continue;
+      }
+      if (VOID_TAG_NAMES.includes(tagName) || selfClosing) {
+        tokens.push({
+          kind: "void",
+          tag: tagName,
+          raw
+        });
+        continue;
+      }
+      if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
+        const rest = html.slice(i);
+        const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
+        if (!m) {
+          tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
+          i = n;
+          continue;
+        }
+        const contentEnd = i + m.index;
+        const content = html.slice(i, contentEnd);
+        const closeRaw = html.slice(contentEnd, contentEnd + m[0].length);
+        tokens.push({
+          kind: "raw",
+          tag: tagName,
+          openRaw: raw,
+          content,
+          closeRaw
+        });
+        i = contentEnd + m[0].length;
+        continue;
+      }
+      tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
+    }
+    return tokens;
+  }
+  function formatHTML(html, indentSize = 2) {
+    const indent = " ".repeat(indentSize);
+    const tokens = tokenize(html);
+    const lines = [];
+    const stack = [];
+    let buffer = "";
+    let bufferDepth = 0;
+    const flushBuffer = () => {
+      const text = buffer.replace(/\s+/g, " ").trim();
+      text && lines.push(indent.repeat(bufferDepth) + text);
+      buffer = "";
+    };
+    const emit = (line, depth) => {
+      flushBuffer();
+      lines.push(indent.repeat(depth) + line);
+    };
+    const isInline = (tag) => {
+      return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
+    };
+    for (const token of tokens) {
+      switch (token.kind) {
+        case "text":
+          if (buffer === "") {
+            bufferDepth = stack.length;
+          }
+          buffer += token.raw;
+          break;
+        case "comment":
+        case "doctype":
+        case "cdata":
+          emit(token.raw, stack.length);
+          break;
+        case "void":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+          } else {
+            emit(token.raw, stack.length);
+          }
+          break;
+        case "raw":
+          emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
+          break;
+        case "open":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+            stack.push(token.tag);
+          } else {
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+            stack.push(token.tag);
+          }
+          break;
+        case "close":
+          if (isInline(token.tag)) {
+            buffer += token.raw;
+            stack[stack.length - 1] === token.tag && stack.pop();
+          } else {
+            while (stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
+            stack.length && stack.pop();
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+          }
+          break;
+      }
+    }
+    flushBuffer();
+    return lines.join("\n");
+  }
+  function dissolveToplevelTags(html) {
+    const tokens = tokenize(html);
+    const outputParts = [];
+    let nestingDepth = 0;
+    for (const token of tokens) {
+      switch (token.kind) {
+        case "open": {
+          const isTopLevel = nestingDepth === 0;
+          !isTopLevel && outputParts.push(token.raw);
+          nestingDepth++;
+          break;
+        }
+        case "close": {
+          const isTopLevel = nestingDepth === 1;
+          !isTopLevel && outputParts.push(token.raw);
+          nestingDepth = Math.max(0, nestingDepth - 1);
+          break;
+        }
+        case "void": {
+          const isTopLevel = nestingDepth === 0;
+          !isTopLevel && outputParts.push(token.raw);
+          break;
+        }
+        case "raw": {
+          if (nestingDepth === 0) {
+            outputParts.push(token.content);
+          } else {
+            outputParts.push(
+              [
+                token.openRaw,
+                token.content,
+                token.closeRaw
+              ].join("")
+            );
+          }
+          break;
+        }
+        case "text":
+        case "comment":
+        case "doctype":
+        case "cdata":
+          outputParts.push(token.raw);
+          break;
+      }
+    }
+    return outputParts.join("");
+  }
+
+  // src/util.json.ts
+  function isObject(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function mergeJSONs(source, target) {
+    const result = {
+      ...source
+    };
+    for (const key of Object.keys(target)) {
+      const sourceValue = result[key];
+      const targetValue = target[key];
+      if (isObject(sourceValue) && isObject(targetValue)) {
+        result[key] = mergeJSONs(sourceValue, targetValue);
+        continue;
+      }
+      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
+        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
+        continue;
+      }
+      result[key] = targetValue;
+    }
+    return result;
+  }
 
   // src/var.CONFIG.ts
   var CONFIG = {
@@ -1669,6 +1784,32 @@
   var DATA_URL_ATTRIBUTE_NAME = "src";
   var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
   var WHITESPACE_REGEX = /^\s$/;
+  var VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
+    "AREA",
+    "BASE",
+    "BR",
+    "COL",
+    "EMBED",
+    "HR",
+    "IMG",
+    "INPUT",
+    "LINK",
+    "META",
+    "PARAM",
+    "SOURCE",
+    "TRACK",
+    "WBR"
+  ]);
+  var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
+  function unwrapColonTaggedElements(parent) {
+    for (const child of Array.from(parent.childNodes)) {
+      if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
+      unwrapColonTaggedElements(child);
+      if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
+      while (child.firstChild) parent.insertBefore(child.firstChild, child);
+      parent.removeChild(child);
+    }
+  }
   function validateParameter(name, value, allowInfinity = false) {
     if (allowInfinity && value === Infinity) return;
     if (value < 0 || value > 1) {
@@ -1698,11 +1839,12 @@
       groundTruth.getElementsByType("actionable")
     );
     const filteredTagNames = new Set(
-      optionsWithDefaults.filteredTagNames.map((t) => t.toUpperCase())
+      optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("container", elementNode.tagName)) return;
+      if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
       if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
       const mergeLevels = Math.max(
         Math.round(domTreeHeight2 * Math.min(1, rE2)),
@@ -1727,7 +1869,11 @@
           targetElement.removeAttribute(attr.name);
         }
         for (const attr of mergedAttributes) {
-          targetElement.setAttribute(attr.name, attr.value);
+          try {
+            targetElement.setAttribute(attr.name, attr.value);
+          } catch (e) {
+            if (e.name !== "InvalidCharacterError") throw e;
+          }
         }
       }
       if (!isTopdownMerge) {
@@ -1772,12 +1918,41 @@
       }
       sourceElement.parentNode?.removeChild(sourceElement);
     }
+    function snapElementReplaceWithLabelNode(document3, elementNode) {
+      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
+      if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+      let label = null;
+      for (const attrName of groundTruth.getLabelAttrs()) {
+        const value = elementNode.getAttribute(attrName);
+        const trimmed = (value ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+      if (!label) {
+        for (const child of Array.from(elementNode.children)) {
+          if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+          const trimmed = (child.textContent ?? "").trim();
+          if (trimmed) {
+            label = trimmed;
+            break;
+          }
+        }
+      }
+      if (label !== null) {
+        elementNode.replaceWith(document3.createTextNode(label));
+      } else {
+        elementNode.remove();
+      }
+    }
     function snapElementTextFormattingNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
+      unwrapColonTaggedElements(markdownNodesFragment);
       const replacingNodes = [...markdownNodesFragment.childNodes];
       elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
       const sourceTagName = elementNode.tagName.toLowerCase();
@@ -1806,6 +1981,9 @@
     if (!document2) throw new ReferenceError("Could not resolve a valid document object from DOM");
     const rootElement = resolveRoot(dom);
     const originalSize = rootElement.innerHTML.length;
+    const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
+    let t0 = t();
+    const timings = { uniqueIDs: 0, clone: 0, init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0, serialize: 0, minify: 0, formatDebugOnly: 0 };
     let n = 0;
     optionsWithDefaults.uniqueIDs && traverseDom(
       rootElement,
@@ -1815,7 +1993,10 @@
         elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
       }
     );
+    timings.uniqueIDs = t() - t0;
+    t0 = t();
     const virtualDom = rootElement.cloneNode(true);
+    timings.clone = t() - t0;
     let domTreeHeight = 0;
     traverseDom(
       virtualDom,
@@ -1840,16 +2021,31 @@
         domTreeHeight = Math.max(depth, domTreeHeight);
       }
     );
+    timings.init = t() - t0;
+    t0 = t();
+    if (groundTruth.getElementsByType("replaceWithLabel").length) {
+      traverseDom(
+        virtualDom,
+        1 /* SHOW_ELEMENT */,
+        (node) => snapElementReplaceWithLabelNode(document2, node)
+      );
+    }
+    timings.replaceWithLabel = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       4 /* SHOW_TEXT */,
       (node) => snapTextNode(node, rT)
     );
+    timings.textNodes = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapElementTextFormattingNode(document2, node)
     );
+    timings.textFormatting = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
@@ -1858,19 +2054,28 @@
         return snapElementContainerNode(document2, node, rE, domTreeHeight);
       }
     );
+    timings.containers = t() - t0;
+    t0 = t();
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
       (node) => snapAttributeNode(node, rA)
       // work on parent element
     );
+    timings.attributes = t() - t0;
+    t0 = t();
     const snapshot = virtualDom.innerHTML;
+    timings.serialize = t() - t0;
+    t0 = t();
     let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
     if (rE === Infinity) {
       html = dissolveToplevelTags(html);
     }
+    timings.minify = t() - t0;
     if (optionsWithDefaults.debug) {
+      t0 = t();
       html = formatHTML(html);
+      timings.formatDebugOnly = t() - t0;
     }
     return {
       html,
@@ -1878,8 +2083,9 @@
         originalSize,
         snapshotSize: snapshot.length,
         sizeRatio: snapshot.length / originalSize,
-        tokenEstimate: Math.round(snapshot.length / 4)
+        tokenEstimate: Math.round(snapshot.length / 4),
         // according to https://platform.openai.com/tokenizer
+        ...optionsWithDefaults.debug && { timings }
       }
     };
   }

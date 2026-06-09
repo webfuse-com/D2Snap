@@ -55,7 +55,7 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "dependencies": {
-    "turndown": "^7.2.0",
-    "turndown-plugin-gfm": "^1.0.2"
+    "@truto/turndown-plugin-gfm": "^1.0.2",
+    "turndown": "^7.2.0"
   }
 }

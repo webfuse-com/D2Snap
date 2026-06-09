@@ -9,6 +9,7 @@ function flattenCode(code) {
 
 const turndown = new Turndown([ "A", "BUTTON" ]);
 
+
 await test("Translate markup to markdown via Turndown", async () => {
     const markdown = turndown.translate(`
         <h1>Amsterdam</h1>
@@ -94,6 +95,23 @@ await test("Translate markup to markdown via Turndown", async () => {
             | Rijksmuseum | Zuid |
 
             View <a href="#stats">Stats</a>
+        `),
+        "Turndown returns invalid results"
+    );
+});
+
+await test("Translate markup to markdown via Turndown (edge cases)", async () => {
+    const markdown = turndown.translate(`
+        <table class="table w-6"><tbody></tbody></table>
+
+        <table class="table w-6"><tbody>*</tbody></table>
+    `)
+        .trim();
+
+    assertEqual(
+        flattenCode(markdown),
+        flattenCode(`
+            \\*
         `),
         "Turndown returns invalid results"
     );
