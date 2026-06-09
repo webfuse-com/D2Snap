@@ -165,7 +165,8 @@ cs eval && pip install -r requirements.txt
 ```
 
 ``` console
-npm run eval:<subject>
+npm run eval:success:<subject>
+npm run eval:space
 ```
 
 > `<subject>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }

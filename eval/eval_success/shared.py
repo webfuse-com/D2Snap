@@ -3,7 +3,7 @@ import re
 from pydantic import BaseModel
 from lxml import html as lxml_html
 
-from eval_util import template_instructions, check_against_trajectories
+from util import template_instructions, check_against_trajectories
 
 
 class DOMInteractiveElementTarget(BaseModel):

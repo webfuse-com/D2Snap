@@ -1,8 +1,7 @@
 import json
 from pathlib import Path
 
-from eval_util import parse_option, echo
-from logger import Logger
+from util import parse_option, echo
 
 
 _RESULTS_ROOT = Path(__file__).parent / "results"
@@ -16,7 +15,6 @@ def _mean(value: float, divisor: float) -> float:
 
 def summarize(date: str) -> dict:
     results_dir = _RESULTS_ROOT / date
-
     print(results_dir)
 
     if not results_dir.exists():
@@ -36,6 +34,7 @@ def summarize(date: str) -> dict:
             "failureCases": 0,
             "errorCases": 0,
             "totalSnapshotSize": 0,
+            "totalSnapshotSizeRatio": 0,
             "totalEstimatedTokens": 0,
             "totalRTT": 0.0,
         }
@@ -45,6 +44,7 @@ def summarize(date: str) -> dict:
             s["failureCases"] += int(not r.get("success"))
             s["errorCases"] += int(bool(r.get("error")))
             s["totalSnapshotSize"] += r.get("snapshotSize") or 0
+            s["totalSnapshotSizeRatio"] += r.get("sizeRatio") or 0
             s["totalEstimatedTokens"] += r.get("tokenEstimate") or 0
             s["totalRTT"] += r.get("rtt") or 0
 
@@ -54,10 +54,11 @@ def summarize(date: str) -> dict:
         s["successRate"] = _mean(s["successCases"], total)
         s["errorRate"] = _mean(s["errorCases"], total)
         s["meanSnapshotSize"] = _mean(s["totalSnapshotSize"], non_error)
+        s["meanSnapshotSizeRatio"] = _mean(s["totalSnapshotSizeRatio"], non_error)
         s["meanEstimatedTokens"] = _mean(s["totalEstimatedTokens"], non_error)
         s["meanRTT"] = _mean(s["totalRTT"], non_error)
 
-        summary[results_file.name] = s
+        summary[results_file.stem] = s
 
     summary = {
         k: v
@@ -68,9 +69,7 @@ def summarize(date: str) -> dict:
         )
     }
 
-    Logger(str(Path("..") / "results" / date), clean_dir=False).write(
-        SUMMARY_FILENAME, json.dumps(summary, indent=2)
-    )
+    (results_dir / SUMMARY_FILENAME).write_text(json.dumps(summary, indent=2))
 
     echo(f"Summary written to {date}/{SUMMARY_FILENAME}", always=True)
 

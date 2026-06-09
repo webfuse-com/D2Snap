@@ -1,4 +1,3 @@
-import atexit
 import json
 import math
 import os
@@ -13,16 +12,17 @@ from lxml import html as lxml_html
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from eval_util import parse_option, echo
-from llm_adapter import OpenAIAdapter, AnthropicAdapter
+from util import parse_option, echo
 from logger import Logger
+
+from llm_adapter import OpenAIAdapter, AnthropicAdapter
 
 
 _HERE = Path(__file__).parent
 
-load_dotenv(_HERE.parent / ".env")
+load_dotenv(_HERE.parent.parent / ".env")
 
-_DATASET_DIR = _HERE.parent / "dataset"
+_DATASET_DIR = _HERE.parent.parent / "dataset"
 _DEFAULT_MODEL_OPENAI = "gpt-4o"
 _DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"
 _ADAPTER_CACHE = None
@@ -129,6 +129,7 @@ def _process_record(args):
             is_error = True
 
         snapshot_size = sum(s["size"] for s in snapshot_data)
+        size_ratio = sum(s["size_ratio"] for s in snapshot_data) if "size_ratio" in snapshot_data[0] else 1
         token_estimate = sum(
             round(s["size"] / 4) if s["type"] != "image" else round(s["size"] / (32 ** 2))
 
@@ -138,6 +139,7 @@ def _process_record(args):
         return {
             "id": record["id"],
             "snapshotSize": snapshot_size,
+            "sizeRatio": size_ratio,
             "tokenEstimate": token_estimate,
             "response": llm_response,
             "success": auto_analysis_ok,
@@ -159,25 +161,10 @@ def run_evaluation(
 ) -> None:
     _, provider, model = _adapter()
 
-    echo(f"Evaluating '{identifier}' ({provider}: {model})...", always=True)
+    echo(f"Evaluating success for '{identifier}' ({provider}: {model})...", always=True)
 
     t0 = time.time()
     results: list = []
-
-    def _write_results():
-        date_id = "-".join(re.split(r"[^\d]+", datetime.now().isoformat())[:-3])
-        out_name = identifier if identifier.lower().endswith(".json") else f"{identifier}.json"
-
-        Logger(str(Path("..") / "results" / date_id), clean_dir=False).write(
-            out_name,
-            json.dumps({
-                "endpoint": f"{provider}: {model}",
-                "date": datetime.now().isoformat(),
-                "results": results,
-            }, indent=2),
-        )
-
-    atexit.register(_write_results)
 
     split = (parse_option("--split") or "0").split(",")
     split_size = int(split[0]) if split[0] and int(split[0]) > 0 else math.inf
@@ -209,3 +196,14 @@ def run_evaluation(
                 results.append(result)
 
     echo(f"...'{identifier}' done ({round(time.time() - t0)}s).", always=True)
+
+    date_id = "-".join(re.split(r"[^\d]+", datetime.now().isoformat())[:-3])
+    out_name = identifier if identifier.lower().endswith(".json") else f"{identifier}.json"
+    results_dir = _HERE / "results" / date_id
+
+    results_dir.mkdir(parents=True, exist_ok=True)
+    (results_dir / out_name).write_text(json.dumps({
+        "endpoint": f"{provider}: {model}",
+        "date": datetime.now().isoformat(),
+        "results": results,
+    }, indent=2))

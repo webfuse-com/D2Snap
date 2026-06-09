@@ -5,8 +5,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pydantic import BaseModel
 
+from shared import template_instructions, check_against_trajectories
+
 from eval import run_evaluation
-from eval_util import template_instructions, check_against_trajectories
 
 
 _GUI_INSTRUCTIONS = template_instructions({

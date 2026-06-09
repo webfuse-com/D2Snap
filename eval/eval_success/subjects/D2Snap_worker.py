@@ -8,8 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import html as lxml_html
 
-from eval import run_evaluation, REFERENCE
-from eval_shared import (
+from shared import (
     INSTRUCTIONS_DOM,
     DOMInteractiveElementTarget,
     analyze_result_dom_by_uid,
@@ -18,8 +17,10 @@ from eval_shared import (
 )
 from logger import Logger
 
+from eval import run_evaluation, REFERENCE, _DATASET_DIR
 
-_BRIDGE = Path(__file__).parent.parent / "D2Snap.bridge.mjs"
+
+_BRIDGE = Path(__file__).parent.parent.parent / "D2Snap.bridge.mjs"
 _LOGGER = Logger("D2Snap-serialization", clean_dir=False)
 
 
@@ -56,6 +57,8 @@ def _call_bridge(html_str: str, config: dict) -> dict | None:
 def _loader(config: dict, identifier: str, data, rid):
     trajectories = REFERENCE[rid]["trajectories"]
 
+    original_html = (_DATASET_DIR / "dom" / f"{rid}.html").read_text()
+
     selector_to_sentinels = tag_reference_elements_by_uid(data["originalDOM"], trajectories)
     tagged_html = lxml_html.tostring(data["originalDOM"], encoding="unicode")
 
@@ -76,6 +79,7 @@ def _loader(config: dict, identifier: str, data, rid):
             "type": "text",
             "data": llm_html,
             "size": len(llm_html),
+            "size_ratio": len(llm_html) / len(original_html),
         }
     ]
 

@@ -5,8 +5,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lxml import html as lxml_html
 
+from shared import INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyze_result_dom
+
 from eval import run_evaluation
-from eval_shared import INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyze_result_dom
 
 
 MAX_SNAPSHOT_SIZE_TOKENS = 2 ** 15  # 32768

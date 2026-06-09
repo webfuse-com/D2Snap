@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 _RAW_ARGS = [None, *sys.argv[1:]]
 
-INSTRUCTIONS_TEMPLATE = (Path(__file__).parent / "instructions.template.md").read_text()
+_INSTRUCTIONS_TEMPLATE = (Path(__file__).parent / "instructions.template.md").read_text()
 
 
 def parse_flag(arg: str) -> bool:
@@ -27,7 +27,7 @@ def echo(message: str, always: bool = False) -> None:
     print(f"\x1b[2m{message}\x1b[0m")
 
 def template_instructions(templating_dict: dict) -> str:
-    instructions = INSTRUCTIONS_TEMPLATE
+    instructions = _INSTRUCTIONS_TEMPLATE
 
     for key, markdown in templating_dict.items():
         instructions = re.sub(

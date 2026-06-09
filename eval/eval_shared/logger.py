@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 class Logger:
-    _LOGS_DIR = Path(__file__).parent / "logs"
+    _LOGS_DIR = Path(__file__).parent.parent / "logs"
 
     def __init__(self, directory: str, clean_dir: bool = True):
         self._path = self._LOGS_DIR / directory
