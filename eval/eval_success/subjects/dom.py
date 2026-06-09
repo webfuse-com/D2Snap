@@ -17,6 +17,8 @@ MAX_SNAPSHOT_SIZE_B = MAX_SNAPSHOT_SIZE_TOKENS * 4
 def _loader(data, _id):
     full_html = lxml_html.tostring(data["originalDOM"], encoding="unicode")
 
+    original_html = (_DATASET_DIR / "dom" / f"{rid}.html").read_text()
+
     after_head = full_html.split("</head>", 1)[-1]
 
     length = len(after_head)
@@ -33,6 +35,7 @@ def _loader(data, _id):
             "type": "text",
             "data": snapshot,
             "size": len(snapshot),
+            "size_ratio": len(snapshot) / len(original_html),
         }
     ]
 

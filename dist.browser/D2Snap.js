@@ -2113,7 +2113,7 @@
       ];
     }
   }
-  function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 4096, maxIterations = 5, options = {}) {
+  function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 2 ** 15, maxIterations = 5, options = {}) {
     const haltonGenerator = generateHalton();
     const parameters = {
       rE: 0,

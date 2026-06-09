@@ -172,7 +172,7 @@ npm run eval:space
 > `<subject>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }
 
 ``` console
-npm run eval:D2Snap -- --verbose --split 10,20 --provider openai --model gpt-4o
+npm run eval:success:D2Snap -- --verbose --split 10,20 --provider openai --model gpt-4o
 ```
 
 #### Re-create Snapshots

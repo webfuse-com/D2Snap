@@ -44,7 +44,7 @@ function* generateHalton() {
 export function adaptiveD2Snap(
 	d2SnapFn: typeof d2Snap,
 	dom: DOM,
-	maxTokens: number = 4096,
+	maxTokens: number = 2**15,	// 32768
 	maxIterations: number = 5,
 	options: Partial<D2SnapOptions> = {}
 ): D2SnapResult & {
