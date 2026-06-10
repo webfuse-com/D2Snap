@@ -85,7 +85,6 @@ def summarize(date: str) -> dict:
         summary["linearRegression"] = {
             "slope": slope,
             "intercept": intercept,
-            "formula": f"sizeRatio = {slope:.4f} * r + {intercept:.4f}",
         }
 
     out_path = _RESULTS_ROOT / date / SUMMARY_FILENAME

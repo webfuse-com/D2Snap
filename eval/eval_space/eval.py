@@ -22,11 +22,11 @@ load_dotenv(_HERE.parent.parent / ".env")
 
 _DATASET_DIR = _HERE.parent.parent / "dataset"
 _BRIDGE = _HERE.parent / "D2Snap.bridge.mjs"
-_STEPS = 10
-_UNIFORM_R = [ round(i / _STEPS, 1) for i in range(_STEPS) ]
+_STEPS = 11
+_UNIFORM_R = [ round(i / _STEPS, 1) for i in range(_STEPS + 1) ]
 
 EVALS = {
-    f"D2Snap.{round(r % 1 * 10)}": {"rE": r, "rA": r, "rT": r}
+    f"D2Snap.{r}": {"rE": r, "rA": r, "rT": r}
     for r in _UNIFORM_R
 }
 
@@ -114,7 +114,10 @@ def _process_record(args):
             slope     = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x ** 2)
             intercept = (sum_y - slope * sum_x) / n
 
-            linear_regression = {"slope": slope, "intercept": intercept}
+            linear_regression = {
+                "slope": slope,
+                "intercept": intercept,
+            }
 
         return {
             "id": rid,
