@@ -101,10 +101,18 @@ export function d2Snap(
 	);
 
 	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
+		const considerContainerElement = (elementNode: Element) => {
+			if(groundTruth.isElementType("container", elementNode.tagName)) return true;
+			if(!optionsWithDefaults.skipMarkdown) return false;
+			if(groundTruth.isElementType("textFormatting", elementNode.tagName)) return true;
+
+			return false;
+		};
+
 		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if (!groundTruth.isElementType("container", elementNode.tagName)) return;
 		if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
-		if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
+		if (!considerContainerElement(elementNode)) return;
+		if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
 
 		// merge
 		const mergeLevels: number = Math.max(
@@ -410,11 +418,7 @@ export function d2Snap(
 	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => {
-			if (!groundTruth.isElementType("container", node.tagName)) return;
-
-			return snapElementContainerNode(document, node, rE, domTreeHeight);
-		}
+		(node: HTMLElementWithDepth) => snapElementContainerNode(document, node, rE, domTreeHeight),
 	);
 	timings.containers = t() - t0;
 

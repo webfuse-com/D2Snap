@@ -71,10 +71,16 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
+    const considerContainerElement = (elementNode2) => {
+      if (groundTruth.isElementType("container", elementNode2.tagName)) return true;
+      if (!optionsWithDefaults.skipMarkdown) return false;
+      if (groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+      return false;
+    };
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (!groundTruth.isElementType("container", elementNode.tagName)) return;
     if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
-    if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
+    if (!considerContainerElement(elementNode)) return;
+    if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
     const mergeLevels = Math.max(
       Math.round(domTreeHeight2 * Math.min(1, rE2)),
       1
@@ -278,10 +284,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
-    (node) => {
-      if (!groundTruth.isElementType("container", node.tagName)) return;
-      return snapElementContainerNode(document, node, rE, domTreeHeight);
-    }
+    (node) => snapElementContainerNode(document, node, rE, domTreeHeight)
   );
   timings.containers = t() - t0;
   t0 = t();

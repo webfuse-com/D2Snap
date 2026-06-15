@@ -25,7 +25,7 @@ const GROUND_TRUTH = {
         "nav": 0.8,
         "section": 0.9
       },
-      "fallbackRating": 0
+      "fallbackRating": 1
     },
     "actionable": {
       "tagNames": [

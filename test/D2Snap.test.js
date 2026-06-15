@@ -284,7 +284,7 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
 });
 
 await test("Take DOM snapshot (options.skipMarkdown)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 0, {
+    const snapshot = await d2Snap(await readFile("pizza"), 0.7, 0.8, 1, {
         debug: true,
         skipMarkdown: true
     });

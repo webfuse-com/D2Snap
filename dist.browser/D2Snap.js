@@ -1651,7 +1651,7 @@
           "nav": 0.8,
           "section": 0.9
         },
-        "fallbackRating": 0
+        "fallbackRating": 1
       },
       "actionable": {
         "tagNames": [
@@ -1842,10 +1842,16 @@
       optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
     function snapElementContainerNode(document3, elementNode, rE2, domTreeHeight2) {
+      const considerContainerElement = (elementNode2) => {
+        if (groundTruth.isElementType("container", elementNode2.tagName)) return true;
+        if (!optionsWithDefaults.skipMarkdown) return false;
+        if (groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+        return false;
+      };
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!groundTruth.isElementType("container", elementNode.tagName)) return;
       if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
-      if (!elementNode.parentElement || !groundTruth.isElementType("container", elementNode.parentElement.tagName)) return;
+      if (!considerContainerElement(elementNode)) return;
+      if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
       const mergeLevels = Math.max(
         Math.round(domTreeHeight2 * Math.min(1, rE2)),
         1
@@ -2049,10 +2055,7 @@
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
-      (node) => {
-        if (!groundTruth.isElementType("container", node.tagName)) return;
-        return snapElementContainerNode(document2, node, rE, domTreeHeight);
-      }
+      (node) => snapElementContainerNode(document2, node, rE, domTreeHeight)
     );
     timings.containers = t() - t0;
     t0 = t();
