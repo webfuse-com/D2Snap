@@ -25,7 +25,7 @@ export const GROUND_TRUTH = {
 				"nav": 0.80,
 				"section": 0.90
 			},
-			"fallbackRating": 0.0
+			"fallbackRating": 1.0
 		},
 		"actionable": {
 			"tagNames": [
