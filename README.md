@@ -1,6 +1,6 @@
 <h1 align="center">D2Snap</h1>
 
-![Example of downsampling on an image (top) and a DOM (bottom)](./.github/downsampling.png)
+![Example of downsampling on an image (top) and a DOM (bottom)](./.github/downsampling-example.png)
 
 **D2Snap** is a first-of-its-kind DOM downsampling algorithm, designed for use with LLM-based web agents.
 
@@ -132,6 +132,8 @@ A simple classic
 A rich taste
 <button>Add</button>
 ```
+
+#### [Example Pipeline](./.github/downsampling-pipeline.png)
 
 ##
 

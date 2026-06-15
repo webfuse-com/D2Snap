@@ -6,7 +6,7 @@ import {
   NodeType
 } from "./types.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
-import { dissolveToplevelTags, formatHTML } from "./util.html.js";
+import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
@@ -54,6 +54,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     groundTruth: DEFAULT_GROUND_TRUTH,
     groundTruthReplaceDefault: false,
     filterDataURLs: true,
+    filterEmptyElements: false,
     filteredTagNames: CONFIG.filteredTagNames,
     skipMarkdown: false,
     skipTextRank: false,
@@ -78,7 +79,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       return false;
     };
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
+    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     if (!considerContainerElement(elementNode)) return;
     if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
     const mergeLevels = Math.max(
@@ -247,9 +248,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         elementNode.remove();
         return;
       }
-      for (const attr of Array.from(elementNode.attributes)) {
-        if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-        elementNode.removeAttribute(attr.name);
+      if (optionsWithDefaults.filterDataURLs) {
+        for (const attr of Array.from(elementNode.attributes)) {
+          if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+          elementNode.removeAttribute(attr.name);
+        }
       }
       const depth = (elementNode.parentNode.depth ?? 0) + 1;
       elementNode.depth = depth;
@@ -295,14 +298,31 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     // work on parent element
   );
   timings.attributes = t() - t0;
+  if (optionsWithDefaults.filterEmptyElements) {
+    let hasRemovedElement;
+    do {
+      hasRemovedElement = false;
+      traverseDom(
+        virtualDom,
+        NodeFilter.SHOW_ELEMENT,
+        (elementNode) => {
+          if (elementNode.children.length || elementNode.textContent.trim().length) return;
+          elementNode.remove();
+          hasRemovedElement = true;
+        }
+      );
+    } while (hasRemovedElement);
+  }
+  if (rE === Infinity) {
+    [...virtualDom.children].forEach((element) => {
+      element.replaceWith(...element.childNodes);
+    });
+  }
   t0 = t();
   const snapshot = virtualDom.innerHTML;
   timings.serialize = t() - t0;
   t0 = t();
   let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
-  if (rE === Infinity) {
-    html = dissolveToplevelTags(html);
-  }
   timings.minify = t() - t0;
   if (optionsWithDefaults.debug) {
     t0 = t();

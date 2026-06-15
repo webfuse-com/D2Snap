@@ -1521,53 +1521,6 @@
     flushBuffer();
     return lines.join("\n");
   }
-  function dissolveToplevelTags(html) {
-    const tokens = tokenize(html);
-    const outputParts = [];
-    let nestingDepth = 0;
-    for (const token of tokens) {
-      switch (token.kind) {
-        case "open": {
-          const isTopLevel = nestingDepth === 0;
-          !isTopLevel && outputParts.push(token.raw);
-          nestingDepth++;
-          break;
-        }
-        case "close": {
-          const isTopLevel = nestingDepth === 1;
-          !isTopLevel && outputParts.push(token.raw);
-          nestingDepth = Math.max(0, nestingDepth - 1);
-          break;
-        }
-        case "void": {
-          const isTopLevel = nestingDepth === 0;
-          !isTopLevel && outputParts.push(token.raw);
-          break;
-        }
-        case "raw": {
-          if (nestingDepth === 0) {
-            outputParts.push(token.content);
-          } else {
-            outputParts.push(
-              [
-                token.openRaw,
-                token.content,
-                token.closeRaw
-              ].join("")
-            );
-          }
-          break;
-        }
-        case "text":
-        case "comment":
-        case "doctype":
-        case "cdata":
-          outputParts.push(token.raw);
-          break;
-      }
-    }
-    return outputParts.join("");
-  }
 
   // src/util.json.ts
   function isObject(value) {
@@ -1825,6 +1778,7 @@
       groundTruth: GROUND_TRUTH,
       groundTruthReplaceDefault: false,
       filterDataURLs: true,
+      filterEmptyElements: false,
       filteredTagNames: CONFIG.filteredTagNames,
       skipMarkdown: false,
       skipTextRank: false,
@@ -1849,7 +1803,7 @@
         return false;
       };
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
+      if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
       if (!considerContainerElement(elementNode)) return;
       if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
       const mergeLevels = Math.max(
@@ -2018,9 +1972,11 @@
           elementNode.remove();
           return;
         }
-        for (const attr of Array.from(elementNode.attributes)) {
-          if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-          elementNode.removeAttribute(attr.name);
+        if (optionsWithDefaults.filterDataURLs) {
+          for (const attr of Array.from(elementNode.attributes)) {
+            if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+            elementNode.removeAttribute(attr.name);
+          }
         }
         const depth = (elementNode.parentNode.depth ?? 0) + 1;
         elementNode.depth = depth;
@@ -2066,14 +2022,31 @@
       // work on parent element
     );
     timings.attributes = t() - t0;
+    if (optionsWithDefaults.filterEmptyElements) {
+      let hasRemovedElement;
+      do {
+        hasRemovedElement = false;
+        traverseDom(
+          virtualDom,
+          1 /* SHOW_ELEMENT */,
+          (elementNode) => {
+            if (elementNode.children.length || elementNode.textContent.trim().length) return;
+            elementNode.remove();
+            hasRemovedElement = true;
+          }
+        );
+      } while (hasRemovedElement);
+    }
+    if (rE === Infinity) {
+      [...virtualDom.children].forEach((element) => {
+        element.replaceWith(...element.childNodes);
+      });
+    }
     t0 = t();
     const snapshot = virtualDom.innerHTML;
     timings.serialize = t() - t0;
     t0 = t();
     let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
-    if (rE === Infinity) {
-      html = dissolveToplevelTags(html);
-    }
     timings.minify = t() - t0;
     if (optionsWithDefaults.debug) {
       t0 = t();

@@ -50,6 +50,7 @@ export interface D2SnapOptions {
     groundTruth: Partial<GroundTruthJSON>;
     groundTruthReplaceDefault: boolean;
     filterDataURLs: boolean;
+    filterEmptyElements: boolean;
     filteredTagNames: string[];
     skipMarkdown: boolean;
     skipTextRank: boolean;

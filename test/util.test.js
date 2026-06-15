@@ -1,4 +1,4 @@
-import { formatHTML, dissolveToplevelTags } from "../dist.lib/util.html.js";
+import { formatHTML } from "../dist.lib/util.html.js";
 import { mergeJSONs } from "../dist.lib/util.json.js";
 
 
@@ -20,30 +20,6 @@ await test("Format HTML", async () => {
             .replace(/\n {8}/g, "\n")
             .trim(),
         "Incorrectly formatted HTML"
-    );
-});
-
-await test("Dissolve toplevel HTML tags", async () => {
-    const dissolvedHTML = dissolveToplevelTags(`
-        <h1>Amsterdam</h1>
-        <div>
-            <p>
-                Amsterdam is the capital of the Netherlands.
-            </p>
-        </div>
-        More info: <a href="/info.html"><b>i</b></a>
-    `).trim();
-
-    assertEqual(
-        formatHTML(dissolvedHTML),
-        formatHTML(`
-            Amsterdam
-            <p>
-                Amsterdam is the capital of the Netherlands.
-            </p>
-            More info: <b>i</b>
-        `),
-        "Incorrectly dissolved toplevel HTML tags"
     );
 });
 

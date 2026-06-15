@@ -86,7 +86,7 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        2380,
+        2410,
         -1,
         "Invalid DOM snapshot original size"
     );
@@ -159,7 +159,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.37,
+        0.36,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -329,24 +329,113 @@ await test("Take DOM snapshot (options.skipTextRank)", async () => {
     );
 });
 
+await test("Take DOM snapshot (options.filterDataURLs)", async () => {
+    const snapshotFilter = await d2Snap(await readFile("pizza"), 0.5, 1, 1, {
+        filterDataURLs: true,
+        debug: false
+    });
+
+    assertNotIn(
+        "data:image/png;base64,",
+        snapshotFilter.html,
+        "Invalid DOM snapshot"
+    );
+    const snapshotNoFilter = await d2Snap(await readFile("pizza"), 0.5, 1, 1, {
+        filterDataURLs: false,
+        debug: false
+    });
+
+    assertIn(
+        "data:image/png;base64,",
+        snapshotNoFilter.html,
+        "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
+    const snapshotFilter = await d2Snap(await readFile("pizza"), 0, 1, 1, {
+        filterEmptyElements: true,
+        debug: false
+    });
+
+    assertNotIn(
+        "<div></div>",
+        flattenDOMSnapshot(snapshotFilter.html),
+        "Invalid DOM snapshot"
+    );
+
+    assertNotIn(
+        "<br>",
+        flattenDOMSnapshot(snapshotFilter.html),
+        "Invalid DOM snapshot"
+    );
+
+    const snapshotNoFilter = await d2Snap(await readFile("pizza"), 0, 1, 1, {
+        filterEmptyElements: false,
+        debug: false
+    });
+
+    assertIn(
+        "<div></div>",
+        flattenDOMSnapshot(snapshotNoFilter.html),
+        "Invalid DOM snapshot"
+    );
+
+    assertIn(
+        "<br>",
+        flattenDOMSnapshot(snapshotNoFilter.html),
+        "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.debug)", async () => {
+    const snapshotNoDebug = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
+        debug: false
+    });
+
+    writeActual("pizza.options.no-debug", snapshotNoDebug.html);
+    const expected = readExpected("pizza.options.no-debug");
+
+    assertEqual(
+        snapshotNoDebug.html,
+        expected,
+        "Invalid DOM snapshot"
+    );
+
+    assertNotIn(
+        "\n",
+        snapshotNoDebug.html,
+        "Invalid DOM snapshot (no debug)"
+    );
+
+    const snapshotDebug = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
+        debug: true
+    });
+
+    assertIn(
+        "\n",
+        snapshotDebug.html,
+        "Invalid DOM snapshot (debug)"
+    );
+});
+
 // ---------------------------------------------------------------------------
-// Cobro <-> D2Snap quality mapping helper.
+// Downsampling ratio <-> Quality ratio:
 //
-//   cobro `quality` -> d2snap `rE = rA = rT = 1 - quality`
-//   (server: src/cobro/app/automation/automation.see.ts:340-349)
+//   `quality` -> D2snap `rE = rA = rT = 1 - quality`
 //
-//   cobro q=0.1  -> d2snap rE=rA=rT=0.9   (HEAVIEST downsampling — what the
+//   q=0.1  -> D2snap rE=rA=rT=0.9   (HEAVIEST downsampling — what the
 //                                         LLM sees in act-only mode)
-//   cobro q=0.5  -> d2snap rE=rA=rT=0.5   (medium)
-//   cobro q=0.9  -> d2snap rE=rA=rT=0.1   (lightest, near-raw)
-//   cobro q=1.0  -> bypass d2snap entirely (handled at the server layer)
+//   q=0.5  -> D2snap rE=rA=rT=0.5   (medium)
+//   q=0.9  -> D2snap rE=rA=rT=0.1   (lightest, near-raw)
 //
 // The replaceWithLabel pass is UNCONDITIONAL — it runs before rE/rA/rT pruning
-// — so it must yield the same label-preservation guarantee at every cobro q
-// in [0, 1). Tests sweep that range to lock the contract in.
+// — so it must yield the same label-preservation guarantee at every quality in
+// [0, 1). Tests sweep that range to lock the contract in.
 // ---------------------------------------------------------------------------
-function d2snapArgsForCobroQuality(q) {
+function downsamplingRatioToQualityRatio(q) {
     const r = 1 - q;
+
     return { rE: r, rA: r, rT: r };
 }
 
@@ -372,7 +461,7 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         // The hamburger menu icon button: no visible text, only the svg's
         // aria-label "Open menu" identifies it.
         //
-        // Before replaceWithLabel, at cobro q=0.1 (d2snap rE=rA=rT=0.9) this
+        // Before replaceWithLabel, at cobro q=0.1 (D2Snap rE=rA=rT=0.9) this
         // collapsed to <button wf-id="463"><svg wf-id="465"></svg></button>
         // — unidentifiable. aria-label was rated 0.6 (dropped at rA=0.9),
         // and even if preserved it would have stayed on the svg, not the
@@ -382,7 +471,7 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         // text node BEFORE TextRank / container merging / attribute pruning,
         // so the label survives at every cobro q in [0, 1) — not just at
         // the heavy-downsampling extreme where it would otherwise be lost.
-        const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
+        const { rE, rA, rT } = downsamplingRatioToQualityRatio(cobroQ);
 
         const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, rE, rA, rT, {
             debug: true,
@@ -414,8 +503,8 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
     });
 }
 
-await test("Lift svg aria-label out of icon-only button at d2snap rE=rA=rT=1.0 (maximum downsampling)", async () => {
-    // Edge: the most aggressive setting d2snap accepts (cobro q=0). Even
+await test("Lift svg aria-label out of icon-only button at D2Snap rE=rA=rT=1.0 (maximum downsampling)", async () => {
+    // Edge: the most aggressive setting D2Snap accepts (cobro q=0). Even
     // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, 1.0, 1.0, 1.0, {
         debug: true,
@@ -430,7 +519,7 @@ await test("Drop replaceWithLabel element with no recoverable label (cobro q=0.1
     // Decorative SVG with no aria-label, no title attr, no <title> child —
     // pure cosmetic icon, nothing to surface. The svg should disappear,
     // leaving the actionable button as a bare interaction handle.
-    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const { rE, rA, rT } = downsamplingRatioToQualityRatio(0.1);
     const dom = `<html><body><button wf-id="1"><svg wf-id="2"><path d="M0,0L10,10"/></svg></button></body></html>`;
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
@@ -446,7 +535,7 @@ await test("replaceWithLabel recovers label from <title> child element (cobro q=
     // The "proper" accessibility pattern: SVG with a <title> child element
     // rather than aria-label. Common in icon-font frameworks (Octicons etc.)
     // and in some component libraries.
-    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const { rE, rA, rT } = downsamplingRatioToQualityRatio(0.1);
     const dom = `<html><body><a href="/trash" wf-id="9"><svg wf-id="10"><title>Delete item</title><path d="M0,0"/></svg></a></body></html>`;
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
@@ -463,7 +552,7 @@ await test("replaceWithLabel is no-op when default ground-truth list is empty (c
     // Sanity check: pre-fix behaviour must still be reachable. With the
     // default ground truth (no replaceWithLabel entry), svg passes through
     // untouched.
-    const { rE, rA, rT } = d2snapArgsForCobroQuality(0.1);
+    const { rE, rA, rT } = downsamplingRatioToQualityRatio(0.1);
     const dom = `<html><body><button wf-id="1"><svg aria-label="X" wf-id="2"></svg></button></body></html>`;
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
@@ -676,7 +765,7 @@ const COBRO_LIKE_GROUND_TRUTH = {
 for (const cobroQ of [0.1, 0.5, 0.9]) {
     await test(`Snapshot full futurumshop product page without crash or collapse (cobro q=${cobroQ})`, async () => {
         const dom = readFile("futurumshop.product");
-        const { rE, rA, rT } = d2snapArgsForCobroQuality(cobroQ);
+        const { rE, rA, rT } = downsamplingRatioToQualityRatio(cobroQ);
 
         const start = Date.now();
         const snapshot = await d2Snap(dom, rE, rA, rT, {
@@ -706,34 +795,3 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         );
     });
 }
-
-await test("Take DOM snapshot (options.debug)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
-        debug: false
-    });
-
-    writeActual("pizza.options.debug", snapshot.html);
-    const expected = readExpected("pizza.options.debug");
-
-    assertEqual(
-        snapshot.html,
-        expected,
-        "Invalid DOM snapshot"
-    );
-
-    assertNotIn(
-        "\n",
-        snapshot.html,
-        "Invalid DOM snapshot (debug)"
-    );
-
-    const snapshotDebug = await d2Snap(await readFile("pizza"), 0.75, 0.75, 0.75, {
-        debug: true
-    });
-
-    assertIn(
-        "\n",
-        snapshotDebug.html,
-        "Invalid DOM snapshot (debug)"
-    );
-});

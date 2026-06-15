@@ -229,54 +229,6 @@ function formatHTML(html, indentSize = 2) {
   flushBuffer();
   return lines.join("\n");
 }
-function dissolveToplevelTags(html) {
-  const tokens = tokenize(html);
-  const outputParts = [];
-  let nestingDepth = 0;
-  for (const token of tokens) {
-    switch (token.kind) {
-      case "open": {
-        const isTopLevel = nestingDepth === 0;
-        !isTopLevel && outputParts.push(token.raw);
-        nestingDepth++;
-        break;
-      }
-      case "close": {
-        const isTopLevel = nestingDepth === 1;
-        !isTopLevel && outputParts.push(token.raw);
-        nestingDepth = Math.max(0, nestingDepth - 1);
-        break;
-      }
-      case "void": {
-        const isTopLevel = nestingDepth === 0;
-        !isTopLevel && outputParts.push(token.raw);
-        break;
-      }
-      case "raw": {
-        if (nestingDepth === 0) {
-          outputParts.push(token.content);
-        } else {
-          outputParts.push(
-            [
-              token.openRaw,
-              token.content,
-              token.closeRaw
-            ].join("")
-          );
-        }
-        break;
-      }
-      case "text":
-      case "comment":
-      case "doctype":
-      case "cdata":
-        outputParts.push(token.raw);
-        break;
-    }
-  }
-  return outputParts.join("");
-}
 export {
-  dissolveToplevelTags,
   formatHTML
 };

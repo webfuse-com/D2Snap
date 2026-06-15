@@ -14,7 +14,7 @@ import {
 	type TextNode
 } from "./types.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
-import { dissolveToplevelTags, formatHTML } from "./util.html.js";
+import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
@@ -28,8 +28,7 @@ const WHITESPACE_REGEX: RegExp = /^\s$/;
 // containers, and a top-down merge then moves the parent's children into the
 // void target — which serialize away, destroying content. Never merge them.
 const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
-	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT",
-	"LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
+	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
 ]);
 // Markdown autolinks re-parse (see snapElementTextFormattingNode) into bogus
 // elements tagged with the URL scheme — `<https://x>` -> `HTTPS:` (parser stops
@@ -77,6 +76,7 @@ export function d2Snap(
 		groundTruth: DEFAULT_GROUND_TRUTH,
 		groundTruthReplaceDefault: false,
 		filterDataURLs: true,
+		filterEmptyElements: false,
 		filteredTagNames: CONFIG.filteredTagNames,
 		skipMarkdown: false,
 		skipTextRank: false,
@@ -110,7 +110,7 @@ export function d2Snap(
 		};
 
 		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName)) return;
+		if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
 		if (!considerContainerElement(elementNode)) return;
 		if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
 
@@ -365,13 +365,15 @@ export function d2Snap(
 				return;
 			}
 
-			for (const attr of Array.from(elementNode.attributes)) {
-				if (
-					(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
-					|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
-				) continue;
+			if (optionsWithDefaults.filterDataURLs) {
+				for (const attr of Array.from(elementNode.attributes)) {
+					if (
+						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
+						|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
+					) continue;
 
-				elementNode.removeAttribute(attr.name);
+					elementNode.removeAttribute(attr.name);
+				}
 			}
 
 			const depth: number = ((elementNode.parentNode as HTMLElementWithDepth).depth ?? 0) + 1;
@@ -434,6 +436,35 @@ export function d2Snap(
 	// Actionable element nodes
 	// Designated no-op
 
+	// Remove elements that became empty
+	if (optionsWithDefaults.filterEmptyElements) {
+		let hasRemovedElement: boolean;
+
+		do {
+			hasRemovedElement = false;
+
+			traverseDom<HTMLElement>(
+				virtualDom,
+				NodeFilter.SHOW_ELEMENT,
+				(elementNode: HTMLElement) => {
+					if (elementNode.children.length || elementNode.textContent.trim().length) return;
+
+					elementNode.remove();
+
+					hasRemovedElement = true;
+				}
+			);
+		} while(hasRemovedElement);
+	}
+
+	// Dissolve toplevel tags for 'infinite' element downsampling ratio
+	if (rE === Infinity) {
+		[ ...virtualDom.children ]
+			.forEach((element: Element) => {
+				element.replaceWith(...element.childNodes);
+			});
+	}
+
 	t0 = t();
 	const snapshot = virtualDom.innerHTML;
 	timings.serialize = t() - t0;
@@ -447,11 +478,8 @@ export function d2Snap(
 		.replace(/<\s+/g, "<")
 		.replace(/\s+\/>/g, "/>")
 		.trim();
-	// Dissolve toplevel tags for 'infinite' element downsampling ratio
-	if (rE === Infinity) {
-		html = dissolveToplevelTags(html);
-	}
 	timings.minify = t() - t0;
+
 	// Format if is debug mode
 	if (optionsWithDefaults.debug) {
 		t0 = t();
@@ -466,6 +494,7 @@ export function d2Snap(
 			snapshotSize: snapshot.length,
 			sizeRatio: snapshot.length / originalSize,
 			tokenEstimate: Math.round(snapshot.length / 4),    // according to https://platform.openai.com/tokenizer
+
 			...(optionsWithDefaults.debug && { timings })
 		}
 	};
