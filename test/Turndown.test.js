@@ -7,7 +7,9 @@ function flattenCode(code) {
         .trim();
 }
 
-const turndown = new Turndown([ "A", "BUTTON" ]);
+const turndown = new Turndown([
+    elementNode => [ "A", "BUTTON" ].includes(elementNode.tagName.toUpperCase())
+]);
 
 
 await test("Translate markup to markdown via Turndown", async () => {

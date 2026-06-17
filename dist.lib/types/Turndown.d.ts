@@ -1,5 +1,5 @@
 export declare class Turndown {
     private readonly service;
-    constructor(keepTagNames: string[]);
+    constructor(retainElementCbs?: ((elementNode: Element) => boolean)[]);
     translate(html: string): string;
 }

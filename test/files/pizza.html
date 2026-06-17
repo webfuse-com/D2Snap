@@ -1,7 +1,7 @@
 <main class="container" tabindex="3" required="true">
   <div class="mx-auto" data-topic="products" required="false">
     <h1 aria-label="Order a pizza">Our Pizza</h1>
-    <div aria-current aria-description="Choose one product">
+    <div aria-current aria-description="Choose one product" role="menu">
 
       <!-- order: -->
       <strong>Choose one</strong>
@@ -16,7 +16,7 @@
         </p>
         <button type="button">Add</button>
       </section>
-      <section class="shadow-lg">
+      <custom-section class="shadow-lg">
         <h2>Capricciosa</h2>
         <p>
           A rich taste: mozzarella, ham, mushrooms, artichokes, and olives.
@@ -29,11 +29,17 @@
             </div>
           </div>
         </button>
+      </custom-section>
+      <section role="listbox">
+        <strong>homemade</strong>
       </section>
 
       <ul class="info">
         <li>
           Vegetarian <button onclick="info('1')"><em>i</em></button>
+        </li>
+        <li role="button">
+          <b>More info</b>
         </li>
       </ul>
 

@@ -1,0 +1,29 @@
+const FILTERED_TAG_NAMES = [
+  "CIRCLE",
+  "CLIPPATH",
+  "DEFS",
+  "ELLIPSE",
+  "FILTER",
+  "G",
+  "IMAGE",
+  "LINE",
+  "LINEARGRADIENT",
+  "LINK",
+  "MASK",
+  "META",
+  "NOSCRIPT",
+  "PATH",
+  "PATTERN",
+  "POLYGON",
+  "POLYLINE",
+  "RADIALGRADIENT",
+  "RECT",
+  "SCRIPT",
+  "STOP",
+  "STYLE",
+  "TEMPLATE",
+  "USE"
+];
+export {
+  FILTERED_TAG_NAMES
+};

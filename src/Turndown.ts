@@ -9,21 +9,26 @@ import { gfm } from "@truto/turndown-plugin-gfm"
 export class Turndown {
 	private readonly service: TurndownService;
 
-	constructor(keepTagNames: string[]) {
+	constructor(retainElementCbs: ((elementNode: Element) => boolean)[] = []) {
 		this.service = new TurndownService({
 			headingStyle: "atx",
 			bulletListMarker: "-",
 			codeBlockStyle: "fenced",
 		});
 
-		const normalizedKeepTagNames: Set<string> = new Set(keepTagNames.map(tag => tag.toLowerCase()));
-
 		this.service
-			.addRule("keep", {
-				filter: (node: Node) => (
-					(node.nodeType === 1)
-						&& normalizedKeepTagNames.has((node as Element).tagName.toLowerCase())
-				),
+			.addRule("retain", {
+				filter: (node: Node) => {
+					if(node.nodeType !== 1) return false;
+
+					const elementNode: Element = node as Element;
+
+					for(const retainElementCb of retainElementCbs) {
+						if(retainElementCb(elementNode)) return true;
+					}
+
+					return false;
+				},
 				replacement: (_content: string, node: Node) => (node as Element).outerHTML
 			});
 

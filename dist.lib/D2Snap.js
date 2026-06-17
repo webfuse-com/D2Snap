@@ -9,10 +9,12 @@ import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
+import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const WHITESPACE_REGEX = /^\s$/;
+const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
 const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
   "AREA",
   "BASE",
@@ -29,20 +31,38 @@ const VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
   "TRACK",
   "WBR"
 ]);
-const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
+const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = /* @__PURE__ */ new Set([
+  "button",
+  "checkbox",
+  "link",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "option",
+  "radio",
+  "searchbox",
+  "slider",
+  "spinbutton",
+  "switch",
+  "textbox",
+  "combobox",
+  "listbox"
+]);
+function validateParameter(name, value, allowInfinity = false) {
+  if (allowInfinity && value === Infinity) return;
+  if (value < 0 || value > 1) {
+    throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
+  }
+}
 function unwrapColonTaggedElements(parent) {
   for (const child of Array.from(parent.childNodes)) {
     if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
     unwrapColonTaggedElements(child);
     if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
-    while (child.firstChild) parent.insertBefore(child.firstChild, child);
+    while (child.firstChild) {
+      parent.insertBefore(child.firstChild, child);
+    }
     parent.removeChild(child);
-  }
-}
-function validateParameter(name, value, allowInfinity = false) {
-  if (allowInfinity && value === Infinity) return;
-  if (value < 0 || value > 1) {
-    throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
 function d2Snap(dom, rE, rA, rT, options = {}) {
@@ -55,7 +75,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     groundTruthReplaceDefault: false,
     filterDataURLs: true,
     filterEmptyElements: false,
-    filteredTagNames: CONFIG.filteredTagNames,
+    filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
     skipMarkdown: false,
     skipTextRank: false,
     textRankOptions: {},
@@ -65,21 +85,31 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const groundTruth = new GroundTruth(
     !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
   );
-  const turndown = new Turndown(
-    groundTruth.getElementsByType("actionable")
-  );
   const filteredTagNames = new Set(
     optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
+  const mdRetainedTagNames = new Set(
+    groundTruth.getElementsByType("actionable").map(
+      (tagName) => tagName.toUpperCase()
+    )
+  );
+  function hasMDRetainTagName(elementNode) {
+    return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
+  }
+  function hasActionableRole(elementNode) {
+    return ACTIONABLE_ROLE_ATTRIBUTE_VALUES.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+  }
+  const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
   function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
+    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+    if (hasActionableRole(elementNode)) return;
+    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     const considerContainerElement = (elementNode2) => {
       if (groundTruth.isElementType("container", elementNode2.tagName)) return true;
-      if (!optionsWithDefaults.skipMarkdown) return false;
-      if (groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+      if (optionsWithDefaults.skipMarkdown && groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+      if (elementNode2.tagName.includes("-")) return true;
       return false;
     };
-    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     if (!considerContainerElement(elementNode)) return;
     if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
     const mergeLevels = Math.max(
@@ -184,6 +214,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   function snapElementTextFormattingNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+    if (hasActionableRole(elementNode)) return;
     if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown.translate(elementNode.outerHTML);

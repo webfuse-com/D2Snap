@@ -17,19 +17,13 @@ import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
+import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
 import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
 
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
 const WHITESPACE_REGEX: RegExp = /^\s$/;
-// Void elements cannot hold children. The "custom element is a container"
-// heuristic otherwise classifies unlisted void tags (e.g. <br>, <wbr>) as
-// containers, and a top-down merge then moves the parent's children into the
-// void target — which serialize away, destroying content. Never merge them.
-const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
-	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"
-]);
 // Markdown autolinks re-parse (see snapElementTextFormattingNode) into bogus
 // elements tagged with the URL scheme — `<https://x>` -> `HTTPS:` (parser stops
 // at `/`), `<mailto:x@y.com>` -> `MAILTO:X@Y.COM` (no `/`, whole URI folds in).
@@ -37,27 +31,69 @@ const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
 // negative lookahead spares real namespaced custom elements (`FB:LIKE`), whose
 // tail after `:` is a valid NCName.
 const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
+// Void elements cannot hold children. The "custom element is a container"
+// heuristic otherwise classifies unlisted void tags (e.g. <br>, <wbr>) as
+// containers, and a top-down merge then moves the parent's children into the
+// void target — which serialize away, destroying content. Never merge them.
+const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
+	"AREA",
+	"BASE",
+	"BR",
+	"COL",
+	"EMBED",
+	"HR",
+	"IMG",
+	"INPUT",
+	"LINK",
+	"META",
+	"PARAM",
+	"SOURCE",
+	"TRACK",
+	"WBR"
+]);
+// HTML widget + composite role attribute values that reasonably map to a native HTML tag name.
+const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set([
+	"button",
+	"checkbox",
+	"link",
+	"menuitem",
+	"menuitemcheckbox",
+	"menuitemradio",
+	"option",
+	"radio",
+	"searchbox",
+	"slider",
+	"spinbutton",
+	"switch",
+	"textbox",
+	"combobox",
+	"listbox"
+]);
+
+
+function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
+	if(allowInfinity && value === Infinity) return;
+
+	if(value < 0 || value > 1) {
+		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
+	}
+}
+
 function unwrapColonTaggedElements(parent: Node): void {
-	for (const child of Array.from(parent.childNodes)) {
-		if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
+	for(const child of Array.from(parent.childNodes)) {
+		if(child.nodeType !== NodeType.ELEMENT_NODE) continue;
 
 		// Recurse first so nested artifacts (and kept content) are resolved
 		// before this element is potentially unwrapped.
 		unwrapColonTaggedElements(child);
 
-		if (!COLON_SCHEME_TAG_REGEX.test((child as Element).tagName)) continue;
+		if(!COLON_SCHEME_TAG_REGEX.test((child as Element).tagName)) continue;
 
-		while (child.firstChild) parent.insertBefore(child.firstChild, child);
+		while(child.firstChild) {
+			parent.insertBefore(child.firstChild, child);
+		}
+
 		parent.removeChild(child);
-	}
-}
-
-
-function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
-	if (allowInfinity && value === Infinity) return;
-
-	if (value < 0 || value > 1) {
-		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
 	}
 }
 
@@ -77,7 +113,7 @@ export function d2Snap(
 		groundTruthReplaceDefault: false,
 		filterDataURLs: true,
 		filterEmptyElements: false,
-		filteredTagNames: CONFIG.filteredTagNames,
+		filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
 		skipMarkdown: false,
 		skipTextRank: false,
 		textRankOptions: {},
@@ -92,34 +128,52 @@ export function d2Snap(
 			: optionsWithDefaults.groundTruth as GroundTruthJSON
 	);
 
-	const turndown: Turndown = new Turndown(
-		groundTruth.getElementsByType("actionable")
-	);
-
 	const filteredTagNames: Set<string> = new Set(
 		optionsWithDefaults.filteredTagNames.map(t => t.toUpperCase())
 	);
 
+	const mdRetainedTagNames: Set<string> = new Set(
+		groundTruth.getElementsByType("actionable")
+			.map((tagName: string) => tagName.toUpperCase()
+	));
+
+	function hasMDRetainTagName(elementNode: Element): boolean {
+		return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
+	}
+
+	function hasActionableRole(elementNode: Element): boolean {
+		return ACTIONABLE_ROLE_ATTRIBUTE_VALUES
+			.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+	}
+
+	const turndown: Turndown = new Turndown([ hasMDRetainTagName, hasActionableRole ]);
+
 	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(hasActionableRole(elementNode)) return;
+		if(VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+
 		const considerContainerElement = (elementNode: Element) => {
 			if(groundTruth.isElementType("container", elementNode.tagName)) return true;
-			if(!optionsWithDefaults.skipMarkdown) return false;
-			if(groundTruth.isElementType("textFormatting", elementNode.tagName)) return true;
+			if(
+				optionsWithDefaults.skipMarkdown
+				&& groundTruth.isElementType("textFormatting", elementNode.tagName)
+			) return true;
+			// custom elements (!)
+			if(elementNode.tagName.includes("-")) return true;
 
 			return false;
 		};
 
-		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
-		if (!considerContainerElement(elementNode)) return;
-		if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
+		if(!considerContainerElement(elementNode)) return;
+		if(!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
 
 		// merge
 		const mergeLevels: number = Math.max(
 			Math.round(domTreeHeight * (Math.min(1, rE))),
 			1
 		);
-		if ((elementNode.depth - 1) % mergeLevels === 0) return;
+		if((elementNode.depth - 1) % mergeLevels === 0) return;
 
 		const elements = [
 			elementNode.parentElement as HTMLElementWithDepth,
@@ -135,17 +189,17 @@ export function d2Snap(
 		const targetElement: HTMLElementWithDepth = elements[0];
 		const sourceElement: HTMLElementWithDepth = elements[1];
 
-		if (isTopdownMerge) {
+		if(isTopdownMerge) {
 			const mergedAttributes = Array.from(targetElement.attributes);
 
-			for (const attr of sourceElement.attributes) {
-				if (mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
+			for(const attr of sourceElement.attributes) {
+				if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
 				mergedAttributes.push(attr);
 			}
-			for (const attr of targetElement.attributes) {
+			for(const attr of targetElement.attributes) {
 				targetElement.removeAttribute(attr.name);
 			}
-			for (const attr of mergedAttributes) {
+			for(const attr of mergedAttributes) {
 				// Framework attribute names (Vue `@click`, Angular `*ngIf`) violate
 				// the DOM Name production; setAttribute throws InvalidCharacterError.
 				// Drop the offending attribute rather than abort the snapshot — bound
@@ -155,14 +209,14 @@ export function d2Snap(
 				try {
 					targetElement.setAttribute(attr.name, attr.value);
 				} catch (e) {
-					if ((e as { name?: string }).name !== "InvalidCharacterError") throw e;
+					if((e as { name?: string }).name !== "InvalidCharacterError") throw e;
 					/* invalid attribute name — drop it */
 				}
 			}
 		}
 
-		if (!isTopdownMerge) {
-			while (sourceElement.childNodes.length) {
+		if(!isTopdownMerge) {
+			while(sourceElement.childNodes.length) {
 				targetElement
 					.insertBefore(sourceElement.childNodes[0], sourceElement);
 			}
@@ -171,8 +225,8 @@ export function d2Snap(
 			const after: ChildNode[] = [];
 
 			let isAfterTarget: boolean = false;
-			for (const child of sourceElement.childNodes) {
-				if (child === targetElement) {
+			for(const child of sourceElement.childNodes) {
+				if(child === targetElement) {
 					isAfterTarget = true;
 
 					continue;
@@ -186,11 +240,11 @@ export function d2Snap(
 					.push(child);
 			}
 
-			for (let i = before.length - 1; i >= 0; i--) {
+			for(let i = before.length - 1; i >= 0; i--) {
 				const child: ChildNode = before[i];
 
-				if (targetElement.childNodes.length && (i === (before.length - 1))) {
-					if (child.nodeType === NodeType.TEXT_NODE) {
+				if(targetElement.childNodes.length && (i === (before.length - 1))) {
+					if(child.nodeType === NodeType.TEXT_NODE) {
 						child.textContent = `${child.textContent} `;
 					} else {
 						child.appendChild(document.createTextNode(" "));
@@ -199,11 +253,11 @@ export function d2Snap(
 
 				targetElement.insertBefore(child, targetElement.firstChild);
 			}
-			for (let i = 0; i < after.length; i++) {
+			for(let i = 0; i < after.length; i++) {
 				const child: ChildNode = after[i];
 
-				if (targetElement.childNodes.length && (i === 0)) {
-					if (child.nodeType === NodeType.TEXT_NODE) {
+				if(targetElement.childNodes.length && (i === 0)) {
+					if(child.nodeType === NodeType.TEXT_NODE) {
 						child.textContent = ` ${child.textContent}`;
 					} else {
 						child.insertBefore(document.createTextNode(" "), child.firstChild);
@@ -226,26 +280,26 @@ export function d2Snap(
 	}
 
 	function snapElementReplaceWithLabelNode(document: Document, elementNode: HTMLElement) {
-		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
 
 		// Find an accessibility label, preferring attributes over child elements.
 		// Attribute order is taken from the ground truth (default: aria-label, title, alt).
 		let label: string | null = null;
-		for (const attrName of groundTruth.getLabelAttrs()) {
+		for(const attrName of groundTruth.getLabelAttrs()) {
 			const value: string | null = elementNode.getAttribute(attrName);
 			const trimmed: string = (value ?? "").trim();
-			if (trimmed) { label = trimmed; break; }
+			if(trimmed) { label = trimmed; break; }
 		}
-		if (!label) {
-			for (const child of Array.from(elementNode.children)) {
-				if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+		if(!label) {
+			for(const child of Array.from(elementNode.children)) {
+				if(!groundTruth.isLabelChildTag(child.tagName)) continue;
 				const trimmed: string = (child.textContent ?? "").trim();
-				if (trimmed) { label = trimmed; break; }
+				if(trimmed) { label = trimmed; break; }
 			}
 		}
 
-		if (label !== null) {
+		if(label !== null) {
 			// Replace with a plain text node carrying the label. It lands under the
 			// element's former parent, so an actionable parent keeps it (icon buttons:
 			// <button><svg aria-label="X"/></button> -> <button>X</button>).
@@ -257,9 +311,10 @@ export function d2Snap(
 	}
 
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
-		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
-		if (optionsWithDefaults.skipMarkdown) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(hasActionableRole(elementNode)) return;
+		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
+		if(optionsWithDefaults.skipMarkdown) return;
 
 		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
@@ -289,10 +344,10 @@ export function d2Snap(
 	}
 
 	function snapTextNode(textNode: TextNode, rT: number) {
-		if (textNode.nodeType !== NodeType.TEXT_NODE) return;
+		if(textNode.nodeType !== NodeType.TEXT_NODE) return;
 
 		const text: string | null = (textNode?.innerText ?? textNode.textContent);
-		if (!(text ?? "").trim().length) return;
+		if(!(text ?? "").trim().length) return;
 
 		const leadingSpace: string = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
 		const trailingSpace: string = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
@@ -305,17 +360,17 @@ export function d2Snap(
 	}
 
 	function snapAttributeNode(elementNode: HTMLElement, rA: number) {
-		if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
-		for (const attr of Array.from(elementNode.attributes)) {
-			if (groundTruth.getAttributeRating(attr.name) >= rA) continue;
+		for(const attr of Array.from(elementNode.attributes)) {
+			if(groundTruth.getAttributeRating(attr.name) >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);
 		}
 	}
 
 	const document = resolveDocument(dom);
-	if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
+	if(!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
 
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
@@ -330,7 +385,7 @@ export function d2Snap(
 			rootElement,
 			NodeFilter.SHOW_ELEMENT,
 			elementNode => {
-				if (
+				if(
 					!groundTruth.isElementType("container", elementNode.tagName)
 					&& !groundTruth.isElementType("actionable", elementNode.tagName)
 				) return;
@@ -349,25 +404,25 @@ export function d2Snap(
 		virtualDom,
 		NodeFilter.SHOW_ALL,
 		(node: Node) => {
-			if (node.nodeType === NodeType.COMMENT_NODE) {
+			if(node.nodeType === NodeType.COMMENT_NODE) {
 				node.parentNode?.removeChild(node);
 
 				return;
 			}
 
-			if (node.nodeType !== NodeType.ELEMENT_NODE) return;
+			if(node.nodeType !== NodeType.ELEMENT_NODE) return;
 
 			const elementNode = node as Element;
 
-			if (filteredTagNames.has(elementNode.tagName.toUpperCase())) {
+			if(filteredTagNames.has(elementNode.tagName.toUpperCase())) {
 				elementNode.remove();
 
 				return;
 			}
 
-			if (optionsWithDefaults.filterDataURLs) {
-				for (const attr of Array.from(elementNode.attributes)) {
-					if (
+			if(optionsWithDefaults.filterDataURLs) {
+				for(const attr of Array.from(elementNode.attributes)) {
+					if(
 						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
 						|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
 					) continue;
@@ -385,10 +440,9 @@ export function d2Snap(
 	);
 	timings.init = t() - t0;
 
-	// Lift accessibility labels into plain text before TextRank and container
-	// merging, so the label survives and empty wrappers don't linger.
+	// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
 	t0 = t();
-	if (groundTruth.getElementsByType("replaceWithLabel").length) {
+	if(groundTruth.getElementsByType("replaceWithLabel").length) {
 		traverseDom<HTMLElement>(
 			virtualDom,
 			NodeFilter.SHOW_ELEMENT,
@@ -437,7 +491,7 @@ export function d2Snap(
 	// Designated no-op
 
 	// Remove elements that became empty
-	if (optionsWithDefaults.filterEmptyElements) {
+	if(optionsWithDefaults.filterEmptyElements) {
 		let hasRemovedElement: boolean;
 
 		do {
@@ -447,7 +501,7 @@ export function d2Snap(
 				virtualDom,
 				NodeFilter.SHOW_ELEMENT,
 				(elementNode: HTMLElement) => {
-					if (elementNode.children.length || elementNode.textContent.trim().length) return;
+					if(elementNode.children.length || elementNode.textContent.trim().length) return;
 
 					elementNode.remove();
 
@@ -458,7 +512,7 @@ export function d2Snap(
 	}
 
 	// Dissolve toplevel tags for 'infinite' element downsampling ratio
-	if (rE === Infinity) {
+	if(rE === Infinity) {
 		[ ...virtualDom.children ]
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);
@@ -481,7 +535,7 @@ export function d2Snap(
 	timings.minify = t() - t0;
 
 	// Format if is debug mode
-	if (optionsWithDefaults.debug) {
+	if(optionsWithDefaults.debug) {
 		t0 = t();
 		html = formatHTML(html);
 		timings.formatDebugOnly = t() - t0;
