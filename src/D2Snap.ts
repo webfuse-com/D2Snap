@@ -134,8 +134,8 @@ export function d2Snap(
 
 	const mdRetainedTagNames: Set<string> = new Set(
 		groundTruth.getElementsByType("actionable")
-			.map((tagName: string) => tagName.toUpperCase()
-	));
+			.map((tagName: string) => tagName.toUpperCase())
+	);
 
 	function hasMDRetainTagName(elementNode: Element): boolean {
 		return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
@@ -501,6 +501,8 @@ export function d2Snap(
 				virtualDom,
 				NodeFilter.SHOW_ELEMENT,
 				(elementNode: HTMLElement) => {
+					if(groundTruth.isElementType("actionable", elementNode.tagName)) return;
+					if(hasActionableRole(elementNode)) return;
 					if(elementNode.children.length || elementNode.textContent.trim().length) return;
 
 					elementNode.remove();

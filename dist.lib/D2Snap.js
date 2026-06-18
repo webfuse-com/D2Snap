@@ -89,9 +89,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   const mdRetainedTagNames = new Set(
-    groundTruth.getElementsByType("actionable").map(
-      (tagName) => tagName.toUpperCase()
-    )
+    groundTruth.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
   );
   function hasMDRetainTagName(elementNode) {
     return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
@@ -337,6 +335,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         (elementNode) => {
+          if (groundTruth.isElementType("actionable", elementNode.tagName)) return;
+          if (hasActionableRole(elementNode)) return;
           if (elementNode.children.length || elementNode.textContent.trim().length) return;
           elementNode.remove();
           hasRemovedElement = true;

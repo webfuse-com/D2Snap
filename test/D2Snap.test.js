@@ -86,14 +86,14 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        2580,
+        2700,
         -1,
         "Invalid DOM snapshot original size"
     );
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.47,
+        0.49,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -115,7 +115,7 @@ await test("Take DOM snapshot (M)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.34,
+        0.35,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -137,7 +137,7 @@ await test("Take DOM snapshot (S)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.29,
+        0.3,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -370,6 +370,12 @@ await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
         "Invalid DOM snapshot"
     );
 
+    assertIn(
+        "<input>",
+        flattenDOMSnapshot(snapshotFilter.html),
+        "Invalid DOM snapshot"
+    );
+
     const snapshotNoFilter = await d2Snap(await readFile("pizza"), 0, 1, 1, {
         filterEmptyElements: false,
         debug: false
@@ -383,6 +389,12 @@ await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
 
     assertIn(
         "<br>",
+        flattenDOMSnapshot(snapshotNoFilter.html),
+        "Invalid DOM snapshot"
+    );
+
+    assertIn(
+        "<input>",
         flattenDOMSnapshot(snapshotNoFilter.html),
         "Invalid DOM snapshot"
     );
