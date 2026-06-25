@@ -108,13 +108,13 @@ def _process_record(args):
 
         llm_response = None
         auto_analysis_ok = False
-        rtt = None
+        latency = None
         is_error = False
 
         try:
             ti0 = time.perf_counter()
             res = api_adapter.request(instructions, record["task"], snapshot_data, output_schema)
-            rtt = (time.perf_counter() - ti0) * 1000
+            latency = (time.perf_counter() - ti0) * 1000
             llm_response = res["interactiveElements"]
 
             auto_analysis_ok = analyze_results_cb(
@@ -144,7 +144,7 @@ def _process_record(args):
             "response": llm_response,
             "success": auto_analysis_ok,
             "error": is_error,
-            "rtt": rtt,
+            "latency": latency,
         }
     except Exception as err:
         print(f"[worker fatal] {record.get('id')}: {err!r}")

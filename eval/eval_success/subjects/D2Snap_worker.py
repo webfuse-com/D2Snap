@@ -31,7 +31,7 @@ def _call_bridge(html_str: str, config: dict) -> dict | None:
     })
 
     proc = subprocess.run(
-        ["node", str(_BRIDGE)],
+        [ "node", str(_BRIDGE) ],
         input=payload,
         capture_output=True,
         text=True,

@@ -36,7 +36,7 @@ def summarize(date: str) -> dict:
             "totalSnapshotSize": 0,
             "totalSnapshotSizeRatio": 0,
             "totalEstimatedTokens": 0,
-            "totalRTT": 0.0,
+            "totalLatency": 0.0,
         }
 
         for r in entries:
@@ -46,7 +46,7 @@ def summarize(date: str) -> dict:
             s["totalSnapshotSize"] += r.get("snapshotSize") or 0
             s["totalSnapshotSizeRatio"] += r.get("sizeRatio") or 0
             s["totalEstimatedTokens"] += r.get("tokenEstimate") or 0
-            s["totalRTT"] += r.get("rtt") or 0
+            s["totalLatency"] += r.get("latency") or 0
 
         total = s["successCases"] + s["failureCases"]
         non_error = total - s["errorCases"]
@@ -56,7 +56,7 @@ def summarize(date: str) -> dict:
         s["meanSnapshotSize"] = _mean(s["totalSnapshotSize"], non_error)
         s["meanSnapshotSizeRatio"] = _mean(s["totalSnapshotSizeRatio"], non_error)
         s["meanEstimatedTokens"] = _mean(s["totalEstimatedTokens"], non_error)
-        s["meanRTT"] = _mean(s["totalRTT"], non_error)
+        s["meanLatency"] = _mean(s["totalLatency"], non_error)
 
         summary[results_file.stem] = s
 
