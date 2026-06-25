@@ -79,7 +79,7 @@ def _candidates(target):
     cands = [ target, parent, grand, great ]
 
     if parent is not None:
-        cands.extend([c for c in parent if c is not target])
+        cands.extend([ c for c in parent if c is not target ])
 
     cands.extend(list(target))
 
