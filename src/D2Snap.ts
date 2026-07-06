@@ -71,9 +71,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set([
 ]);
 
 
-function validateParameter(name: string, value: number, allowInfinity: boolean = false) {
-	if(allowInfinity && value === Infinity) return;
-
+function validateParameter(name: string, value: number) {
 	if(value < 0 || value > 1) {
 		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
 	}
@@ -103,7 +101,7 @@ export function d2Snap(
 	rE: number, rA: number, rT: number,
 	options: Partial<D2SnapOptions> = {}
 ): D2SnapResult {
-	validateParameter("rE", rE, true);
+	validateParameter("rE", rE);
 	validateParameter("rA", rA);
 	validateParameter("rT", rT);
 
@@ -148,7 +146,7 @@ export function d2Snap(
 
 	const turndown: Turndown = new Turndown([ hasMDRetainTagName, hasActionableRole ]);
 
-	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number, domTreeHeight: number) {
+	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(hasActionableRole(elementNode)) return;
 		if(VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
@@ -168,12 +166,10 @@ export function d2Snap(
 		if(!considerContainerElement(elementNode)) return;
 		if(!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
 
-		// merge
-		const mergeLevels: number = Math.max(
-			Math.round(domTreeHeight * (Math.min(1, rE))),
-			1
-		);
-		if((elementNode.depth - 1) % mergeLevels === 0) return;
+		// merge (Bresenham gate)
+		const ratio = Math.min(1, Math.max(0, rE));
+		const isMergeLevel = (elementNode.depth > 1) && (Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio));
+		if(!isMergeLevel) return;
 
 		const elements = [
 			elementNode.parentElement as HTMLElementWithDepth,
@@ -474,7 +470,7 @@ export function d2Snap(
 	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => snapElementContainerNode(document, node, rE, domTreeHeight),
+		(node: HTMLElementWithDepth) => snapElementContainerNode(document, node, rE),
 	);
 	timings.containers = t() - t0;
 
@@ -513,8 +509,8 @@ export function d2Snap(
 		} while(hasRemovedElement);
 	}
 
-	// Dissolve toplevel tags for 'infinite' element downsampling ratio
-	if(rE === Infinity) {
+	// Dissolve toplevel tags for rE = 1 (allows full linearization)
+	if(rE === 1.0) {
 		[ ...virtualDom.children ]
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);

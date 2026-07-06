@@ -93,7 +93,7 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.49,
+        0.51,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -115,7 +115,7 @@ await test("Take DOM snapshot (M)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.35,
+        0.36,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -137,7 +137,7 @@ await test("Take DOM snapshot (S)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.3,
+        0.28,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -150,7 +150,7 @@ await test("Take DOM snapshot (S)", async () => {
 });
 
 await test("Take DOM snapshot (linearized)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 0, {
+    const snapshot = await d2Snap(await readFile("pizza"), 1, 1, 0, {
         debug: true
     });
 
@@ -300,7 +300,7 @@ await test("Take DOM snapshot (options.skipMarkdown)", async () => {
 });
 
 await test("Take DOM snapshot (options.skipTextRank)", async () => {
-    const snapshot = await d2Snap(await readFile("pizza"), Infinity, 1, 1, {
+    const snapshot = await d2Snap(await readFile("pizza"), 1, 1, 1, {
         debug: true,
         skipTextRank: true
     });
@@ -314,7 +314,7 @@ await test("Take DOM snapshot (options.skipTextRank)", async () => {
         "Invalid DOM snapshot (without TextRank)"
     );
 
-    const snapshotNoSkip = await d2Snap(await readFile("pizza"), Infinity, 1, 1, {
+    const snapshotNoSkip = await d2Snap(await readFile("pizza"), 1, 1, 1, {
         debug: true,
         skipTextRank: false
     });

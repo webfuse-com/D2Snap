@@ -48,8 +48,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = /* @__PURE__ */ new Set([
   "combobox",
   "listbox"
 ]);
-function validateParameter(name, value, allowInfinity = false) {
-  if (allowInfinity && value === Infinity) return;
+function validateParameter(name, value) {
   if (value < 0 || value > 1) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
@@ -66,7 +65,7 @@ function unwrapColonTaggedElements(parent) {
   }
 }
 function d2Snap(dom, rE, rA, rT, options = {}) {
-  validateParameter("rE", rE, true);
+  validateParameter("rE", rE);
   validateParameter("rA", rA);
   validateParameter("rT", rT);
   const optionsWithDefaults = {
@@ -98,7 +97,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     return ACTIONABLE_ROLE_ATTRIBUTE_VALUES.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
   }
   const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
-  function snapElementContainerNode(document2, elementNode, rE2, domTreeHeight2) {
+  function snapElementContainerNode(document2, elementNode, rE2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (hasActionableRole(elementNode)) return;
     if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
@@ -110,11 +109,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     };
     if (!considerContainerElement(elementNode)) return;
     if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
-    const mergeLevels = Math.max(
-      Math.round(domTreeHeight2 * Math.min(1, rE2)),
-      1
-    );
-    if ((elementNode.depth - 1) % mergeLevels === 0) return;
+    const ratio = Math.min(1, Math.max(0, rE2));
+    const isMergeLevel = elementNode.depth > 1 && Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio);
+    if (!isMergeLevel) return;
     const elements = [
       elementNode.parentElement,
       elementNode
@@ -316,7 +313,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementContainerNode(document, node, rE, domTreeHeight)
+    (node) => snapElementContainerNode(document, node, rE)
   );
   timings.containers = t() - t0;
   t0 = t();
@@ -344,7 +341,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       );
     } while (hasRemovedElement);
   }
-  if (rE === Infinity) {
+  if (rE === 1) {
     [...virtualDom.children].forEach((element) => {
       element.replaceWith(...element.childNodes);
     });

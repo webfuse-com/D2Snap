@@ -1,44 +1,48 @@
-<div data-topic="products" class="mx-auto">
-  # Our Pizza
-  <div aria-current="" aria-description="Choose one product" role="menu">
-    Choose one
-    <br>
-    <h2>
-      Margherita1
-    </h2>
-    <p>
-      A simple classic: mozzarela, tomatoes and basil.
-    </p>
-    <button type="button">
-      Add
-    </button>
-    <h2>
-      Capricciosa
-    </h2>
-    <p>
-      A rich taste: mozzarella, ham, mushrooms, artichokes, and olives.
-    </p>
-    <div type="button">
-      <div class="highlight">
+<main class="container">
+  <div class="mx-auto" data-topic="products">
+    # Our Pizza
+    <div aria-current="" aria-description="Choose one product" role="menu">
+      Choose one <br>
+      <h2>
+        Margherita<sup>1</sup>
+      </h2>
+      <p>
+        A <a href="/magherita.html#history" target="_blank">simple classic</a>: mozzarela, tomatoes and basil.
+      </p>
+      <button type="button">
         Add
-      </div>
+      </button>
+      <h2>
+        Capricciosa
+      </h2>
+      <p>
+        A rich taste: mozzarella, ham, mushrooms, artichokes, and olives.
+      </p>
+      <button type="button">
+        <div>
+          <strong>Add</strong>
+        </div>
+      </button>
+      <section role="listbox">
+        <strong>homemade</strong>
+      </section>
+      <li>
+        Vegetarian
+        <button onclick="info('1')">
+          i
+        </button>
+      </li>
+      <li role="button">
+        <b>More info</b>
+      </li>
+      <input type="text" placeholder="Message to the restaurant"> Place Order <small> Pizza is a famous Italian dish from Naples. It has a crust, tomato sauce, and melted cheese. It is traditionally baked in a hot stone oven. It is loved for its warm, savory flavor and crispy texture. </small>
     </div>
-    <section role="listbox">
-      <strong>homemade</strong>
-    </section>
-    <li>
-      Vegetarian <em>i</em>
-    </li>
-    <li role="button">
-      More info
-    </li>
-    <input type="text" placeholder="Message to the restaurant">
-    Place Order
-    <small>
-      Pizza is a famous Italian dish from Naples. It has a crust, tomato sauce, and melted cheese. It is traditionally baked in a hot stone oven. It is loved for its warm, savory flavor and crispy texture.
-    </small>
   </div>
-</div>
+</main>
 <div id="analytics" aria-disabled="">
-  <img src="analytics.png"><img height="64">
+  <div>
+  </div>
+  <div>
+    <img src="analytics.png"><img height="64">
+  </div>
 </div>
