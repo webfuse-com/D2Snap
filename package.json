@@ -29,9 +29,9 @@
     "eval:success:bu:single": "npm run eval:bu -- --split 1 --verbose",
     "eval:success:baseline": "npm run eval:dom && npm run eval:gui && npm run eval:bu",
     "eval:success:_summarize": "PYTHONPATH=eval/eval_shared:eval/eval_success python -m _summarize --date",
-    "eval:space": "PYTHONPATH=eval/eval_space:eval/eval_shared python -m eval",
-    "eval:space:single": "npm run eval:space -- --split 1 --verbose",
-    "eval:space:_summarize": "PYTHONPATH=eval/eval_shared:eval/eval_space python -m _summarize --date"
+    "eval:ratio": "PYTHONPATH=eval/eval_ratio:eval/eval_shared python -m eval",
+    "eval:ratio:single": "npm run eval:ratio -- --split 1 --verbose",
+    "eval:ratio:_summarize": "PYTHONPATH=eval/eval_shared:eval/eval_ratio python -m _summarize --date"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.55.0",
