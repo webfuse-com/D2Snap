@@ -1,4 +1,4 @@
-import { type GroundTruthJSON } from "./types.js";
+import { type UIFeatureHeuristicsJSON } from "./types.js";
 
 type ElementType = "container" | "actionable" | "textFormatting" | "replaceWithLabel";
 
@@ -11,8 +11,8 @@ const SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
 ];
 const ATTRIBUTE_SUFFIX_WILDCARD: string = "*";
 
-export class GroundTruth {
-	private readonly groundTruth: GroundTruthJSON;
+export class UIFeatureHeuristics {
+	private readonly uiFeatureHeuristics: UIFeatureHeuristicsJSON;
 
 	private readonly elementsByType: Record<ElementType, string[]>;
 	private readonly elementTypeSets: Record<ElementType, Set<string>>;
@@ -25,14 +25,14 @@ export class GroundTruth {
 	private readonly labelAttrs: string[];
 	private readonly labelChildTagsSet: Set<string>;
 
-	constructor(groundTruth: GroundTruthJSON) {
-		this.groundTruth = groundTruth;
+	constructor(uiFeatureHeuristics: UIFeatureHeuristicsJSON) {
+		this.uiFeatureHeuristics = uiFeatureHeuristics;
 
 		this.elementsByType = {
-			container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
-			actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
-			textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? [],
-			replaceWithLabel: this.groundTruth?.typeElement?.replaceWithLabel?.tagNames ?? []
+			container: this.uiFeatureHeuristics?.typeElement?.container?.tagNames ?? [],
+			actionable: this.uiFeatureHeuristics?.typeElement?.actionable?.tagNames ?? [],
+			textFormatting: this.uiFeatureHeuristics?.typeElement?.textFormatting?.tagNames ?? [],
+			replaceWithLabel: this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.tagNames ?? []
 		};
 		this.elementTypeSets = {
 			container: new Set(this.elementsByType.container.map(t => t.toLowerCase())),
@@ -46,16 +46,16 @@ export class GroundTruth {
 			...this.elementTypeSets.replaceWithLabel
 		]);
 
-		this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
-		this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
+		this.containerRatings = this.uiFeatureHeuristics?.typeElement?.container?.ratings ?? {};
+		this.containerFallbackRating = this.uiFeatureHeuristics?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
 
-		this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
-		this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
+		this.attributeRatings = this.uiFeatureHeuristics?.typeAttribute?.ratings ?? {};
+		this.attributeFallbackRating = this.uiFeatureHeuristics?.typeAttribute?.fallbackRating;
 
-		this.labelAttrs = (this.groundTruth?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS)
+		this.labelAttrs = (this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS)
 			.map(a => a.toLowerCase());
 		this.labelChildTagsSet = new Set(
-			(this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS)
+			(this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS)
 				.map(t => t.toLowerCase())
 		);
 	}
