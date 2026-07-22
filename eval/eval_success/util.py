@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 _RAW_ARGS = [None, *sys.argv[1:]]
 _INSTRUCTIONS_TEMPLATE = (Path(__file__).parent / "instructions.template.md").read_text()
-_MAX_TRAJECTORY_TO_REFERENCE_SUPERSET_SIZE_FACTOR = 2
+_MAX_TRAJECTORY_TO_REFERENCE_SUPERSET_SIZE_FACTOR = 3
 
 
 def parse_flag(arg: str) -> bool:
@@ -51,6 +51,7 @@ def check_against_trajectories(
             "WARNING: Response set size ({}) exceeds {}x the maximum reference set size ({}); success may be coincidental."
             .format(len(res), _MAX_TRAJECTORY_TO_REFERENCE_SUPERSET_SIZE_FACTOR, max_ref)
         )
+        return False
 
     for reference_trajectory in trajectories:
         if len(res) < len(reference_trajectory):

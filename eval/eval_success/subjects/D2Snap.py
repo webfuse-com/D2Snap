@@ -7,10 +7,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from util import parse_option
 
 
+# NOTE: Run sequentially if latency matters
 EVALS = {
+    "D2Snap.1": { "rE": 0.1, "rA": 0.1, "rT": 0.1 },
     "D2Snap.3": { "rE": 0.3, "rA": 0.3, "rT": 0.3 },
     "D2Snap.6": { "rE": 0.6, "rA": 0.6, "rT": 0.6 },
     "D2Snap.9": { "rE": 0.9, "rA": 0.9, "rT": 0.9 },
+    "D2Snap.1_0": { "rE": 1.0, "rA": 1.0, "rT": 1.0 },
     "D2Snap.lin": { "rE": 1.0, "rA": 1.0, "rT": 0 },
     "D2Snap.9.3.3": { "rE": 0.9, "rA": 0.3, "rT": 0.3 },
     "D2Snap.3.9.3": { "rE": 0.3, "rA": 0.9, "rT": 0.3 },

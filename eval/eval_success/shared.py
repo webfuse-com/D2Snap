@@ -44,6 +44,25 @@ INSTRUCTIONS_DOM = template_instructions({
 })
 
 
+def _candidates(target):
+    parent = target.getparent()
+
+    cands = [target]
+
+    if parent is not None:
+        cands.append(parent)
+
+    cands.extend(list(target))  # direct children
+
+    return cands
+
+def _matches(element, css_selector: str) -> bool:
+    try:
+        return element in element.getroottree().getroot().cssselect(css_selector)
+    except Exception:
+        return False
+
+
 def tag_reference_elements_by_uid(dom, trajectories):
     counter = 0
     selector_to_sentinels: dict[str, set[str]] = {}
@@ -66,32 +85,8 @@ def tag_reference_elements_by_uid(dom, trajectories):
 
     return selector_to_sentinels
 
-
 def strip_data_uid(html_str: str) -> str:
     return _DATA_UID_STRIP_RE.sub("", html_str)
-
-
-def _candidates(target):
-    parent = target.getparent()
-    grand = parent.getparent() if parent is not None else None
-    great = grand.getparent() if grand is not None else None
-
-    cands = [ target, parent, grand, great ]
-
-    if parent is not None:
-        cands.extend([ c for c in parent if c is not target ])
-
-    cands.extend(list(target))
-
-    return [c for c in cands if c is not None]
-
-
-def _matches(element, css_selector: str) -> bool:
-    try:
-        return element in element.getroottree().getroot().cssselect(css_selector)
-    except Exception:
-        return False
-
 
 def analyze_result_dom(res, trajectories, data):
     root = data["originalDOM"]

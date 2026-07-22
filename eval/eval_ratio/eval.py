@@ -133,7 +133,7 @@ def _process_record(args):
 
 
 def _run_evaluation() -> None:
-    echo("Evaluating D2Snap size scaling...", always=True)
+    echo("Evaluating D2Snap-downsampled snapshot size ratios (: raw)...", always=True)
 
     t0 = time.time()
 

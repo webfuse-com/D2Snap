@@ -7,7 +7,7 @@ from lxml import html as lxml_html
 
 from shared import INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyze_result_dom
 
-from eval import run_evaluation
+from eval import run_evaluation, _DATASET_DIR
 
 
 MAX_SNAPSHOT_SIZE_TOKENS = 2 ** 15  # 32768
@@ -17,18 +17,9 @@ MAX_SNAPSHOT_SIZE_B = MAX_SNAPSHOT_SIZE_TOKENS * 4
 def _loader(data, _id):
     full_html = lxml_html.tostring(data["originalDOM"], encoding="unicode")
 
-    original_html = (_DATASET_DIR / "dom" / f"{rid}.html").read_text()
+    original_html = (_DATASET_DIR / "dom" / f"{_id}.html").read_text()
 
-    after_head = full_html.split("</head>", 1)[-1]
-
-    length = len(after_head)
-
-    if length <= MAX_SNAPSHOT_SIZE_B:
-        snapshot = after_head
-    else:
-        start = (length - MAX_SNAPSHOT_SIZE_B) // 2
-        end = start + MAX_SNAPSHOT_SIZE_B
-        snapshot = after_head[start:end]
+    snapshot = full_html[-MAX_SNAPSHOT_SIZE_B:]
 
     return [
         {

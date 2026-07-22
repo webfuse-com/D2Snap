@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from util import parse_option, echo
 from logger import Logger
 
-from llm_adapter import OpenAIAdapter, AnthropicAdapter
+from llm_adapter import OpenAIAdapter
 
 
 _HERE = Path(__file__).parent
@@ -24,7 +24,6 @@ load_dotenv(_HERE.parent.parent / ".env")
 
 _DATASET_DIR = _HERE.parent.parent / "dataset"
 _DEFAULT_MODEL_OPENAI = "gpt-4o"
-_DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"
 _ADAPTER_CACHE = None
 
 
@@ -47,14 +46,11 @@ def _make_adapter():
     provider = parse_option("--provider") or "openai"
     model = parse_option("--model")
 
-    if provider == "openai":
-        model = model or _DEFAULT_MODEL_OPENAI
-        adapter = OpenAIAdapter(model, os.environ["OPENAI_API_KEY"])
-    elif provider == "anthropic":
-        model = model or _DEFAULT_MODEL_ANTHROPIC
-        adapter = AnthropicAdapter(model, os.environ["ANTHROPIC_API_KEY"])
-    else:
-        raise SyntaxError("Specify a valid model provider")
+    if provider != "openai":
+        raise SyntaxError("Only the 'openai' provider is supported")
+
+    model = model or _DEFAULT_MODEL_OPENAI
+    adapter = OpenAIAdapter(model, os.environ["OPENAI_API_KEY"])
 
     return adapter, provider, model
 
