@@ -32,8 +32,10 @@ export interface TextRankOptions {
 }
 export interface D2SnapOptions {
     debug: boolean;
-    groundTruth: Partial<GroundTruthJSON>;
-    groundTruthReplaceDefault: boolean;
+    uiFeatureHeuristics: Partial<UIFeatureHeuristicsJSON>;
+    uiFeatureHeuristicsReplaceDefault: boolean;
+    groundTruth?: Partial<UIFeatureHeuristicsJSON>;
+    groundTruthReplaceDefault?: boolean;
     filterDataURLs: boolean;
     filterEmptyElements: boolean;
     filteredTagNames: string[];
@@ -67,7 +69,7 @@ export interface D2SnapResult {
         timings?: D2SnapTimings;
     };
 }
-export interface GroundTruthJSON extends JSONObject {
+export interface UIFeatureHeuristicsJSON extends JSONObject {
     typeElement: {
         container: {
             tagNames: string[];

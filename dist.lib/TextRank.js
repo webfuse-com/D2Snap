@@ -130,7 +130,7 @@ function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankO
   const sentences = tokenizeSentences(text);
   const k = Math.min(
     Math.max(
-      Math.round(sentences.length * ratio),
+      Math.ceil(sentences.length * ratio),
       +noEmpty
     ),
     sentences.length

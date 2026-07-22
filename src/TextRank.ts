@@ -202,7 +202,7 @@ export function transform(
 	const sentences: string[] = tokenizeSentences(text);
 	const k: number = Math.min(
 		Math.max(
-			Math.round(sentences.length * ratio),
+			Math.ceil(sentences.length * ratio),
 			+noEmpty
 		),
 		sentences.length

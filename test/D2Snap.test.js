@@ -58,7 +58,7 @@ await test("Take adaptive DOM snapshot (4096)", async () => {
 });
 
 await test("Take adaptive DOM snapshot (2048)", async () => {
-    const snapshot = await adaptiveD2Snap(await readFile("agents"), 2048, 5, {
+    const snapshot = await adaptiveD2Snap(await readFile("agents"), 2048, 6, {
         debug: true
     });
 
@@ -93,7 +93,7 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.51,
+        0.5,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -115,7 +115,7 @@ await test("Take DOM snapshot (M)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.36,
+        0.35,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -183,10 +183,10 @@ await test("Take DOM snapshot (linearized)", async () => {
     );
 });
 
-await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceDefault)", async () => {
+await test("Take DOM snapshot (options.uiFeatureHeuristics + options.uiFeatureHeuristicsReplaceDefault)", async () => {
     const snapshot = await d2Snap(await readFile("pizza"), 0.3, 0.3, 0.3, {
         debug: true,
-        groundTruth: {
+        uiFeatureHeuristics: {
             "typeElement": {
                 "container": {
                     "ratings": {
@@ -203,8 +203,8 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
         }
     });
 
-    writeActual("pizza.ground-truth", snapshot.html);
-    const expected = readExpected("pizza.ground-truth");
+    writeActual("pizza.ui-feature-heuristics", snapshot.html);
+    const expected = readExpected("pizza.ui-feature-heuristics");
 
     assertEqual(
         flattenDOMSnapshot(snapshot.html),
@@ -214,7 +214,7 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
 
     const snapshotReplace = await d2Snap(await readFile("pizza"), 0.3, 0.3, 0.3, {
         debug: true,
-        groundTruth: {
+        uiFeatureHeuristics: {
             "typeElement": {
                 "container": {
                     "tagNames": [
@@ -242,11 +242,11 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
                 "fallbackRating": 0.7
             }
         },
-        groundTruthReplaceDefault: true
+        uiFeatureHeuristicsReplaceDefault: true
     });
 
-    writeActual("pizza.ground-truth.replace", snapshotReplace.html);
-    const expectedReplace = readExpected("pizza.ground-truth.replace");
+    writeActual("pizza.ui-feature-heuristics.replace", snapshotReplace.html);
+    const expectedReplace = readExpected("pizza.ui-feature-heuristics.replace");
 
     assertEqual(
         flattenDOMSnapshot(snapshotReplace.html),
@@ -256,7 +256,7 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
 
     const snapshotAttributeWildcard = await d2Snap(await readFile("pizza"), 0, 0.3, 1, {
         debug: true,
-        groundTruth: {
+        uiFeatureHeuristics: {
             "typeAttribute": {
                 "ratings": {
                     "class": 0,
@@ -273,8 +273,8 @@ await test("Take DOM snapshot (options.groundTruth + options.groundTruthReplaceD
         }
     });
 
-    writeActual("pizza.ground-truth.attribute-wildcard", snapshotAttributeWildcard.html);
-    const expectedARIA = readExpected("pizza.ground-truth.attribute-wildcard");
+    writeActual("pizza.ui-feature-heuristics.attribute-wildcard", snapshotAttributeWildcard.html);
+    const expectedARIA = readExpected("pizza.ui-feature-heuristics.attribute-wildcard");
 
     assertEqual(
         flattenDOMSnapshot(snapshotAttributeWildcard.html),
@@ -487,7 +487,7 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
 
         const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, rE, rA, rT, {
             debug: true,
-            groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+            uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
         });
 
         writeActual(`futurumshop.hamburger.q=${cobroQ}`, snapshot.html);
@@ -520,7 +520,7 @@ await test("Lift svg aria-label out of icon-only button at D2Snap rE=rA=rT=1.0 (
     // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, 1.0, 1.0, 1.0, {
         debug: true,
-        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
     });
 
     assertIn("Open menu", snapshot.html, "Label lost at maximum downsampling");
@@ -536,7 +536,7 @@ await test("Drop replaceWithLabel element with no recoverable label (cobro q=0.1
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
     });
 
     assertNotIn("<svg", snapshot.html, "Unlabeled svg should have been dropped");
@@ -552,7 +552,7 @@ await test("replaceWithLabel recovers label from <title> child element (cobro q=
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        groundTruth: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
     });
 
     assertIn("Delete item", snapshot.html, "Label from <title> child was not lifted");
@@ -560,16 +560,16 @@ await test("replaceWithLabel recovers label from <title> child element (cobro q=
     assertIn("href=\"/trash\"", snapshot.html, "Anchor href must be preserved");
 });
 
-await test("replaceWithLabel is no-op when default ground-truth list is empty (cobro q=0.1)", async () => {
+await test("replaceWithLabel is no-op when default ui-feature-heuristics list is empty (cobro q=0.1)", async () => {
     // Sanity check: pre-fix behaviour must still be reachable. With the
-    // default ground truth (no replaceWithLabel entry), svg passes through
+    // default UI feature heuristics (no replaceWithLabel entry), svg passes through
     // untouched.
     const { rE, rA, rT } = downsamplingRatioToQualityRatio(0.1);
     const dom = `<html><body><button wf-id="1"><svg aria-label="X" wf-id="2"></svg></button></body></html>`;
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
+        uiFeatureHeuristics: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
     });
 
     // No replaceWithLabel config → svg survives.
@@ -617,7 +617,7 @@ await test("Markdown pass converts nested textFormatting inside kept actionable 
 
 await test("Container merge never moves content into a void element", async () => {
     // Root cause of the futurumshop collapse: void elements (<br>, <img>, ...)
-    // are not listed in the ground truth, so the "custom element is a
+    // are not listed in the UI feature heuristics, so the "custom element is a
     // container" heuristic classifies them as containers — and with a high
     // container fallbackRating they outrank their parent. A top-down merge then
     // moves the parent's children INTO the void element, which serializes
@@ -630,7 +630,7 @@ await test("Container merge never moves content into a void element", async () =
     };
     for (const voidTag of ["br", "img", "hr", "wbr"]) {
         const dom = `<html><body><div id="d"><${voidTag}><p>IMPORTANT CONTENT one two three four five.</p></div></body></html>`;
-        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
+        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, uiFeatureHeuristics: gt, uiFeatureHeuristicsReplaceDefault: true });
 
         assertIn("IMPORTANT CONTENT", snapshot.html, `Content was merged into void <${voidTag}> and lost`);
     }
@@ -653,7 +653,7 @@ await test("Markdown autolink URL does not become a bogus container element", as
     };
     for (const url of ["https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com"]) {
         const dom = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
-        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: gt, groundTruthReplaceDefault: true });
+        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, uiFeatureHeuristics: gt, uiFeatureHeuristicsReplaceDefault: true });
 
         assertNotIn("<https:", snapshot.html, `URL <${url}> re-parsed into a bogus <https:> element`);
         assertNotIn("<mailto:", snapshot.html, `URL <${url}> re-parsed into a bogus <mailto:> element`);
@@ -670,7 +670,7 @@ await test("Markdown autolink URL does not become a bogus container element", as
         typeAttribute: { ratings: { href: 0.9 }, fallbackRating: 0.5 }
     };
     const linkDom = `<html><body><main><p>visit &lt;https://example.com follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
-    const linkSnapshot = await d2Snap(linkDom, 0.9, 0.9, 0.9, { debug: true, groundTruth: linkGt, groundTruthReplaceDefault: true });
+    const linkSnapshot = await d2Snap(linkDom, 0.9, 0.9, 0.9, { debug: true, uiFeatureHeuristics: linkGt, uiFeatureHeuristicsReplaceDefault: true });
     assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");
     assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
 });
@@ -701,8 +701,8 @@ await test("Container top-down merge does not crash on framework attribute names
         // top-down merge), which forces setAttribute() to be called with it.
         const dom = `<html><body><div ${name}="${val}"><section><p>IMPORTANT content</p></section></div></body></html>`;
         const snapshot = await d2Snap(dom, 1.0, 1.0, 1.0, {
-            groundTruth: gt,
-            groundTruthReplaceDefault: true
+            uiFeatureHeuristics: gt,
+            uiFeatureHeuristicsReplaceDefault: true
         });
         assertIn("IMPORTANT content", snapshot.html,
             `Content lost when merging element carrying framework attr ${name}`);
@@ -732,8 +732,8 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
     };
     const dom = `<html><body><section><p>visit <ns:widget>KEPTCONTENT</ns:widget> for help</p></section></body></html>`;
     const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
-        groundTruth: gt,
-        groundTruthReplaceDefault: true
+        uiFeatureHeuristics: gt,
+        uiFeatureHeuristicsReplaceDefault: true
     });
     assertIn("KEPTCONTENT", snapshot.html,
         "Namespace-qualified element content was stripped (false positive in scheme regex)");
@@ -746,7 +746,7 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
 //   1. Void-element merge — <br>/<img> etc. classified as containers get
 //      content merged into them and dropped on serialization. This is what
 //      cratered the survey: q<=0.8 snapshots fell from ~150KB to ~2KB. It only
-//      surfaces with a ground truth where `span` is `textFormatting` (so the
+//      surfaces with a UI feature heuristics where `span` is `textFormatting` (so the
 //      surrounding spans are non-containers), which is why we use one here.
 //   2. Markdown re-traversal — commit 034a010 fed Turndown's own output back
 //      through the textFormatting pass, spinning on passthrough HTML (the
@@ -756,7 +756,7 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
 //      the DOM Name production (Vue's `@click`) throw InvalidCharacterError and
 //      abort the snapshot. This page has `@click="autoCloseProfile($event)"`.
 //
-// The GT below mirrors the deployed cobro ground truth (span as textFormatting,
+// The GT below mirrors the deployed cobro UI feature heuristics (span as textFormatting,
 // svg as replaceWithLabel, container fallbackRating 1.0) so this fixture exercises
 // the real-world collapse path.
 // ---------------------------------------------------------------------------
@@ -783,8 +783,8 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         const snapshot = await d2Snap(dom, rE, rA, rT, {
             debug: true,
             uniqueIDs: true,
-            groundTruth: COBRO_LIKE_GROUND_TRUTH,
-            groundTruthReplaceDefault: true
+            uiFeatureHeuristics: COBRO_LIKE_GROUND_TRUTH,
+            uiFeatureHeuristicsReplaceDefault: true
         });
         const elapsedMs = Date.now() - start;
 

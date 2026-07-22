@@ -1,4 +1,4 @@
-import { GroundTruth } from "./GroundTruth.js";
+import { UIFeatureHeuristics } from "./UIFeatureHeuristics.js";
 import { transform } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
@@ -10,7 +10,7 @@ import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
-import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
+import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.UI_FEATURE_HEURISTICS.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const WHITESPACE_REGEX = /^\s$/;
@@ -70,8 +70,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   validateParameter("rT", rT);
   const optionsWithDefaults = {
     debug: false,
-    groundTruth: DEFAULT_GROUND_TRUTH,
-    groundTruthReplaceDefault: false,
+    uiFeatureHeuristics: DEFAULT_GROUND_TRUTH,
+    uiFeatureHeuristicsReplaceDefault: false,
     filterDataURLs: true,
     filterEmptyElements: false,
     filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
@@ -81,14 +81,16 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     uniqueIDs: false,
     ...options
   };
-  const groundTruth = new GroundTruth(
-    !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
+  optionsWithDefaults.uiFeatureHeuristics = options.groundTruth ?? optionsWithDefaults.uiFeatureHeuristics;
+  optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault ?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
+  const uiFeatureHeuristics = new UIFeatureHeuristics(
+    !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
   );
   const filteredTagNames = new Set(
     optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   const mdRetainedTagNames = new Set(
-    groundTruth.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
+    uiFeatureHeuristics.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
   );
   function hasMDRetainTagName(elementNode) {
     return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
@@ -102,8 +104,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if (hasActionableRole(elementNode)) return;
     if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     const considerContainerElement = (elementNode2) => {
-      if (groundTruth.isElementType("container", elementNode2.tagName)) return true;
-      if (optionsWithDefaults.skipMarkdown && groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+      if (uiFeatureHeuristics.isElementType("container", elementNode2.tagName)) return true;
+      if (optionsWithDefaults.skipMarkdown && uiFeatureHeuristics.isElementType("textFormatting", elementNode2.tagName)) return true;
       if (elementNode2.tagName.includes("-")) return true;
       return false;
     };
@@ -116,7 +118,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       elementNode.parentElement,
       elementNode
     ];
-    const isTopdownMerge = groundTruth.getContainerRating(elements[0].tagName) < groundTruth.getContainerRating(elements[1].tagName);
+    const isTopdownMerge = uiFeatureHeuristics.getContainerRating(elements[0].tagName) < uiFeatureHeuristics.getContainerRating(elements[1].tagName);
     isTopdownMerge && elements.reverse();
     const targetElement = elements[0];
     const sourceElement = elements[1];
@@ -181,9 +183,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   function snapElementReplaceWithLabelNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+    if (!uiFeatureHeuristics.isElementType("replaceWithLabel", elementNode.tagName)) return;
     let label = null;
-    for (const attrName of groundTruth.getLabelAttrs()) {
+    for (const attrName of uiFeatureHeuristics.getLabelAttrs()) {
       const value = elementNode.getAttribute(attrName);
       const trimmed = (value ?? "").trim();
       if (trimmed) {
@@ -193,7 +195,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     if (!label) {
       for (const child of Array.from(elementNode.children)) {
-        if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+        if (!uiFeatureHeuristics.isLabelChildTag(child.tagName)) continue;
         const trimmed = (child.textContent ?? "").trim();
         if (trimmed) {
           label = trimmed;
@@ -210,7 +212,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapElementTextFormattingNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (hasActionableRole(elementNode)) return;
-    if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
+    if (!uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)) return;
     if (optionsWithDefaults.skipMarkdown) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
@@ -235,7 +237,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapAttributeNode(elementNode, rA2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     for (const attr of Array.from(elementNode.attributes)) {
-      if (groundTruth.getAttributeRating(attr.name) >= rA2) continue;
+      if (uiFeatureHeuristics.getAttributeRating(attr.name) >= rA2) continue;
       elementNode.removeAttribute(attr.name);
     }
   }
@@ -251,7 +253,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     rootElement,
     NodeFilter.SHOW_ELEMENT,
     (elementNode) => {
-      if (!groundTruth.isElementType("container", elementNode.tagName) && !groundTruth.isElementType("actionable", elementNode.tagName)) return;
+      if (!uiFeatureHeuristics.isElementType("container", elementNode.tagName) && !uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
       elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
     }
   );
@@ -287,7 +289,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   timings.init = t() - t0;
   t0 = t();
-  if (groundTruth.getElementsByType("replaceWithLabel").length) {
+  if (uiFeatureHeuristics.getElementsByType("replaceWithLabel").length) {
     traverseDom(
       virtualDom,
       NodeFilter.SHOW_ELEMENT,
@@ -332,7 +334,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         virtualDom,
         NodeFilter.SHOW_ELEMENT,
         (elementNode) => {
-          if (groundTruth.isElementType("actionable", elementNode.tagName)) return;
+          if (uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
           if (hasActionableRole(elementNode)) return;
           if (elementNode.children.length || elementNode.textContent.trim().length) return;
           elementNode.remove();

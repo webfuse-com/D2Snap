@@ -1,4 +1,4 @@
-import { GroundTruth } from "./GroundTruth.js";
+import { UIFeatureHeuristics } from "./UIFeatureHeuristics.js";
 import { transform } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
@@ -8,7 +8,7 @@ import {
 	type D2SnapResult,
 	type D2SnapTimings,
 	type DOM,
-	type GroundTruthJSON,
+	type UIFeatureHeuristicsJSON,
 	type HTMLElementWithDepth,
 	type JSONObject,
 	type TextNode
@@ -18,7 +18,7 @@ import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
-import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.GROUND_TRUTH.js";
+import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.UI_FEATURE_HEURISTICS.js";
 
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
@@ -107,8 +107,8 @@ export function d2Snap(
 
 	const optionsWithDefaults: D2SnapOptions = {
 		debug: false,
-		groundTruth: DEFAULT_GROUND_TRUTH,
-		groundTruthReplaceDefault: false,
+		uiFeatureHeuristics: DEFAULT_GROUND_TRUTH,
+		uiFeatureHeuristicsReplaceDefault: false,
 		filterDataURLs: true,
 		filterEmptyElements: false,
 		filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
@@ -120,10 +120,16 @@ export function d2Snap(
 		...options
 	}
 
-	const groundTruth: GroundTruth = new GroundTruth(
-		!optionsWithDefaults.groundTruthReplaceDefault
-			? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.groundTruth as JSONObject) as GroundTruthJSON
-			: optionsWithDefaults.groundTruth as GroundTruthJSON
+	// Backwards compatibility (deprecation)
+	optionsWithDefaults.uiFeatureHeuristics = options.groundTruth
+		?? optionsWithDefaults.uiFeatureHeuristics;
+	optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault
+		?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
+
+	const uiFeatureHeuristics: UIFeatureHeuristics = new UIFeatureHeuristics(
+		!optionsWithDefaults.uiFeatureHeuristicsReplaceDefault
+			? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics as JSONObject) as UIFeatureHeuristicsJSON
+			: optionsWithDefaults.uiFeatureHeuristics as UIFeatureHeuristicsJSON
 	);
 
 	const filteredTagNames: Set<string> = new Set(
@@ -131,7 +137,7 @@ export function d2Snap(
 	);
 
 	const mdRetainedTagNames: Set<string> = new Set(
-		groundTruth.getElementsByType("actionable")
+		uiFeatureHeuristics.getElementsByType("actionable")
 			.map((tagName: string) => tagName.toUpperCase())
 	);
 
@@ -152,10 +158,10 @@ export function d2Snap(
 		if(VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
 
 		const considerContainerElement = (elementNode: Element) => {
-			if(groundTruth.isElementType("container", elementNode.tagName)) return true;
+			if(uiFeatureHeuristics.isElementType("container", elementNode.tagName)) return true;
 			if(
 				optionsWithDefaults.skipMarkdown
-				&& groundTruth.isElementType("textFormatting", elementNode.tagName)
+				&& uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)
 			) return true;
 			// custom elements (!)
 			if(elementNode.tagName.includes("-")) return true;
@@ -177,8 +183,8 @@ export function d2Snap(
 		];
 
 		const isTopdownMerge = (
-			groundTruth.getContainerRating(elements[0].tagName)
-			< groundTruth.getContainerRating(elements[1].tagName)
+			uiFeatureHeuristics.getContainerRating(elements[0].tagName)
+			< uiFeatureHeuristics.getContainerRating(elements[1].tagName)
 		);
 		isTopdownMerge && elements.reverse();
 
@@ -277,19 +283,19 @@ export function d2Snap(
 
 	function snapElementReplaceWithLabelNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+		if(!uiFeatureHeuristics.isElementType("replaceWithLabel", elementNode.tagName)) return;
 
 		// Find an accessibility label, preferring attributes over child elements.
-		// Attribute order is taken from the ground truth (default: aria-label, title, alt).
+		// Attribute order is taken from the UI feature heuristics (default: aria-label, title, alt).
 		let label: string | null = null;
-		for(const attrName of groundTruth.getLabelAttrs()) {
+		for(const attrName of uiFeatureHeuristics.getLabelAttrs()) {
 			const value: string | null = elementNode.getAttribute(attrName);
 			const trimmed: string = (value ?? "").trim();
 			if(trimmed) { label = trimmed; break; }
 		}
 		if(!label) {
 			for(const child of Array.from(elementNode.children)) {
-				if(!groundTruth.isLabelChildTag(child.tagName)) continue;
+				if(!uiFeatureHeuristics.isLabelChildTag(child.tagName)) continue;
 				const trimmed: string = (child.textContent ?? "").trim();
 				if(trimmed) { label = trimmed; break; }
 			}
@@ -309,7 +315,7 @@ export function d2Snap(
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(hasActionableRole(elementNode)) return;
-		if(!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
+		if(!uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)) return;
 		if(optionsWithDefaults.skipMarkdown) return;
 
 		// Markdown
@@ -359,7 +365,7 @@ export function d2Snap(
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
 		for(const attr of Array.from(elementNode.attributes)) {
-			if(groundTruth.getAttributeRating(attr.name) >= rA) continue;
+			if(uiFeatureHeuristics.getAttributeRating(attr.name) >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);
 		}
@@ -382,8 +388,8 @@ export function d2Snap(
 			NodeFilter.SHOW_ELEMENT,
 			elementNode => {
 				if(
-					!groundTruth.isElementType("container", elementNode.tagName)
-					&& !groundTruth.isElementType("actionable", elementNode.tagName)
+					!uiFeatureHeuristics.isElementType("container", elementNode.tagName)
+					&& !uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)
 				) return;
 
 				elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
@@ -438,7 +444,7 @@ export function d2Snap(
 
 	// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
 	t0 = t();
-	if(groundTruth.getElementsByType("replaceWithLabel").length) {
+	if(uiFeatureHeuristics.getElementsByType("replaceWithLabel").length) {
 		traverseDom<HTMLElement>(
 			virtualDom,
 			NodeFilter.SHOW_ELEMENT,
@@ -497,7 +503,7 @@ export function d2Snap(
 				virtualDom,
 				NodeFilter.SHOW_ELEMENT,
 				(elementNode: HTMLElement) => {
-					if(groundTruth.isElementType("actionable", elementNode.tagName)) return;
+					if(uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
 					if(hasActionableRole(elementNode)) return;
 					if(elementNode.children.length || elementNode.textContent.trim().length) return;
 

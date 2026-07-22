@@ -85,7 +85,7 @@
     }
   }
 
-  // src/GroundTruth.ts
+  // src/UIFeatureHeuristics.ts
   var HARD_FALLBACK_RATING = 0;
   var DEFAULT_LABEL_ATTRS = ["aria-label", "title", "alt"];
   var DEFAULT_LABEL_CHILD_TAGS = ["title", "desc"];
@@ -94,8 +94,8 @@
     "data-"
   ];
   var ATTRIBUTE_SUFFIX_WILDCARD = "*";
-  var GroundTruth = class {
-    groundTruth;
+  var UIFeatureHeuristics = class {
+    uiFeatureHeuristics;
     elementsByType;
     elementTypeSets;
     nonContainerTagNames;
@@ -106,13 +106,13 @@
     attributeRatingCache = /* @__PURE__ */ new Map();
     labelAttrs;
     labelChildTagsSet;
-    constructor(groundTruth) {
-      this.groundTruth = groundTruth;
+    constructor(uiFeatureHeuristics) {
+      this.uiFeatureHeuristics = uiFeatureHeuristics;
       this.elementsByType = {
-        container: this.groundTruth?.typeElement?.container?.tagNames ?? [],
-        actionable: this.groundTruth?.typeElement?.actionable?.tagNames ?? [],
-        textFormatting: this.groundTruth?.typeElement?.textFormatting?.tagNames ?? [],
-        replaceWithLabel: this.groundTruth?.typeElement?.replaceWithLabel?.tagNames ?? []
+        container: this.uiFeatureHeuristics?.typeElement?.container?.tagNames ?? [],
+        actionable: this.uiFeatureHeuristics?.typeElement?.actionable?.tagNames ?? [],
+        textFormatting: this.uiFeatureHeuristics?.typeElement?.textFormatting?.tagNames ?? [],
+        replaceWithLabel: this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.tagNames ?? []
       };
       this.elementTypeSets = {
         container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
@@ -125,13 +125,13 @@
         ...this.elementTypeSets.textFormatting,
         ...this.elementTypeSets.replaceWithLabel
       ]);
-      this.containerRatings = this.groundTruth?.typeElement?.container?.ratings ?? {};
-      this.containerFallbackRating = this.groundTruth?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
-      this.attributeRatings = this.groundTruth?.typeAttribute?.ratings ?? {};
-      this.attributeFallbackRating = this.groundTruth?.typeAttribute?.fallbackRating;
-      this.labelAttrs = (this.groundTruth?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS).map((a) => a.toLowerCase());
+      this.containerRatings = this.uiFeatureHeuristics?.typeElement?.container?.ratings ?? {};
+      this.containerFallbackRating = this.uiFeatureHeuristics?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
+      this.attributeRatings = this.uiFeatureHeuristics?.typeAttribute?.ratings ?? {};
+      this.attributeFallbackRating = this.uiFeatureHeuristics?.typeAttribute?.fallbackRating;
+      this.labelAttrs = (this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS).map((a) => a.toLowerCase());
       this.labelChildTagsSet = new Set(
-        (this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
+        (this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
       );
     }
     getElementsByType(type) {
@@ -313,7 +313,7 @@
     const sentences = tokenizeSentences(text);
     const k = Math.min(
       Math.max(
-        Math.round(sentences.length * ratio),
+        Math.ceil(sentences.length * ratio),
         +noEmpty
       ),
       sentences.length
@@ -1585,7 +1585,7 @@
     "USE"
   ];
 
-  // src/var.GROUND_TRUTH.ts
+  // src/var.UI_FEATURE_HEURISTICS.ts
   var GROUND_TRUTH = {
     "typeElement": {
       "container": {
@@ -1667,75 +1667,75 @@
     },
     "typeAttribute": {
       "ratings": {
-        "alt": 0.9,
-        "href": 0.9,
-        "src": 0.8,
-        "id": 0.8,
-        "class": 0.7,
-        "title": 0.6,
-        "lang": 0.6,
-        "role": 0.6,
-        "placeholder": 0.5,
-        "label": 0.5,
-        "for": 0.5,
-        "value": 0.5,
-        "checked": 0.5,
-        "disabled": 0.5,
-        "readonly": 0.5,
-        "required": 0.5,
-        "maxlength": 0.5,
-        "minlength": 0.5,
-        "pattern": 0.5,
-        "step": 0.5,
-        "min": 0.5,
-        "max": 0.5,
-        "accept": 0.4,
-        "accept-charset": 0.4,
-        "action": 0.4,
-        "method": 0.4,
-        "enctype": 0.4,
-        "target": 0.4,
-        "rel": 0.4,
-        "media": 0.4,
-        "sizes": 0.4,
-        "srcset": 0.4,
-        "preload": 0.4,
-        "autoplay": 0.4,
-        "controls": 0.4,
-        "loop": 0.4,
-        "muted": 0.4,
-        "poster": 0.4,
-        "autofocus": 0.3,
-        "autocomplete": 0.3,
-        "autocapitalize": 0.3,
-        "spellcheck": 0.3,
-        "contenteditable": 0.3,
-        "draggable": 0.3,
-        "dropzone": 0.3,
-        "tabindex": 0.3,
-        "accesskey": 0.3,
-        "cite": 0.3,
-        "datetime": 0.3,
-        "coords": 0.3,
-        "shape": 0.3,
-        "usemap": 0.3,
-        "ismap": 0.3,
-        "download": 0.3,
-        "ping": 0.3,
-        "hreflang": 0.3,
-        "type": 0.3,
-        "name": 0.3,
-        "form": 0.3,
-        "novalidate": 0.2,
-        "multiple": 0.2,
-        "selected": 0.2,
-        "size": 0.2,
-        "wrap": 0.2,
-        "hidden": 0.1,
+        "alt": 0.46,
+        "href": 0.91,
+        "src": 0.83,
+        "id": 0.68,
+        "class": 0.77,
+        "title": 0.29,
+        "lang": 0.3,
+        "role": 0.32,
+        "placeholder": 0.25,
+        "label": 0.31,
+        "for": 0.3,
+        "value": 0.43,
+        "checked": 0.36,
+        "disabled": 0.34,
+        "readonly": 0.33,
+        "required": 0.33,
+        "maxlength": 0.21,
+        "minlength": 0.21,
+        "pattern": 0.22,
+        "step": 0.22,
+        "min": 0.23,
+        "max": 0.23,
+        "accept": 0.24,
+        "accept-charset": 0.01,
+        "action": 0.27,
+        "method": 0.27,
+        "enctype": 0.17,
+        "target": 0.17,
+        "rel": 0.18,
+        "media": 0.03,
+        "sizes": 0.19,
+        "srcset": 0.2,
+        "preload": 0.02,
+        "autoplay": 0.03,
+        "controls": 0.36,
+        "loop": 0.04,
+        "muted": 0.04,
+        "poster": 0.03,
+        "autofocus": 0.16,
+        "autocomplete": 0.15,
+        "autocapitalize": 0.01,
+        "spellcheck": 0.02,
+        "contenteditable": 0.15,
+        "draggable": 0.01,
+        "dropzone": 0,
+        "tabindex": 0.16,
+        "accesskey": 0,
+        "cite": 0.01,
+        "datetime": 0.15,
+        "coords": 0,
+        "shape": 0,
+        "usemap": 0.01,
+        "ismap": 0,
+        "download": 0.02,
+        "ping": 0,
+        "hreflang": 0.02,
+        "type": 0.38,
+        "name": 0.4,
+        "form": 0.26,
+        "novalidate": 0.02,
+        "multiple": 0.26,
+        "selected": 0.35,
+        "size": 0.04,
+        "wrap": 0.01,
+        "hidden": 0.28,
         "style": 0.1,
-        "content": 0.1,
-        "http-equiv": 0.1,
-        "aria-*": 0.6,
+        "content": 0.05,
+        "http-equiv": 0.01,
+        "aria-*": 0.62,
         "data-uid": 1
       },
       "fallbackRating": 0
@@ -1802,8 +1802,8 @@
     validateParameter("rT", rT);
     const optionsWithDefaults = {
       debug: false,
-      groundTruth: GROUND_TRUTH,
-      groundTruthReplaceDefault: false,
+      uiFeatureHeuristics: GROUND_TRUTH,
+      uiFeatureHeuristicsReplaceDefault: false,
       filterDataURLs: true,
       filterEmptyElements: false,
       filteredTagNames: FILTERED_TAG_NAMES,
@@ -1813,14 +1813,16 @@
       uniqueIDs: false,
       ...options
     };
-    const groundTruth = new GroundTruth(
-      !optionsWithDefaults.groundTruthReplaceDefault ? mergeJSONs(GROUND_TRUTH, optionsWithDefaults.groundTruth) : optionsWithDefaults.groundTruth
+    optionsWithDefaults.uiFeatureHeuristics = options.groundTruth ?? optionsWithDefaults.uiFeatureHeuristics;
+    optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault ?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
+    const uiFeatureHeuristics = new UIFeatureHeuristics(
+      !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
     );
     const filteredTagNames = new Set(
       optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
     const mdRetainedTagNames = new Set(
-      groundTruth.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
+      uiFeatureHeuristics.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
     );
     function hasMDRetainTagName(elementNode) {
       return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
@@ -1834,8 +1836,8 @@
       if (hasActionableRole(elementNode)) return;
       if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
       const considerContainerElement = (elementNode2) => {
-        if (groundTruth.isElementType("container", elementNode2.tagName)) return true;
-        if (optionsWithDefaults.skipMarkdown && groundTruth.isElementType("textFormatting", elementNode2.tagName)) return true;
+        if (uiFeatureHeuristics.isElementType("container", elementNode2.tagName)) return true;
+        if (optionsWithDefaults.skipMarkdown && uiFeatureHeuristics.isElementType("textFormatting", elementNode2.tagName)) return true;
         if (elementNode2.tagName.includes("-")) return true;
         return false;
       };
@@ -1848,7 +1850,7 @@
         elementNode.parentElement,
         elementNode
       ];
-      const isTopdownMerge = groundTruth.getContainerRating(elements[0].tagName) < groundTruth.getContainerRating(elements[1].tagName);
+      const isTopdownMerge = uiFeatureHeuristics.getContainerRating(elements[0].tagName) < uiFeatureHeuristics.getContainerRating(elements[1].tagName);
       isTopdownMerge && elements.reverse();
       const targetElement = elements[0];
       const sourceElement = elements[1];
@@ -1913,9 +1915,9 @@
     }
     function snapElementReplaceWithLabelNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+      if (!uiFeatureHeuristics.isElementType("replaceWithLabel", elementNode.tagName)) return;
       let label = null;
-      for (const attrName of groundTruth.getLabelAttrs()) {
+      for (const attrName of uiFeatureHeuristics.getLabelAttrs()) {
         const value = elementNode.getAttribute(attrName);
         const trimmed = (value ?? "").trim();
         if (trimmed) {
@@ -1925,7 +1927,7 @@
       }
       if (!label) {
         for (const child of Array.from(elementNode.children)) {
-          if (!groundTruth.isLabelChildTag(child.tagName)) continue;
+          if (!uiFeatureHeuristics.isLabelChildTag(child.tagName)) continue;
           const trimmed = (child.textContent ?? "").trim();
           if (trimmed) {
             label = trimmed;
@@ -1942,7 +1944,7 @@
     function snapElementTextFormattingNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (hasActionableRole(elementNode)) return;
-      if (!groundTruth.isElementType("textFormatting", elementNode.tagName)) return;
+      if (!uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)) return;
       if (optionsWithDefaults.skipMarkdown) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
@@ -1967,7 +1969,7 @@
     function snapAttributeNode(elementNode, rA2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       for (const attr of Array.from(elementNode.attributes)) {
-        if (groundTruth.getAttributeRating(attr.name) >= rA2) continue;
+        if (uiFeatureHeuristics.getAttributeRating(attr.name) >= rA2) continue;
         elementNode.removeAttribute(attr.name);
       }
     }
@@ -1983,7 +1985,7 @@
       rootElement,
       1 /* SHOW_ELEMENT */,
       (elementNode) => {
-        if (!groundTruth.isElementType("container", elementNode.tagName) && !groundTruth.isElementType("actionable", elementNode.tagName)) return;
+        if (!uiFeatureHeuristics.isElementType("container", elementNode.tagName) && !uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
         elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
       }
     );
@@ -2019,7 +2021,7 @@
     );
     timings.init = t() - t0;
     t0 = t();
-    if (groundTruth.getElementsByType("replaceWithLabel").length) {
+    if (uiFeatureHeuristics.getElementsByType("replaceWithLabel").length) {
       traverseDom(
         virtualDom,
         1 /* SHOW_ELEMENT */,
@@ -2064,7 +2066,7 @@
           virtualDom,
           1 /* SHOW_ELEMENT */,
           (elementNode) => {
-            if (groundTruth.isElementType("actionable", elementNode.tagName)) return;
+            if (uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
             if (hasActionableRole(elementNode)) return;
             if (elementNode.children.length || elementNode.textContent.trim().length) return;
             elementNode.remove();

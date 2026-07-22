@@ -1,7 +1,7 @@
-import { type GroundTruthJSON } from "./types.js";
+import { type UIFeatureHeuristicsJSON } from "./types.js";
 type ElementType = "container" | "actionable" | "textFormatting" | "replaceWithLabel";
-export declare class GroundTruth {
-    private readonly groundTruth;
+export declare class UIFeatureHeuristics {
+    private readonly uiFeatureHeuristics;
     private readonly elementsByType;
     private readonly elementTypeSets;
     private readonly nonContainerTagNames;
@@ -12,7 +12,7 @@ export declare class GroundTruth {
     private readonly attributeRatingCache;
     private readonly labelAttrs;
     private readonly labelChildTagsSet;
-    constructor(groundTruth: GroundTruthJSON);
+    constructor(uiFeatureHeuristics: UIFeatureHeuristicsJSON);
     getElementsByType(type: ElementType): string[];
     getLabelAttrs(): readonly string[];
     isLabelChildTag(tagName: string): boolean;
