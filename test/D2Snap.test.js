@@ -457,7 +457,7 @@ const FUTURUMSHOP_HAMBURGER_DOM = `<html><body><button class="hamburger js-mobil
             </svg>
         </button></body></html>`;
 
-const SVG_LABELED_EXTRACT_GROUND_TRUTH = {
+const SVG_LABELED_EXTRACT_UI_FEATURE_HEURISTICS = {
     typeElement: {
         replaceWithLabel: { tagNames: ["svg"] }
     },
@@ -487,7 +487,7 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
 
         const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, rE, rA, rT, {
             debug: true,
-            uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
+            uiFeatureHeuristics: SVG_LABELED_EXTRACT_UI_FEATURE_HEURISTICS
         });
 
         writeActual(`futurumshop.hamburger.q=${cobroQ}`, snapshot.html);
@@ -520,7 +520,7 @@ await test("Lift svg aria-label out of icon-only button at D2Snap rE=rA=rT=1.0 (
     // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUMSHOP_HAMBURGER_DOM, 1.0, 1.0, 1.0, {
         debug: true,
-        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_UI_FEATURE_HEURISTICS
     });
 
     assertIn("Open menu", snapshot.html, "Label lost at maximum downsampling");
@@ -536,7 +536,7 @@ await test("Drop replaceWithLabel element with no recoverable label (cobro q=0.1
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_UI_FEATURE_HEURISTICS
     });
 
     assertNotIn("<svg", snapshot.html, "Unlabeled svg should have been dropped");
@@ -552,7 +552,7 @@ await test("replaceWithLabel recovers label from <title> child element (cobro q=
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        uiFeatureHeuristics: SVG_LABELED_EXTRACT_GROUND_TRUTH
+        uiFeatureHeuristics: SVG_LABELED_EXTRACT_UI_FEATURE_HEURISTICS
     });
 
     assertIn("Delete item", snapshot.html, "Label from <title> child was not lifted");
@@ -760,7 +760,7 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
 // svg as replaceWithLabel, container fallbackRating 1.0) so this fixture exercises
 // the real-world collapse path.
 // ---------------------------------------------------------------------------
-const COBRO_LIKE_GROUND_TRUTH = {
+const COBRO_LIKE_UI_FEATURE_HEURISTICS = {
     typeElement: {
         container: {
             tagNames: ["article", "aside", "body", "div", "footer", "header", "html", "main", "nav", "section"],
@@ -783,7 +783,7 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         const snapshot = await d2Snap(dom, rE, rA, rT, {
             debug: true,
             uniqueIDs: true,
-            uiFeatureHeuristics: COBRO_LIKE_GROUND_TRUTH,
+            uiFeatureHeuristics: COBRO_LIKE_UI_FEATURE_HEURISTICS,
             uiFeatureHeuristicsReplaceDefault: true
         });
         const elapsedMs = Date.now() - start;

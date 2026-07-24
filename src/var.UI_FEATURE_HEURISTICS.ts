@@ -1,4 +1,4 @@
-export const GROUND_TRUTH = {
+export const UI_FEATURE_HEURISTICS = {
 	"typeElement": {
 		"container": {
 			"tagNames": [

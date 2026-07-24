@@ -34,16 +34,16 @@ D2Snap.adaptiveD2Snap(
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  debug?: boolean;                      // false
-  groundTruth?: object;                 // compare src/types.ts:GroundTruthJSON
-  groundTruthReplaceDefault?: boolean;  // false
-  skipMarkdown?: boolean;               // false
-  skipTextRank?: boolean;               // false
-  uniqueIDs?: boolean;                  // false
+  debug?: boolean;                              // false
+  uiFeatureHeuristics?: object;                 // compare src/types.ts:UIFeatureHeuristicsJSON
+  uiFeatureHeuristicsReplaceDefault?: boolean;  // false
+  skipMarkdown?: boolean;                       // false
+  skipTextRank?: boolean;                       // false
+  uniqueIDs?: boolean;                          // false
 };
 ```
 
-> The [downsampling ground truth](./src/var.GROUND_TRUTH.ts) can be overridden via `options.groundTruth` (full replacement via `groundTruthReplaceDefault: true`).
+> The downsampling [UI feature heuristics](./src/var.UI_FEATURE_HEURISTICS.ts) can be overridden via `options.uiFeatureHeuristics` (full replacement via `uiFeatureHeuristicsReplaceDefault: true`).
 > Wildcards for `aria` and `data` attributes are supported (`{aria-|data-}*`).
 
 #### Browser
@@ -72,68 +72,64 @@ import * as D2Snap from "@webfuse-com/d2snap";
 ### Example
 
 ``` html
-<main class="container" tabindex="3" required="true">
+<section class="container" tabindex="3" required="true" type="example">
   <div class="mx-auto" data-topic="products" required="false">
     <h1>Our Pizza</h1>
-    <div aria-description="Choose one product">
-      <strong>Choose one</strong>
-      <section class="shadow-lg">
+    <div>
+      <div class="shadow-lg">
         <h2>Margherita</h2>
         <p>
-         A simple classic: mozzarela, tomatoes and basil.
+         A simple classic: mozzarella, tomatoes and basil.
          An everyday choice!
         </p>
         <button type="button">Add</button>
-      </section>
-      <section class="shadow-lg">
+      </div>
+      <div class="shadow-lg">
         <h2>Capricciosa</h2>
         <p>
-          A rich taste: mozzarella, ham, mushrooms, artichokes, and olives.
+          A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
           A true favourite!
         </p>
         <button type="button">Add</button>
-      </section>
+      </div>
     </div>
   </div>
-</main>
+</section>
 ```
 
 <p align="center">↓ D2Snap ↓</p>
 
 ``` html
-<main class="container" required="true">
-  # Our Pizza
-  <section aria-description="Choose one product" class="shadow-lg">
-    **Choose one**
-    ## Margherita
-    A simple classic mozzarela tomatoes and basil
-    <button>
-      Add
-    </button>
-    ## Capricciosa
-    A rich taste
-    A true favourite
-    <button>
-      Add
-    </button>
-  </section>
-</main>
+<section class="container" required="true" type="example">
+  <div class="mx-auto" required="false">
+    # Our Pizza
+    <div>
+      ## Margherita
+      A simple classic: mozzarella, tomatoes and basil.
+      An everyday choice!
+      <button type="button">Add</button>
+      ## Capricciosa
+      A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
+      A true favourite!
+      <button type="button">Add</button>
+    </div>
+  </div>
+</section>
 ```
 
 <p align="center">↓ D2Snap ↓</p>
 
 ``` html
 # Our Pizza
-**Choose one**
 ## Margherita
-A simple classic
+A simple classic: mozzarella, tomatoes and basil.
+An everyday choice!
 <button>Add</button>
 ## Capricciosa
-A rich taste
+A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
+A true favourite!
 <button>Add</button>
 ```
-
-#### [Example Pipeline](./.github/downsampling-pipeline.png)
 
 ##
 

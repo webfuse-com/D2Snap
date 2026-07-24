@@ -18,7 +18,7 @@ import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
-import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.UI_FEATURE_HEURISTICS.js";
+import { UI_FEATURE_HEURISTICS as DEFAULT_UI_FEATURE_HEURISTICS } from "./var.UI_FEATURE_HEURISTICS.js";
 
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
@@ -107,7 +107,7 @@ export function d2Snap(
 
 	const optionsWithDefaults: D2SnapOptions = {
 		debug: false,
-		uiFeatureHeuristics: DEFAULT_GROUND_TRUTH,
+		uiFeatureHeuristics: DEFAULT_UI_FEATURE_HEURISTICS,
 		uiFeatureHeuristicsReplaceDefault: false,
 		filterDataURLs: true,
 		filterEmptyElements: false,
@@ -128,7 +128,7 @@ export function d2Snap(
 
 	const uiFeatureHeuristics: UIFeatureHeuristics = new UIFeatureHeuristics(
 		!optionsWithDefaults.uiFeatureHeuristicsReplaceDefault
-			? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics as JSONObject) as UIFeatureHeuristicsJSON
+			? mergeJSONs(DEFAULT_UI_FEATURE_HEURISTICS, optionsWithDefaults.uiFeatureHeuristics as JSONObject) as UIFeatureHeuristicsJSON
 			: optionsWithDefaults.uiFeatureHeuristics as UIFeatureHeuristicsJSON
 	);
 
