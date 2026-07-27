@@ -164,7 +164,7 @@ cs eval && pip install -r requirements.txt
 
 ``` console
 npm run eval:success:<subject>
-npm run eval:space
+npm run eval:ratio
 ```
 
 > `<subject>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }
