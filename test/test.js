@@ -1,8 +1,31 @@
 import { join } from "path";
-import { deepEqual as assertEqual, ok } from "assert";
+import { readdir } from "fs/promises";
+import { deepEqual as assertEqual, ok, throws } from "assert";
 
+
+const TEST_DIR_PATH = join(import.meta.dirname, "./tests");
+
+
+process.on("exit", code => {
+    code
+        ? console.error(`\x1b[31mTests failed (exit code ${code}).\x1b[0m`)
+        : console.log(`\x1b[32mTests succeeded.\x1b[0m`);
+});
+
+
+// Test framework
 
 function wrapAssertion(cb, actual = null, expected = null, relationHint = null) {
+    relationHint = relationHint ? ` ${relationHint}` : "";
+
+    const printValue = (value, max = 250) => {
+        if(typeof(value) !== "string") return value;
+
+        if(value.length < max) return value;
+
+        return `${value.slice(0, max)}...`;
+    };
+
     try {
         cb();
     } catch(err) {
@@ -13,12 +36,13 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
         }
 
         console.error(`\x1b[31mAssertion Error${err.message ? ` '${err.message}'` : ""}\x1b[0m`);
-        console.log(`\x1b[2mEXPECTED${relationHint ? ` (${relationHint})` : ""}:\x1b[0m`, expected ?? err.expected);
-        console.log("\x1b[2mACTUAL:\x1b[0m", actual ?? err.actual);
+        console.log(`\x1b[2mEXPECTED${relationHint}:\x1b[0m`, printValue(expected ?? err.expected));
+        console.log(`\x1b[2mACTUAL${relationHint}:\x1b[0m`, printValue(actual ?? err.actual));
 
         process.exit(2);
     }
 }
+
 
 global.assertEqual = function(a, b, message) {
     wrapAssertion(() => assertEqual(a, b, message));
@@ -49,9 +73,15 @@ global.assertAlmostEqual = function(a, b, precision, message) {
     wrapAssertion(() => assertEqual(roundA, roundB, message), roundA, roundB, "~");
 }
 
+global.assertThrows = function(fn, message) {
+    wrapAssertion(() => throws(fn, null, message), fn);
+}
+
+
 global.path = function(fileName) {
     return join(import.meta.dirname, `${fileName}.html`);
 }
+
 
 global.test = async function(title, cb) {
     console.log(`\x1b[2m${title}\x1b[0m`);
@@ -60,21 +90,15 @@ global.test = async function(title, cb) {
 }
 
 
-process.on("exit", code => {
-    code
-        ? console.error(`\x1b[31mTests failed (exit code ${code}).\x1b[0m`)
-        : console.log(`\x1b[32mTests succeeded.\x1b[0m`);
+// Run
+
+const testDirents = await readdir(TEST_DIR_PATH, {
+    withFileTypes: true
 });
 
-
-[
-    "Turndown",
-    "TextRank",
-    "D2Snap",
-    "util",
-]
-    .forEach(async reference => {
-        await import(
-            join(import.meta.dirname, reference.replace(/(\.test\.js)?$/i, ".test.js"))
-        );
-    });
+await Promise.all(
+    testDirents
+        .filter(dirent => dirent.isFile())
+        .filter(dirent => dirent.name.endsWith(".test.js"))
+        .map(dirent => import(join(TEST_DIR_PATH, dirent.name)))
+);

@@ -1,4 +1,4 @@
-export declare const GROUND_TRUTH: {
+export declare const UI_FEATURE_HEURISTICS: {
     typeElement: {
         container: {
             tagNames: string[];

@@ -1,5 +1,5 @@
-import { formatHTML } from "../dist.lib/util.html.js";
-import { mergeJSONs } from "../dist.lib/util.json.js";
+import { formatHTML } from "../../dist.lib/util.html.js";
+import { mergeJSONs } from "../../dist.lib/util.json.js";
 
 
 await test("Format HTML", async () => {

@@ -1,4 +1,4 @@
-import { Turndown } from "../dist.lib/Turndown.js";
+import { Turndown } from "../../dist.lib/Turndown.js";
 
 
 function flattenCode(code) {

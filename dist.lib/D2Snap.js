@@ -10,7 +10,7 @@ import { formatHTML } from "./util.html.js";
 import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
-import { GROUND_TRUTH as DEFAULT_GROUND_TRUTH } from "./var.UI_FEATURE_HEURISTICS.js";
+import { UI_FEATURE_HEURISTICS as DEFAULT_UI_FEATURE_HEURISTICS } from "./var.UI_FEATURE_HEURISTICS.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const WHITESPACE_REGEX = /^\s$/;
@@ -70,7 +70,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   validateParameter("rT", rT);
   const optionsWithDefaults = {
     debug: false,
-    uiFeatureHeuristics: DEFAULT_GROUND_TRUTH,
+    uiFeatureHeuristics: {},
     uiFeatureHeuristicsReplaceDefault: false,
     filterDataURLs: true,
     filterEmptyElements: false,
@@ -84,7 +84,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   optionsWithDefaults.uiFeatureHeuristics = options.groundTruth ?? optionsWithDefaults.uiFeatureHeuristics;
   optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault ?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
   const uiFeatureHeuristics = new UIFeatureHeuristics(
-    !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(DEFAULT_GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
+    !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(DEFAULT_UI_FEATURE_HEURISTICS, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
   );
   const filteredTagNames = new Set(
     optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())

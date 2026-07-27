@@ -107,7 +107,7 @@ export function d2Snap(
 
 	const optionsWithDefaults: D2SnapOptions = {
 		debug: false,
-		uiFeatureHeuristics: DEFAULT_UI_FEATURE_HEURISTICS,
+		uiFeatureHeuristics: {},
 		uiFeatureHeuristicsReplaceDefault: false,
 		filterDataURLs: true,
 		filterEmptyElements: false,

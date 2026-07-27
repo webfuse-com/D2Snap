@@ -133,7 +133,7 @@ A true favourite!
 
 ##
 
-### Experiment
+### Experiments
 
 #### Setup
 

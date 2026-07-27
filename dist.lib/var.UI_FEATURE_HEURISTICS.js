@@ -1,4 +1,4 @@
-const GROUND_TRUTH = {
+const UI_FEATURE_HEURISTICS = {
   "typeElement": {
     "container": {
       "tagNames": [
@@ -154,5 +154,5 @@ const GROUND_TRUTH = {
   }
 };
 export {
-  GROUND_TRUTH
+  UI_FEATURE_HEURISTICS
 };

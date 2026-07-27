@@ -1586,7 +1586,7 @@
   ];
 
   // src/var.UI_FEATURE_HEURISTICS.ts
-  var GROUND_TRUTH = {
+  var UI_FEATURE_HEURISTICS = {
     "typeElement": {
       "container": {
         "tagNames": [
@@ -1802,7 +1802,7 @@
     validateParameter("rT", rT);
     const optionsWithDefaults = {
       debug: false,
-      uiFeatureHeuristics: GROUND_TRUTH,
+      uiFeatureHeuristics: {},
       uiFeatureHeuristicsReplaceDefault: false,
       filterDataURLs: true,
       filterEmptyElements: false,
@@ -1816,7 +1816,7 @@
     optionsWithDefaults.uiFeatureHeuristics = options.groundTruth ?? optionsWithDefaults.uiFeatureHeuristics;
     optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault ?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
     const uiFeatureHeuristics = new UIFeatureHeuristics(
-      !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(GROUND_TRUTH, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
+      !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(UI_FEATURE_HEURISTICS, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
     );
     const filteredTagNames = new Set(
       optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
