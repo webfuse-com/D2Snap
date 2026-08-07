@@ -1,4 +1,5 @@
 import sys
+import re
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -10,16 +11,21 @@ from shared import INSTRUCTIONS_DOM, DOMInteractiveElementTarget, analyze_result
 from eval import run_evaluation, _DATASET_DIR
 
 
-MAX_SNAPSHOT_SIZE_TOKENS = 2 ** 15  # 32768
-MAX_SNAPSHOT_SIZE_B = MAX_SNAPSHOT_SIZE_TOKENS * 4
-
-
 def _loader(data, _id):
-    full_html = lxml_html.tostring(data["originalDOM"], encoding="unicode")
+    snapshot = lxml_html.tostring(
+        data["originalDOM"],
+        encoding="unicode",
+    )
+
+    # Remove redundant whitespace
+    snapshot = re.sub(r"\s+", " ", snapshot)
+    snapshot = re.sub(r">\s+<", "><", snapshot)
+    snapshot = re.sub(r"\s+>", ">", snapshot)
+    snapshot = re.sub(r"<\s+", "<", snapshot)
+    snapshot = re.sub(r"\s+/>", "/>", snapshot)
+    snapshot = snapshot.strip()
 
     original_html = (_DATASET_DIR / "dom" / f"{_id}.html").read_text()
-
-    snapshot = full_html[-MAX_SNAPSHOT_SIZE_B:]
 
     return [
         {
