@@ -71,7 +71,7 @@ You are provided with a list of interactive elements with format `[index] type "
 })
 
 
-def _analyze_bu(res, trajectories, _data=None):
+def _analyze_gui_grounded(res, trajectories, _data=None):
     def check(res_element, reference_element):
         ref_id = reference_element.get("bu_identifier")
         if ref_id is None:
@@ -103,5 +103,5 @@ def _loader_min(data, _id):
 
 
 if __name__ == "__main__":
-    run_evaluation("bu", _loader_full, _analyze_bu, _INSTRUCTIONS_FULL, BUInteractiveElementTarget)
-    run_evaluation("bu.min", _loader_min, _analyze_bu, _INSTRUCTIONS_MIN, BUInteractiveElementTarget)
+    run_evaluation("gui_grounded", _loader_full, _analyze_gui_grounded, _INSTRUCTIONS_FULL, BUInteractiveElementTarget)
+    run_evaluation("gui_grounded.no_img", _loader_min, _analyze_gui_grounded, _INSTRUCTIONS_MIN, BUInteractiveElementTarget)
