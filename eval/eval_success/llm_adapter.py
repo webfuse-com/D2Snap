@@ -71,11 +71,12 @@ class LLMAdapter:
 
 
 class OpenAIAdapter(LLMAdapter):
-    def __init__(self, model: str, key: str):
+    def __init__(self, model: str, key: str, temperature: float = 0.0):
         super().__init__()
 
         self._model = model
         self._client = openai.OpenAI(api_key=key)
+        self._temperature = temperature
 
     def _create_file(self, file_path: str) -> str:
         with open(file_path, "rb") as f:
@@ -110,6 +111,7 @@ class OpenAIAdapter(LLMAdapter):
             ],
             "_schema": wrapper_schema,
             "store": False,
+            "temperature": self._temperature,
         }
 
     def create_response(self, req, schema=None):

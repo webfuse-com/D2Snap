@@ -37,7 +37,6 @@ def _load_reference():
 
     return { record["id"]: record for record in raw }
 
-
 DATASET = _load_dataset()
 REFERENCE = _load_reference()
 
@@ -80,21 +79,125 @@ def _read_raw_snapshots(record):
         "buTxt": (_DATASET_DIR / "bu" / f"{rid}.txt").read_text(),
     }
 
+def _model_context_size():
+    try:
+        value = int(parse_option("--model-context"))
+
+        return value if value >= 0 else math.inf
+    except (ValueError, TypeError):
+        return math.inf
+
+def _measure(snapshot_data):
+    """Local measurements, computed before any API call."""
+    if not snapshot_data:
+        return {
+            "snapshotSize": None,
+            "sizeRatio": None,
+            "tokenEstimate": None,
+        }
+
+    snapshot_size = sum(s["size"] for s in snapshot_data)
+
+    if "size_ratio" in snapshot_data[0]:
+        size_ratio = sum(s["size_ratio"] for s in snapshot_data)
+    else:
+        size_ratio = 1
+
+    token_estimate = sum(
+        round(s["size"] / 4) if s["type"] != "image" else round(s["size"] / (32 ** 2))
+        for s in snapshot_data
+    )
+
+    return {
+        "snapshotSize": snapshot_size,
+        "sizeRatio": size_ratio,
+        "tokenEstimate": token_estimate,
+    }
+
+def _query_agent(
+    api_adapter,
+    instructions,
+    record,
+    snapshot_data,
+    raw_snapshots,
+    output_schema,
+    analyze_results_cb,
+):
+    try:
+        ti0 = time.perf_counter()
+        res = api_adapter.request(
+            instructions,
+            record["task"],
+            snapshot_data,
+            output_schema,
+        )
+        latency = (time.perf_counter() - ti0) * 1000
+        elements = res["interactiveElements"]
+
+        auto_analysis_ok = analyze_results_cb(
+            elements,
+            REFERENCE[record["id"]]["trajectories"],
+            raw_snapshots,
+        )
+
+        return {
+            "response": elements,
+            "success": auto_analysis_ok,
+            "error": False,
+            "errorKind": None,
+            "latency": latency,
+        }
+    except Exception as err:
+        print(repr(err))
+
+        return {
+            "response": str(err) or "Error",
+            "success": False,
+            "error": True,
+            "errorKind": "request",
+            "latency": None,
+        }
+
 def _process_record(args):
     i, record, snapshot_loader_cb, analyze_results_cb, instructions, output_schema = args
+
+    record_id = record.get("id")
+    measured = _measure(None)
 
     try:
         api_adapter, _, _ = _adapter()
         raw_snapshots = _read_raw_snapshots(record)
 
         try:
-            snapshot_data = snapshot_loader_cb(raw_snapshots, record["id"])
+            snapshot_data = snapshot_loader_cb(raw_snapshots, record_id)
         except Exception as err:
-            print(f"[loader error] {record['id']}: {err!r}")
+            print(f"[loader error] {record_id}: {err!r}")
+
             snapshot_data = None
 
+        measured = _measure(snapshot_data)
+
         if not snapshot_data:
-            return {"id": record["id"], "success": False, "error": True}
+            return {
+                "id": record_id,
+                **measured,
+                "response": None,
+                "success": False,
+                "error": True,
+                "errorKind": "loader",
+                "latency": None,
+            }
+
+        if measured["tokenEstimate"] > _model_context_size():
+            return {
+                "id": record_id,
+                **measured,
+                "response": None,
+                "success": False,
+                "error": True,
+                "errorKind": "context_overflow",
+                "latency": None,
+            }
 
         first = snapshot_data[0]
         snapshot_print = first.get("path") or re.sub(r"\s+", " ", first["data"])
@@ -102,50 +205,33 @@ def _process_record(args):
         echo(f"({i}) {record['url']}", always=True)
         echo(f"{record['task']}\n{_abbrev(snapshot_print, 500)}")
 
-        llm_response = None
-        auto_analysis_ok = False
-        latency = None
-        is_error = False
-
-        try:
-            ti0 = time.perf_counter()
-            res = api_adapter.request(instructions, record["task"], snapshot_data, output_schema)
-            latency = (time.perf_counter() - ti0) * 1000
-            llm_response = res["interactiveElements"]
-
-            auto_analysis_ok = analyze_results_cb(
-                res["interactiveElements"],
-                REFERENCE[record["id"]]["trajectories"],
-                raw_snapshots,
-            )
-        except Exception as err:
-            print(repr(err))
-
-            llm_response = str(err) or "Error"
-            is_error = True
-
-        snapshot_size = sum(s["size"] for s in snapshot_data)
-        size_ratio = sum(s["size_ratio"] for s in snapshot_data) if "size_ratio" in snapshot_data[0] else 1
-        token_estimate = sum(
-            round(s["size"] / 4) if s["type"] != "image" else round(s["size"] / (32 ** 2))
-
-            for s in snapshot_data
+        outcome = _query_agent(
+            api_adapter,
+            instructions,
+            record,
+            snapshot_data,
+            raw_snapshots,
+            output_schema,
+            analyze_results_cb,
         )
 
         return {
-            "id": record["id"],
-            "snapshotSize": snapshot_size,
-            "sizeRatio": size_ratio,
-            "tokenEstimate": token_estimate,
-            "response": llm_response,
-            "success": auto_analysis_ok,
-            "error": is_error,
-            "latency": latency,
+            "id": record_id,
+            **measured,
+            **outcome,
         }
     except Exception as err:
-        print(f"[worker fatal] {record.get('id')}: {err!r}")
+        print(f"[worker fatal] {record_id}: {err!r}")
 
-        return {"id": record.get("id"), "success": False, "error": True}
+        return {
+            "id": record_id,
+            **measured,
+            "response": None,
+            "success": False,
+            "error": True,
+            "errorKind": "fatal",
+            "latency": None,
+        }
 
 
 def run_evaluation(
