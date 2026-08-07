@@ -44,15 +44,13 @@ INSTRUCTIONS_DOM = template_instructions({
 })
 
 
-def _candidates(target):
+def _candidates(target):    # target + parent (event bubbling tolerance)
     parent = target.getparent()
 
     cands = [target]
 
     if parent is not None:
         cands.append(parent)
-
-    cands.extend(list(target))  # direct children
 
     return cands
 
