@@ -33,48 +33,7 @@ for(const quality of [ 0.1, 0.5, 0.9 ]) {
 
         const start = Date.now();
         const snapshot = await d2Snap(FUTURUM_HTML, rE, rA, rT, {
-            debug: true,
-            uniqueIDs: true,
-            uiFeatureHeuristics: {
-                typeElement: {
-                    container: {
-                        tagNames: ["article", "aside", "body", "div", "footer", "header", "html", "main", "nav", "section"],
-                        ratings: {
-                            article: 0.95,
-                            body: 0.9,
-                            header: 0.75,
-                            main: 0.85,
-                            nav: 0.8,
-                            section: 0.9,
-                            footer: 0.7,
-                            aside: 0.85,
-                            div: 0.3,
-                            html: 0.1
-                        },
-                        fallbackRating: 1.0
-                    },
-                    actionable: {
-                        tagNames: ["a", "button", "details", "form", "input", "label", "select", "summary", "textarea"] },
-                    replaceWithLabel: {
-                        tagNames: ["svg"]
-                    },
-                    textFormatting: {
-                        tagNames: ["b", "em", "strong", "small", "span", "p", "ul", "ol", "li", "table", "tbody", "tr", "td", "th", "thead", "h1", "h2", "h3", "h4", "h5", "h6", "img", "hr", "code", "pre", "blockquote", "figure", "figcaption", "sub", "sup", "address"]
-                    }
-                },
-                typeAttribute: {
-                    ratings: {
-                        alt: 0.9,
-                        href: 0.9,
-                        src: 0.8,
-                        id: 0.8,
-                        class: 0.7,
-                        "aria-*": 0.6
-                    },
-                    fallbackRating: 0.5
-                }
-            },
-            uiFeatureHeuristicsReplaceDefault: true
+            debug: true
         });
         const elapsedMs = Date.now() - start;
 
@@ -108,30 +67,7 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
     // createContextualFragment then parses it back with tagName NS:WIDGET, and
     // unwrapColonTaggedElements must leave it intact (regex must not match).
     const html = `<html><body><section><p>visit <ns:widget>KEPTCONTENT</ns:widget> for help</p></section></body></html>`;
-    const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-        uiFeatureHeuristics: {
-            typeElement: {
-                container: {
-                    tagNames: ["body", "section"],
-                    ratings: {
-                        body: 0.9,
-                        section: 0.8
-                    }
-                },
-                actionable: {
-                    tagNames: ["ns:widget"]
-                },
-                textFormatting: {
-                    tagNames: ["p"]
-                }
-            },
-            typeAttribute: {
-                ratings: {},
-                fallbackRating: 0.5
-            }
-        },
-        uiFeatureHeuristicsReplaceDefault: true
-    });
+    const snapshot = await d2Snap(html, 0.9, 0.9, 0.9);
     assertIn("KEPTCONTENT", snapshot.html,
         "Namespace-qualified element content was stripped (false positive in scheme regex)");
 });
@@ -152,24 +88,7 @@ await test("Container top-down merge does not crash on framework attribute names
         // Place the framework attribute on the low-rating div (= sourceElement in top-down merge),
         // which forces setAttribute() to be called with it.
         const html = `<html><body><div ${name}="${val}"><section><p>IMPORTANT content</p></section></div></body></html>`;
-        const snapshot = await d2Snap(html, 1.0, 1.0, 1.0, {
-            uiFeatureHeuristics: {
-                typeElement: {
-                    container: {
-                        tagNames: ["div", "section"],
-                        ratings: {
-                            div: 0.3,
-                            section: 0.8
-                        }
-                    }
-                },
-                typeAttribute: {
-                    ratings: {},
-                    fallbackRating: 0.5
-                }
-            },
-            uiFeatureHeuristicsReplaceDefault: true
-        });
+        const snapshot = await d2Snap(html, 1.0, 1.0, 1.0);
 
         assertIn("IMPORTANT content", snapshot.html, `Content lost when merging element carrying framework attr ${name}`);
     }
@@ -227,26 +146,7 @@ await test("Container merge never moves content into a void element", async () =
     for(const voidTag of [ "br", "img", "hr", "wbr" ]) {
         const html = `<html><body><div id="d"><${voidTag}><p>IMPORTANT CONTENT one two three four five.</p></div></body></html>`;
         const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-            debug: true,
-            uiFeatureHeuristics: {
-                typeElement: {
-                    container: {
-                        tagNames: ["body", "div"],
-                        ratings: {
-                            body: 0.9,
-                            div: 0.3
-                        },
-                        fallbackRating: 1.0
-                    }
-                },
-                typeAttribute: {
-                    ratings: {
-                        id: 0.8
-                    },
-                    fallbackRating: 0.5
-                }
-            },
-            uiFeatureHeuristicsReplaceDefault: true
+            debug: true
         });
 
         assertIn("IMPORTANT CONTENT", snapshot.html, `Content was merged into void <${voidTag}> and lost`);
@@ -265,29 +165,8 @@ await test("Markdown autolink URL does not become a bogus container element", as
     for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
         const html = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
         const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-            debug: true, uiFeatureHeuristics: {
-                typeElement: {
-                    container: {
-                        tagNames: ["body", "main", "section"],
-                        ratings: {
-                            body: 0.9,
-                            main: 0.85,
-                            section: 0.8
-                        },
-                        fallbackRating: 1.0
-                    },
-                    textFormatting: {
-                        tagNames: ["p", "span"]
-                    }
-                },
-                typeAttribute: {
-                    ratings: {
-                        id: 0.8
-                    },
-                    fallbackRating: 0.5
-                }
-            },
-            uiFeatureHeuristicsReplaceDefault: true
+            attributeScoringFallback: 1,
+            debug: true
         });
 
         assertNotIn("<https:", snapshot.html, `URL <${url}> re-parsed into a bogus <https:> element`);
@@ -299,30 +178,10 @@ await test("Markdown autolink URL does not become a bogus container element", as
     // actionable (`<a …>`) sitting alongside the autolink in the same markdown.
     const linkHTML = `<html><body><main><p>visit &lt;https://example.com follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
     const linkSnapshot = await d2Snap(linkHTML, 0.9, 0.9, 0.9, {
-        debug: true,
-        uiFeatureHeuristics: {
-            typeElement: {
-                container: {
-                    tagNames: ["body", "main", "p"],
-                    ratings: {
-                        body: 0.9,
-                        main: 0.85,
-                        p: 0.5
-                    },
-                    fallbackRating: 1.0
-                },
-                actionable: {
-                    tagNames: ["a"]
-                }
-            },
-            typeAttribute: {
-                ratings: {
-                    href: 0.9
-                },
-                fallbackRating: 0.5
-            }
+        attributeScoring: {
+            href: 1
         },
-        uiFeatureHeuristicsReplaceDefault: true
+        debug: true
     });
 
     assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");

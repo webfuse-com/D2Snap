@@ -1,6 +1,6 @@
 {
   "name": "@webfuse-com/d2snap",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "author": "Thassilo M. Schiepanski",
   "type": "module",
   "main": "./dist.lib/api.js",

@@ -14,13 +14,6 @@ import { d2Snap } from "../../dist.lib/api.js";
 
 const FUTURUM_HTML = await readTestFile("futurum/futurum");
 const FUTURUM_HAMBURGER_HTML = await readTestFile("futurum/futurum.hamburger");
-const UI_FEATURE_HEURISTICS_REPLACE_WITH_LABEL = {
-    typeElement: {
-        replaceWithLabel: {
-            tagNames: ["svg"]
-        }
-    }
-};
 
 
 // ---------------------------------------------------------------------------
@@ -42,7 +35,7 @@ for(const quality of [ 0.1, 0.5, 0.9 ]) {
 
         const snapshot = await d2Snap(FUTURUM_HAMBURGER_HTML, rE, rA, rT, {
             debug: true,
-            uiFeatureHeuristics: UI_FEATURE_HEURISTICS_REPLACE_WITH_LABEL
+            liftImageDescription: true
         });
 
         await writeActual(`futurum/futurum.hamburger.q=${quality}`, snapshot.html);
@@ -70,7 +63,7 @@ await test("Lift svg aria-label out of icon-only button at D2Snap rE=rA=rT=1.0 (
     // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUM_HAMBURGER_HTML, 1.0, 1.0, 1.0, {
         debug: true,
-        uiFeatureHeuristics: UI_FEATURE_HEURISTICS_REPLACE_WITH_LABEL
+        liftImageDescription: true
     });
 
     assertIn("Open menu", snapshot.html, "Label lost at maximum downsampling");
@@ -85,8 +78,7 @@ await test("Drop replaceWithLabel element with no recoverable label (q=0.1)", as
     const dom = `<html><body><button><svg><path d="M0,0L10,10"/></svg></button></body></html>`;
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
-        debug: true,
-        uiFeatureHeuristics: UI_FEATURE_HEURISTICS_REPLACE_WITH_LABEL
+        debug: true
     });
 
     assertNotIn("<svg", snapshot.html, "Unlabeled svg should have been dropped");
@@ -102,25 +94,10 @@ await test("replaceWithLabel recovers label from <title> child element (q=0.1)",
 
     const snapshot = await d2Snap(html, rE, rA, rT, {
         debug: true,
-        uiFeatureHeuristics: UI_FEATURE_HEURISTICS_REPLACE_WITH_LABEL
+        liftImageDescription: true
     });
 
     assertIn("Delete item", snapshot.html, "Label from <title> child was not lifted");
     assertNotIn("<svg", snapshot.html, "svg wrapper should be gone");
     assertIn("href=\"/trash\"", snapshot.html, "Anchor href must be preserved");
-});
-
-await test("replaceWithLabel is no-op when default ui-feature-heuristics list is empty (q=0.1)", async () => {
-    // Sanity check: pre-fix behaviour must still be reachable. With the
-    // default UI feature heuristics (no replaceWithLabel entry), svg passes through
-    // untouched.
-    const { rE, rA, rT } = qualityRatioToDownsamplingRatio(0.1);
-    const html = `<html><body><button><svg aria-label="X"></svg></button></body></html>`;
-
-    const snapshot = await d2Snap(html, rE, rA, rT, {
-        debug: true
-    });
-
-    // No replaceWithLabel config → svg survives.
-    assertIn("<svg", snapshot.html, "Default (empty list) replaceWithLabel should not strip svg");
 });

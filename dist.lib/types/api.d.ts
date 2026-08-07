@@ -6,4 +6,4 @@ export declare function adaptiveD2Snap(domOrString: DOM | string, ...args: Param
     parameters: import("./AdaptiveD2Snap.js").AdaptiveParameters;
     adaptiveIterations: number;
 }>;
-export { type D2SnapOptions, type TextRankOptions, type D2SnapResult, type UIFeatureHeuristicsJSON } from "./types.js";
+export { type D2SnapOptions, type TextRankOptions, type D2SnapResult, type AttributeScoring } from "./types.js";

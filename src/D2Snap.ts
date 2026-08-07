@@ -1,4 +1,3 @@
-import { UIFeatureHeuristics } from "./UIFeatureHeuristics.js";
 import { transform } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
@@ -8,17 +7,21 @@ import {
 	type D2SnapResult,
 	type D2SnapTimings,
 	type DOM,
-	type UIFeatureHeuristicsJSON,
 	type HTMLElementWithDepth,
-	type JSONObject,
 	type TextNode
 } from "./types.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
-import { mergeJSONs } from "./util.json.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES } from "./var.FILTERED_TAG_NAMES.js";
-import { UI_FEATURE_HEURISTICS as DEFAULT_UI_FEATURE_HEURISTICS } from "./var.UI_FEATURE_HEURISTICS.js";
+import {
+	FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES,
+	VOID_TAG_NAMES,
+	ACTIONABLE_TAG_NAMES,
+	TEXT_TAG_NAMES,
+	REPLACE_WITH_LABELS_TAG_NAMES
+} from "./var.CLASS_TAGS.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.CLASS_ATTRIBUTES.js";
+import { ATTRIBUTE_SCORING as DEFAULT_ATTRIBUTE_SCORING } from "./var.ATTRIBUTE_SCORING.js";
 
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
@@ -35,40 +38,6 @@ const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*
 // heuristic otherwise classifies unlisted void tags (e.g. <br>, <wbr>) as
 // containers, and a top-down merge then moves the parent's children into the
 // void target — which serialize away, destroying content. Never merge them.
-const VOID_ELEMENT_TAG_NAMES: Set<string> = new Set([
-	"AREA",
-	"BASE",
-	"BR",
-	"COL",
-	"EMBED",
-	"HR",
-	"IMG",
-	"INPUT",
-	"LINK",
-	"META",
-	"PARAM",
-	"SOURCE",
-	"TRACK",
-	"WBR"
-]);
-// HTML widget + composite role attribute values that reasonably map to a native HTML tag name.
-const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set([
-	"button",
-	"checkbox",
-	"link",
-	"menuitem",
-	"menuitemcheckbox",
-	"menuitemradio",
-	"option",
-	"radio",
-	"searchbox",
-	"slider",
-	"spinbutton",
-	"switch",
-	"textbox",
-	"combobox",
-	"listbox"
-]);
 
 
 function validateParameter(name: string, value: number) {
@@ -106,174 +75,82 @@ export function d2Snap(
 	validateParameter("rT", rT);
 
 	const optionsWithDefaults: D2SnapOptions = {
+		attributeScoringFallback: 0,
 		debug: false,
-		uiFeatureHeuristics: {},
-		uiFeatureHeuristicsReplaceDefault: false,
 		filterDataURLs: true,
 		filterEmptyElements: false,
 		filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
+		liftImageDescription: true,
 		skipMarkdown: false,
 		skipTextRank: false,
 		textRankOptions: {},
 		uniqueIDs: false,
 
-		...options
-	}
+		...options,
 
-	// Backwards compatibility (deprecation)
-	optionsWithDefaults.uiFeatureHeuristics = options.groundTruth
-		?? optionsWithDefaults.uiFeatureHeuristics;
-	optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault
-		?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
+		attributeScoring: {
+			...DEFAULT_ATTRIBUTE_SCORING,
 
-	const uiFeatureHeuristics: UIFeatureHeuristics = new UIFeatureHeuristics(
-		!optionsWithDefaults.uiFeatureHeuristicsReplaceDefault
-			? mergeJSONs(DEFAULT_UI_FEATURE_HEURISTICS, optionsWithDefaults.uiFeatureHeuristics as JSONObject) as UIFeatureHeuristicsJSON
-			: optionsWithDefaults.uiFeatureHeuristics as UIFeatureHeuristicsJSON
+			...(options.attributeScoring ?? {}),
+		},
+	};
+
+	const attributeScoring: Map<string, number> = new Map(
+		Object.entries(optionsWithDefaults.attributeScoring)
+			.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 	);
 
 	const filteredTagNames: Set<string> = new Set(
 		optionsWithDefaults.filteredTagNames.map(t => t.toUpperCase())
 	);
-
-	const mdRetainedTagNames: Set<string> = new Set(
-		uiFeatureHeuristics.getElementsByType("actionable")
-			.map((tagName: string) => tagName.toUpperCase())
+	const actionableTagNames: Set<string> = new Set(
+		ACTIONABLE_TAG_NAMES.map((tagName: string) => tagName.toUpperCase())
+	);
+	const actionableRoleAttributeValues: Set<string> = new Set(
+		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
 	);
 
 	function hasMDRetainTagName(elementNode: Element): boolean {
-		return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
+		return actionableTagNames.has(elementNode.tagName.toUpperCase());
 	}
-
 	function hasActionableRole(elementNode: Element): boolean {
-		return ACTIONABLE_ROLE_ATTRIBUTE_VALUES
-			.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+		return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
 	}
 
 	const turndown: Turndown = new Turndown([ hasMDRetainTagName, hasActionableRole ]);
 
-	function snapElementContainerNode(document: Document, elementNode: HTMLElementWithDepth, rE: number) {
+	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(hasActionableRole(elementNode)) return;
-		if(VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+		if(ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+		if(VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
 
 		const considerContainerElement = (elementNode: Element) => {
-			if(uiFeatureHeuristics.isElementType("container", elementNode.tagName)) return true;
-			if(
-				optionsWithDefaults.skipMarkdown
-				&& uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)
-			) return true;
-			// custom elements (!)
-			if(elementNode.tagName.includes("-")) return true;
+			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
+			if(hasActionableRole(elementNode)) return false;
 
-			return false;
+			const tagName: string = elementNode.tagName.toUpperCase();
+
+			if(VOID_TAG_NAMES.has(tagName)) return false;
+			if(ACTIONABLE_TAG_NAMES.includes(tagName)) return false;
+
+			return true;
 		};
 
 		if(!considerContainerElement(elementNode)) return;
 		if(!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
 
-		// merge (Bresenham gate)
+		// Merge (Bresenham gate)
 		const ratio = Math.min(1, Math.max(0, rE));
 		const isMergeLevel = (elementNode.depth > 1) && (Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio));
 		if(!isMergeLevel) return;
 
-		const elements = [
-			elementNode.parentElement as HTMLElementWithDepth,
-			elementNode
-		];
+		const targetElement: HTMLElementWithDepth = elementNode.parentElement as HTMLElementWithDepth;
+		const sourceElement: HTMLElementWithDepth = elementNode;
 
-		const isTopdownMerge = (
-			uiFeatureHeuristics.getContainerRating(elements[0].tagName)
-			< uiFeatureHeuristics.getContainerRating(elements[1].tagName)
-		);
-		isTopdownMerge && elements.reverse();
-
-		const targetElement: HTMLElementWithDepth = elements[0];
-		const sourceElement: HTMLElementWithDepth = elements[1];
-
-		if(isTopdownMerge) {
-			const mergedAttributes = Array.from(targetElement.attributes);
-
-			for(const attr of sourceElement.attributes) {
-				if(mergedAttributes.some(targetAttr => targetAttr.name === attr.name)) continue;
-				mergedAttributes.push(attr);
-			}
-			for(const attr of targetElement.attributes) {
-				targetElement.removeAttribute(attr.name);
-			}
-			for(const attr of mergedAttributes) {
-				// Framework attribute names (Vue `@click`, Angular `*ngIf`) violate
-				// the DOM Name production; setAttribute throws InvalidCharacterError.
-				// Drop the offending attribute rather than abort the snapshot — bound
-				// attributes hold no value in a static snapshot anyway.
-				// Match on `.name`, not `instanceof DOMException`: jsdom's DOMException
-				// isn't globalThis.DOMException, so instanceof is unreliable across envs.
-				try {
-					targetElement.setAttribute(attr.name, attr.value);
-				} catch (e) {
-					if((e as { name?: string }).name !== "InvalidCharacterError") throw e;
-					/* invalid attribute name — drop it */
-				}
-			}
-		}
-
-		if(!isTopdownMerge) {
-			while(sourceElement.childNodes.length) {
-				targetElement
-					.insertBefore(sourceElement.childNodes[0], sourceElement);
-			}
-		} else {
-			const before: ChildNode[] = [];
-			const after: ChildNode[] = [];
-
-			let isAfterTarget: boolean = false;
-			for(const child of sourceElement.childNodes) {
-				if(child === targetElement) {
-					isAfterTarget = true;
-
-					continue;
-				}
-
-				(
-					isAfterTarget
-						? after
-						: before
-				)
-					.push(child);
-			}
-
-			for(let i = before.length - 1; i >= 0; i--) {
-				const child: ChildNode = before[i];
-
-				if(targetElement.childNodes.length && (i === (before.length - 1))) {
-					if(child.nodeType === NodeType.TEXT_NODE) {
-						child.textContent = `${child.textContent} `;
-					} else {
-						child.appendChild(document.createTextNode(" "));
-					}
-				}
-
-				targetElement.insertBefore(child, targetElement.firstChild);
-			}
-			for(let i = 0; i < after.length; i++) {
-				const child: ChildNode = after[i];
-
-				if(targetElement.childNodes.length && (i === 0)) {
-					if(child.nodeType === NodeType.TEXT_NODE) {
-						child.textContent = ` ${child.textContent}`;
-					} else {
-						child.insertBefore(document.createTextNode(" "), child.firstChild);
-					}
-				}
-
-				targetElement.appendChild(child);
-			}
-
-			targetElement.depth = sourceElement.depth!;
-
-			sourceElement
-				.parentNode
-				?.insertBefore(targetElement, sourceElement);
+		while(sourceElement.childNodes.length) {
+			targetElement
+				.insertBefore(sourceElement.childNodes[0], sourceElement);
 		}
 
 		sourceElement
@@ -281,42 +158,11 @@ export function d2Snap(
 			?.removeChild(sourceElement);
 	}
 
-	function snapElementReplaceWithLabelNode(document: Document, elementNode: HTMLElement) {
-		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(!uiFeatureHeuristics.isElementType("replaceWithLabel", elementNode.tagName)) return;
-
-		// Find an accessibility label, preferring attributes over child elements.
-		// Attribute order is taken from the UI feature heuristics (default: aria-label, title, alt).
-		let label: string | null = null;
-		for(const attrName of uiFeatureHeuristics.getLabelAttrs()) {
-			const value: string | null = elementNode.getAttribute(attrName);
-			const trimmed: string = (value ?? "").trim();
-			if(trimmed) { label = trimmed; break; }
-		}
-		if(!label) {
-			for(const child of Array.from(elementNode.children)) {
-				if(!uiFeatureHeuristics.isLabelChildTag(child.tagName)) continue;
-				const trimmed: string = (child.textContent ?? "").trim();
-				if(trimmed) { label = trimmed; break; }
-			}
-		}
-
-		if(label !== null) {
-			// Replace with a plain text node carrying the label. It lands under the
-			// element's former parent, so an actionable parent keeps it (icon buttons:
-			// <button><svg aria-label="X"/></button> -> <button>X</button>).
-			elementNode.replaceWith(document.createTextNode(label));
-		} else {
-			// No label found anywhere — element is pure decoration. Drop it.
-			elementNode.remove();
-		}
-	}
-
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
+		if(optionsWithDefaults.skipMarkdown) return;
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(hasActionableRole(elementNode)) return;
-		if(!uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)) return;
-		if(optionsWithDefaults.skipMarkdown) return;
+		if(!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
 
 		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
@@ -365,9 +211,49 @@ export function d2Snap(
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
 		for(const attr of Array.from(elementNode.attributes)) {
-			if(uiFeatureHeuristics.getAttributeRating(attr.name) >= rA) continue;
+			let normalizedName: string = attr.name;
+
+			if(!attributeScoring.has(normalizedName)) {
+				if(normalizedName.includes("-")) {
+					normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+				}
+			}
+
+			const attributeScore: number = attributeScoring.get(normalizedName.toLowerCase()) ?? optionsWithDefaults.attributeScoringFallback;
+			if(attributeScore >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);
+		}
+	}
+
+	function liftImageDescription(document: Document, elementNode: HTMLElement) {
+		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+		if(!REPLACE_WITH_LABELS_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+
+		// Find an accessibility label, preferring attributes over child elements.
+		// Attribute order is taken from the UI feature heuristics (default: aria-label, title, alt).
+		let label: string | null = null;
+		for(const attrName of [ "aria-label", "title", "alt" ]) {
+			const value: string | null = elementNode.getAttribute(attrName);
+			const trimmed: string = (value ?? "").trim();
+			if(trimmed) { label = trimmed; break; }
+		}
+		if(!label) {
+			for(const child of Array.from(elementNode.children)) {
+				if(!["title", "desc"].includes(child.tagName)) continue;
+				const trimmed: string = (child.textContent ?? "").trim();
+				if(trimmed) { label = trimmed; break; }
+			}
+		}
+
+		if(label !== null) {
+			// Replace with a plain text node carrying the label. It lands under the
+			// element's former parent, so an actionable parent keeps it (icon buttons:
+			// <button><svg aria-label="X"/></button> -> <button>X</button>).
+			elementNode.replaceWith(document.createTextNode(label));
+		} else {
+			// No label found anywhere — element is pure decoration. Drop it.
+			elementNode.remove();
 		}
 	}
 
@@ -378,29 +264,28 @@ export function d2Snap(
 	const originalSize = rootElement.innerHTML.length;
 
 	const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
-	let t0: number = t();
-	const timings: D2SnapTimings = { uniqueIDs: 0, clone: 0, init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0, serialize: 0, minify: 0, formatDebugOnly: 0 };
 
-	let n = 0;
-	optionsWithDefaults.uniqueIDs
-		&& traverseDom<Element>(
-			rootElement,
-			NodeFilter.SHOW_ELEMENT,
-			elementNode => {
-				if(
-					!uiFeatureHeuristics.isElementType("container", elementNode.tagName)
-					&& !uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)
-				) return;
-
-				elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
-			}
-		);
-	timings.uniqueIDs = t() - t0;
+	let t0: number;
+	const timings: D2SnapTimings = {
+		uniqueIDs: 0, 
+		clone: 0,
+		init: 0,
+		liftImageDescription: 0,
+		textNodes: 0,
+		textFormatting: 0,
+		containers: 0,
+		attributes: 0,
+		serialize: 0,
+		minify: 0,
+		formatDebugOnly: 0
+	};
 
 	t0 = t();
 	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
 	timings.clone = t() - t0;
 
+	// Write depth per node.
+	// Remove noise.
 	let domTreeHeight: number = 0;
 	traverseDom<Node>(
 		virtualDom,
@@ -442,16 +327,27 @@ export function d2Snap(
 	);
 	timings.init = t() - t0;
 
+	// Optionally assign unique IDs.
+	let n = 0;
+	optionsWithDefaults.uniqueIDs
+		&& traverseDom<Element>(
+			rootElement,
+			NodeFilter.SHOW_ELEMENT,
+			elementNode => {
+				elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
+			}
+		);
+	timings.uniqueIDs = t() - t0;
+
 	// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
 	t0 = t();
-	if(uiFeatureHeuristics.getElementsByType("replaceWithLabel").length) {
-		traverseDom<HTMLElement>(
-			virtualDom,
-			NodeFilter.SHOW_ELEMENT,
-			(node: HTMLElement) => snapElementReplaceWithLabelNode(document, node),
-		);
-	}
-	timings.replaceWithLabel = t() - t0;
+	optionsWithDefaults.liftImageDescription
+	&& traverseDom<HTMLElement>(
+		virtualDom,
+		NodeFilter.SHOW_ELEMENT,
+		(node: HTMLElement) => liftImageDescription(document, node),
+	);
+	timings.liftImageDescription = t() - t0;
 
 	// Text nodes
 	t0 = t();
@@ -476,7 +372,7 @@ export function d2Snap(
 	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => snapElementContainerNode(document, node, rE),
+		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE),
 	);
 	timings.containers = t() - t0;
 
@@ -503,7 +399,7 @@ export function d2Snap(
 				virtualDom,
 				NodeFilter.SHOW_ELEMENT,
 				(elementNode: HTMLElement) => {
-					if(uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
+					if(ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
 					if(hasActionableRole(elementNode)) return;
 					if(elementNode.children.length || elementNode.textContent.trim().length) return;
 
@@ -517,10 +413,22 @@ export function d2Snap(
 
 	// Dissolve toplevel tags for rE = 1 (allows full linearization)
 	if(rE === 1.0) {
-		[ ...virtualDom.children ]
-			.forEach((element: Element) => {
-				element.replaceWith(...element.childNodes);
-			});
+		const dissolveToplevelTags = (rootElement: Element) => {
+			[ ...rootElement.children ]
+				.forEach((element: Element) => {
+					element.replaceWith(...element.childNodes);
+				});
+		};
+
+		dissolveToplevelTags(virtualDom);
+
+		[
+			...virtualDom.querySelectorAll(ACTIONABLE_TAG_NAMES.join(", ")),
+			...virtualDom.querySelectorAll(
+				[ ...ACTIONABLE_ROLE_ATTRIBUTE_VALUES ].map((role: string) => `[role="${role}"]`).join(", ")
+			)
+		]
+			.forEach((actionableElement: Element) => dissolveToplevelTags(actionableElement));
 	}
 
 	t0 = t();

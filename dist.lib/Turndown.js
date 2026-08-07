@@ -1,5 +1,7 @@
 import TurndownService from "turndown";
 import { gfm } from "@truto/turndown-plugin-gfm";
+const _escape = TurndownService.prototype.escape.bind(null);
+TurndownService.prototype.escape = (s) => _escape(s).replace(/</g, "&lt;");
 class Turndown {
   service;
   constructor(retainElementCbs = []) {

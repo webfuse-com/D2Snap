@@ -85,101 +85,6 @@
     }
   }
 
-  // src/UIFeatureHeuristics.ts
-  var HARD_FALLBACK_RATING = 0;
-  var DEFAULT_LABEL_ATTRS = ["aria-label", "title", "alt"];
-  var DEFAULT_LABEL_CHILD_TAGS = ["title", "desc"];
-  var SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES = [
-    "aria-",
-    "data-"
-  ];
-  var ATTRIBUTE_SUFFIX_WILDCARD = "*";
-  var UIFeatureHeuristics = class {
-    uiFeatureHeuristics;
-    elementsByType;
-    elementTypeSets;
-    nonContainerTagNames;
-    containerRatings;
-    containerFallbackRating;
-    attributeRatings;
-    attributeFallbackRating;
-    attributeRatingCache = /* @__PURE__ */ new Map();
-    labelAttrs;
-    labelChildTagsSet;
-    constructor(uiFeatureHeuristics) {
-      this.uiFeatureHeuristics = uiFeatureHeuristics;
-      this.elementsByType = {
-        container: this.uiFeatureHeuristics?.typeElement?.container?.tagNames ?? [],
-        actionable: this.uiFeatureHeuristics?.typeElement?.actionable?.tagNames ?? [],
-        textFormatting: this.uiFeatureHeuristics?.typeElement?.textFormatting?.tagNames ?? [],
-        replaceWithLabel: this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.tagNames ?? []
-      };
-      this.elementTypeSets = {
-        container: new Set(this.elementsByType.container.map((t) => t.toLowerCase())),
-        actionable: new Set(this.elementsByType.actionable.map((t) => t.toLowerCase())),
-        textFormatting: new Set(this.elementsByType.textFormatting.map((t) => t.toLowerCase())),
-        replaceWithLabel: new Set(this.elementsByType.replaceWithLabel.map((t) => t.toLowerCase()))
-      };
-      this.nonContainerTagNames = /* @__PURE__ */ new Set([
-        ...this.elementTypeSets.actionable,
-        ...this.elementTypeSets.textFormatting,
-        ...this.elementTypeSets.replaceWithLabel
-      ]);
-      this.containerRatings = this.uiFeatureHeuristics?.typeElement?.container?.ratings ?? {};
-      this.containerFallbackRating = this.uiFeatureHeuristics?.typeElement?.container?.fallbackRating ?? HARD_FALLBACK_RATING;
-      this.attributeRatings = this.uiFeatureHeuristics?.typeAttribute?.ratings ?? {};
-      this.attributeFallbackRating = this.uiFeatureHeuristics?.typeAttribute?.fallbackRating;
-      this.labelAttrs = (this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelAttrs ?? DEFAULT_LABEL_ATTRS).map((a) => a.toLowerCase());
-      this.labelChildTagsSet = new Set(
-        (this.uiFeatureHeuristics?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
-      );
-    }
-    getElementsByType(type) {
-      return [...this.elementsByType[type]];
-    }
-    getLabelAttrs() {
-      return this.labelAttrs;
-    }
-    isLabelChildTag(tagName) {
-      return this.labelChildTagsSet.has(tagName.toLowerCase());
-    }
-    isElementType(type, tagName) {
-      const lowerTagName = tagName.toLowerCase();
-      const isNativeElement = this.elementTypeSets[type].has(lowerTagName);
-      if (isNativeElement) return true;
-      if (type !== "container") return isNativeElement;
-      const isCustomElement = !this.nonContainerTagNames.has(lowerTagName);
-      return isCustomElement;
-    }
-    getContainerRating(tagName) {
-      if (!tagName) return -Infinity;
-      const rating = this.containerRatings[tagName.toLowerCase()];
-      if (rating !== void 0) return rating;
-      return this.containerFallbackRating;
-    }
-    getAttributeRatingPrecise(attributeName) {
-      if (!attributeName) return -Infinity;
-      const rating = this.attributeRatings[attributeName.toLowerCase()];
-      if (rating !== void 0) return rating;
-      return this.attributeFallbackRating;
-    }
-    getAttributeRating(attributeName) {
-      const cached = this.attributeRatingCache.get(attributeName);
-      if (cached !== void 0) return cached;
-      let rating = this.getAttributeRatingPrecise(attributeName);
-      if (!rating) {
-        for (const prefix of SUPPORTED_WILDCARD_ATTRIBUTE_PREFIXES) {
-          if (!attributeName.toLocaleLowerCase().startsWith(prefix)) continue;
-          rating = this.getAttributeRatingPrecise(`${prefix}${ATTRIBUTE_SUFFIX_WILDCARD}`);
-          break;
-        }
-      }
-      const finalRating = rating ?? HARD_FALLBACK_RATING;
-      this.attributeRatingCache.set(attributeName, finalRating);
-      return finalRating;
-    }
-  };
-
   // src/TextRank.ts
   function initArray(n) {
     return Array.from({ length: n }, () => null);
@@ -1269,6 +1174,8 @@
   }
 
   // src/Turndown.ts
+  var _escape = turndown_browser_es_default.prototype.escape.bind(null);
+  turndown_browser_es_default.prototype.escape = (s) => _escape(s).replace(/</g, "&lt;");
   var Turndown = class {
     service;
     constructor(retainElementCbs = []) {
@@ -1528,36 +1435,12 @@
     return lines.join("\n");
   }
 
-  // src/util.json.ts
-  function isObject(value) {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-  function mergeJSONs(source, target) {
-    const result = {
-      ...source
-    };
-    for (const key of Object.keys(target)) {
-      const sourceValue = result[key];
-      const targetValue = target[key];
-      if (isObject(sourceValue) && isObject(targetValue)) {
-        result[key] = mergeJSONs(sourceValue, targetValue);
-        continue;
-      }
-      if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
-        result[key] = [.../* @__PURE__ */ new Set([...sourceValue, ...targetValue])];
-        continue;
-      }
-      result[key] = targetValue;
-    }
-    return result;
-  }
-
   // src/var.CONFIG.ts
   var CONFIG = {
     uniqueAttributeName: "data-uid"
   };
 
-  // src/var.FILTERED_TAG_NAMES.ts
+  // src/var.CLASS_TAGS.ts
   var FILTERED_TAG_NAMES = [
     "CIRCLE",
     "CLIPPATH",
@@ -1584,170 +1467,7 @@
     "TEMPLATE",
     "USE"
   ];
-
-  // src/var.UI_FEATURE_HEURISTICS.ts
-  var UI_FEATURE_HEURISTICS = {
-    "typeElement": {
-      "container": {
-        "tagNames": [
-          "article",
-          "aside",
-          "body",
-          "div",
-          "footer",
-          "header",
-          "html",
-          "main",
-          "nav",
-          "section"
-        ],
-        "ratings": {
-          "article": 0.95,
-          "aside": 0.85,
-          "body": 0.9,
-          "div": 0.3,
-          "footer": 0.7,
-          "header": 0.75,
-          "html": 0.1,
-          "main": 0.85,
-          "nav": 0.8,
-          "section": 0.9
-        },
-        "fallbackRating": 1
-      },
-      "actionable": {
-        "tagNames": [
-          "a",
-          "button",
-          "details",
-          "form",
-          "input",
-          "label",
-          "select",
-          "option",
-          "summary",
-          "textarea"
-        ]
-      },
-      "textFormatting": {
-        "tagNames": [
-          "address",
-          "blockquote",
-          "b",
-          "code",
-          "em",
-          "figure",
-          "figcaption",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "hr",
-          "img",
-          "li",
-          "ol",
-          "p",
-          "pre",
-          "small",
-          "span",
-          "strong",
-          "sub",
-          "sup",
-          "table",
-          "tbody",
-          "td",
-          "thead",
-          "th",
-          "tr",
-          "ul"
-        ]
-      }
-    },
-    "typeAttribute": {
-      "ratings": {
-        "alt": 0.46,
-        "href": 0.91,
-        "src": 0.83,
-        "id": 0.68,
-        "class": 0.77,
-        "title": 0.29,
-        "lang": 0.3,
-        "role": 0.32,
-        "placeholder": 0.25,
-        "label": 0.31,
-        "for": 0.3,
-        "value": 0.43,
-        "checked": 0.36,
-        "disabled": 0.34,
-        "readonly": 0.33,
-        "required": 0.33,
-        "maxlength": 0.21,
-        "minlength": 0.21,
-        "pattern": 0.22,
-        "step": 0.22,
-        "min": 0.23,
-        "max": 0.23,
-        "accept": 0.24,
-        "accept-charset": 0.01,
-        "action": 0.27,
-        "method": 0.27,
-        "enctype": 0.17,
-        "target": 0.17,
-        "rel": 0.18,
-        "media": 0.03,
-        "sizes": 0.19,
-        "srcset": 0.2,
-        "preload": 0.02,
-        "autoplay": 0.03,
-        "controls": 0.36,
-        "loop": 0.04,
-        "muted": 0.04,
-        "poster": 0.03,
-        "autofocus": 0.16,
-        "autocomplete": 0.15,
-        "autocapitalize": 0.01,
-        "spellcheck": 0.02,
-        "contenteditable": 0.15,
-        "draggable": 0.01,
-        "dropzone": 0,
-        "tabindex": 0.16,
-        "accesskey": 0,
-        "cite": 0.01,
-        "datetime": 0.15,
-        "coords": 0,
-        "shape": 0,
-        "usemap": 0.01,
-        "ismap": 0,
-        "download": 0.02,
-        "ping": 0,
-        "hreflang": 0.02,
-        "type": 0.38,
-        "name": 0.4,
-        "form": 0.26,
-        "novalidate": 0.02,
-        "multiple": 0.26,
-        "selected": 0.35,
-        "size": 0.04,
-        "wrap": 0.01,
-        "hidden": 0.28,
-        "style": 0.1,
-        "content": 0.05,
-        "http-equiv": 0.01,
-        "aria-*": 0.62,
-        "data-uid": 1
-      },
-      "fallbackRating": 0
-    }
-  };
-
-  // src/D2Snap.ts
-  var DATA_URL_ATTRIBUTE_NAME = "src";
-  var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
-  var WHITESPACE_REGEX = /^\s$/;
-  var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
-  var VOID_ELEMENT_TAG_NAMES = /* @__PURE__ */ new Set([
+  var VOID_TAG_NAMES2 = /* @__PURE__ */ new Set([
     "AREA",
     "BASE",
     "BR",
@@ -1763,7 +1483,58 @@
     "TRACK",
     "WBR"
   ]);
-  var ACTIONABLE_ROLE_ATTRIBUTE_VALUES = /* @__PURE__ */ new Set([
+  var ACTIONABLE_TAG_NAMES = [
+    "A",
+    "BUTTON",
+    "DETAILS",
+    "FORM",
+    "INPUT",
+    "LABLE",
+    "SELECT",
+    "OPTION",
+    "SUMMARY",
+    "TEXTAREA"
+  ];
+  var TEXT_TAG_NAMES = [
+    "ADDRESS",
+    "BLOCKQUOTE",
+    "B",
+    "CODE",
+    "EM",
+    "FIGURE",
+    "FIGCAPTION",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
+    "HR",
+    "IMG",
+    "LI",
+    "OL",
+    "P",
+    "PRE",
+    "SMALL",
+    "SPAN",
+    "STRONG",
+    "SUB",
+    "SUP",
+    "TABLE",
+    "TBODY",
+    "TD",
+    "THEAD",
+    "TH",
+    "TR",
+    "UL"
+  ];
+  var REPLACE_WITH_LABELS_TAG_NAMES = [
+    "IMG",
+    "SVG"
+  ];
+
+  // src/var.CLASS_ATTRIBUTES.ts
+  var ACTIONABLE_ROLE_ATTRIBUTE_VALUES = [
     "button",
     "checkbox",
     "link",
@@ -1779,7 +1550,87 @@
     "textbox",
     "combobox",
     "listbox"
-  ]);
+  ];
+
+  // src/var.ATTRIBUTE_SCORING.ts
+  var ATTRIBUTE_SCORING = {
+    "alt": 0.46,
+    "href": 0.91,
+    "src": 0.83,
+    "id": 0.68,
+    "class": 0.77,
+    "title": 0.29,
+    "lang": 0.3,
+    "role": 0.32,
+    "placeholder": 0.25,
+    "label": 0.31,
+    "for": 0.3,
+    "value": 0.43,
+    "checked": 0.36,
+    "disabled": 0.34,
+    "readonly": 0.33,
+    "required": 0.33,
+    "maxlength": 0.21,
+    "minlength": 0.21,
+    "pattern": 0.22,
+    "step": 0.22,
+    "min": 0.23,
+    "max": 0.23,
+    "accept": 0.24,
+    "accept-charset": 0.01,
+    "action": 0.27,
+    "method": 0.27,
+    "enctype": 0.17,
+    "target": 0.17,
+    "rel": 0.18,
+    "media": 0.03,
+    "sizes": 0.19,
+    "srcset": 0.2,
+    "preload": 0.02,
+    "autoplay": 0.03,
+    "controls": 0.36,
+    "loop": 0.04,
+    "muted": 0.04,
+    "poster": 0.03,
+    "autofocus": 0.16,
+    "autocomplete": 0.15,
+    "autocapitalize": 0.01,
+    "spellcheck": 0.02,
+    "contenteditable": 0.15,
+    "draggable": 0.01,
+    "dropzone": 0,
+    "tabindex": 0.16,
+    "accesskey": 0,
+    "cite": 0.01,
+    "datetime": 0.15,
+    "coords": 0,
+    "shape": 0,
+    "usemap": 0.01,
+    "ismap": 0,
+    "download": 0.02,
+    "ping": 0,
+    "hreflang": 0.02,
+    "type": 0.38,
+    "name": 0.4,
+    "form": 0.26,
+    "novalidate": 0.02,
+    "multiple": 0.26,
+    "selected": 0.35,
+    "size": 0.04,
+    "wrap": 0.01,
+    "hidden": 0.28,
+    "style": 0.1,
+    "content": 0.05,
+    "http-equiv": 0.01,
+    "aria-*": 0.62,
+    "data-uid": 1
+  };
+
+  // src/D2Snap.ts
+  var DATA_URL_ATTRIBUTE_NAME = "src";
+  var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
+  var WHITESPACE_REGEX = /^\s$/;
+  var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
   function validateParameter(name, value) {
     if (value < 0 || value > 1) {
       throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
@@ -1801,151 +1652,71 @@
     validateParameter("rA", rA);
     validateParameter("rT", rT);
     const optionsWithDefaults = {
+      attributeScoringFallback: 0,
       debug: false,
-      uiFeatureHeuristics: {},
-      uiFeatureHeuristicsReplaceDefault: false,
       filterDataURLs: true,
       filterEmptyElements: false,
       filteredTagNames: FILTERED_TAG_NAMES,
+      liftImageDescription: true,
       skipMarkdown: false,
       skipTextRank: false,
       textRankOptions: {},
       uniqueIDs: false,
-      ...options
+      ...options,
+      attributeScoring: {
+        ...ATTRIBUTE_SCORING,
+        ...options.attributeScoring ?? {}
+      }
     };
-    optionsWithDefaults.uiFeatureHeuristics = options.groundTruth ?? optionsWithDefaults.uiFeatureHeuristics;
-    optionsWithDefaults.uiFeatureHeuristicsReplaceDefault = options.groundTruthReplaceDefault ?? optionsWithDefaults.uiFeatureHeuristicsReplaceDefault;
-    const uiFeatureHeuristics = new UIFeatureHeuristics(
-      !optionsWithDefaults.uiFeatureHeuristicsReplaceDefault ? mergeJSONs(UI_FEATURE_HEURISTICS, optionsWithDefaults.uiFeatureHeuristics) : optionsWithDefaults.uiFeatureHeuristics
+    const attributeScoring = new Map(
+      Object.entries(optionsWithDefaults.attributeScoring).map((entry) => [entry[0].toLowerCase(), entry[1]])
     );
     const filteredTagNames = new Set(
       optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
-    const mdRetainedTagNames = new Set(
-      uiFeatureHeuristics.getElementsByType("actionable").map((tagName) => tagName.toUpperCase())
+    const actionableTagNames = new Set(
+      ACTIONABLE_TAG_NAMES.map((tagName) => tagName.toUpperCase())
+    );
+    const actionableRoleAttributeValues = new Set(
+      ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
     );
     function hasMDRetainTagName(elementNode) {
-      return mdRetainedTagNames.has(elementNode.tagName.toUpperCase());
+      return actionableTagNames.has(elementNode.tagName.toUpperCase());
     }
     function hasActionableRole(elementNode) {
-      return ACTIONABLE_ROLE_ATTRIBUTE_VALUES.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+      return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
     }
     const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
-    function snapElementContainerNode(document3, elementNode, rE2) {
+    function snapElementContainerNode(elementNode, rE2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (hasActionableRole(elementNode)) return;
-      if (VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+      if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+      if (VOID_TAG_NAMES2.has(elementNode.tagName.toUpperCase())) return;
       const considerContainerElement = (elementNode2) => {
-        if (uiFeatureHeuristics.isElementType("container", elementNode2.tagName)) return true;
-        if (optionsWithDefaults.skipMarkdown && uiFeatureHeuristics.isElementType("textFormatting", elementNode2.tagName)) return true;
-        if (elementNode2.tagName.includes("-")) return true;
-        return false;
+        if (elementNode2.nodeType !== 1 /* ELEMENT_NODE */) return false;
+        if (hasActionableRole(elementNode2)) return false;
+        const tagName = elementNode2.tagName.toUpperCase();
+        if (VOID_TAG_NAMES2.has(tagName)) return false;
+        if (ACTIONABLE_TAG_NAMES.includes(tagName)) return false;
+        return true;
       };
       if (!considerContainerElement(elementNode)) return;
       if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
       const ratio = Math.min(1, Math.max(0, rE2));
       const isMergeLevel = elementNode.depth > 1 && Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio);
       if (!isMergeLevel) return;
-      const elements = [
-        elementNode.parentElement,
-        elementNode
-      ];
-      const isTopdownMerge = uiFeatureHeuristics.getContainerRating(elements[0].tagName) < uiFeatureHeuristics.getContainerRating(elements[1].tagName);
-      isTopdownMerge && elements.reverse();
-      const targetElement = elements[0];
-      const sourceElement = elements[1];
-      if (isTopdownMerge) {
-        const mergedAttributes = Array.from(targetElement.attributes);
-        for (const attr of sourceElement.attributes) {
-          if (mergedAttributes.some((targetAttr) => targetAttr.name === attr.name)) continue;
-          mergedAttributes.push(attr);
-        }
-        for (const attr of targetElement.attributes) {
-          targetElement.removeAttribute(attr.name);
-        }
-        for (const attr of mergedAttributes) {
-          try {
-            targetElement.setAttribute(attr.name, attr.value);
-          } catch (e) {
-            if (e.name !== "InvalidCharacterError") throw e;
-          }
-        }
-      }
-      if (!isTopdownMerge) {
-        while (sourceElement.childNodes.length) {
-          targetElement.insertBefore(sourceElement.childNodes[0], sourceElement);
-        }
-      } else {
-        const before = [];
-        const after = [];
-        let isAfterTarget = false;
-        for (const child of sourceElement.childNodes) {
-          if (child === targetElement) {
-            isAfterTarget = true;
-            continue;
-          }
-          (isAfterTarget ? after : before).push(child);
-        }
-        for (let i = before.length - 1; i >= 0; i--) {
-          const child = before[i];
-          if (targetElement.childNodes.length && i === before.length - 1) {
-            if (child.nodeType === 3 /* TEXT_NODE */) {
-              child.textContent = `${child.textContent} `;
-            } else {
-              child.appendChild(document3.createTextNode(" "));
-            }
-          }
-          targetElement.insertBefore(child, targetElement.firstChild);
-        }
-        for (let i = 0; i < after.length; i++) {
-          const child = after[i];
-          if (targetElement.childNodes.length && i === 0) {
-            if (child.nodeType === 3 /* TEXT_NODE */) {
-              child.textContent = ` ${child.textContent}`;
-            } else {
-              child.insertBefore(document3.createTextNode(" "), child.firstChild);
-            }
-          }
-          targetElement.appendChild(child);
-        }
-        targetElement.depth = sourceElement.depth;
-        sourceElement.parentNode?.insertBefore(targetElement, sourceElement);
+      const targetElement = elementNode.parentElement;
+      const sourceElement = elementNode;
+      while (sourceElement.childNodes.length) {
+        targetElement.insertBefore(sourceElement.childNodes[0], sourceElement);
       }
       sourceElement.parentNode?.removeChild(sourceElement);
     }
-    function snapElementReplaceWithLabelNode(document3, elementNode) {
-      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!uiFeatureHeuristics.isElementType("replaceWithLabel", elementNode.tagName)) return;
-      let label = null;
-      for (const attrName of uiFeatureHeuristics.getLabelAttrs()) {
-        const value = elementNode.getAttribute(attrName);
-        const trimmed = (value ?? "").trim();
-        if (trimmed) {
-          label = trimmed;
-          break;
-        }
-      }
-      if (!label) {
-        for (const child of Array.from(elementNode.children)) {
-          if (!uiFeatureHeuristics.isLabelChildTag(child.tagName)) continue;
-          const trimmed = (child.textContent ?? "").trim();
-          if (trimmed) {
-            label = trimmed;
-            break;
-          }
-        }
-      }
-      if (label !== null) {
-        elementNode.replaceWith(document3.createTextNode(label));
-      } else {
-        elementNode.remove();
-      }
-    }
     function snapElementTextFormattingNode(document3, elementNode) {
+      if (optionsWithDefaults.skipMarkdown) return;
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (hasActionableRole(elementNode)) return;
-      if (!uiFeatureHeuristics.isElementType("textFormatting", elementNode.tagName)) return;
-      if (optionsWithDefaults.skipMarkdown) return;
+      if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
       unwrapColonTaggedElements(markdownNodesFragment);
@@ -1969,8 +1740,43 @@
     function snapAttributeNode(elementNode, rA2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       for (const attr of Array.from(elementNode.attributes)) {
-        if (uiFeatureHeuristics.getAttributeRating(attr.name) >= rA2) continue;
+        let normalizedName = attr.name;
+        if (!attributeScoring.has(normalizedName)) {
+          if (normalizedName.includes("-")) {
+            normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+          }
+        }
+        const attributeScore = attributeScoring.get(normalizedName.toLowerCase()) ?? optionsWithDefaults.attributeScoringFallback;
+        if (attributeScore >= rA2) continue;
         elementNode.removeAttribute(attr.name);
+      }
+    }
+    function liftImageDescription(document3, elementNode) {
+      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
+      if (!REPLACE_WITH_LABELS_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+      let label = null;
+      for (const attrName of ["aria-label", "title", "alt"]) {
+        const value = elementNode.getAttribute(attrName);
+        const trimmed = (value ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+      if (!label) {
+        for (const child of Array.from(elementNode.children)) {
+          if (!["title", "desc"].includes(child.tagName)) continue;
+          const trimmed = (child.textContent ?? "").trim();
+          if (trimmed) {
+            label = trimmed;
+            break;
+          }
+        }
+      }
+      if (label !== null) {
+        elementNode.replaceWith(document3.createTextNode(label));
+      } else {
+        elementNode.remove();
       }
     }
     const document2 = resolveDocument(dom);
@@ -1978,18 +1784,20 @@
     const rootElement = resolveRoot(dom);
     const originalSize = rootElement.innerHTML.length;
     const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
-    let t0 = t();
-    const timings = { uniqueIDs: 0, clone: 0, init: 0, replaceWithLabel: 0, textNodes: 0, textFormatting: 0, containers: 0, attributes: 0, serialize: 0, minify: 0, formatDebugOnly: 0 };
-    let n = 0;
-    optionsWithDefaults.uniqueIDs && traverseDom(
-      rootElement,
-      1 /* SHOW_ELEMENT */,
-      (elementNode) => {
-        if (!uiFeatureHeuristics.isElementType("container", elementNode.tagName) && !uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
-        elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
-      }
-    );
-    timings.uniqueIDs = t() - t0;
+    let t0;
+    const timings = {
+      uniqueIDs: 0,
+      clone: 0,
+      init: 0,
+      liftImageDescription: 0,
+      textNodes: 0,
+      textFormatting: 0,
+      containers: 0,
+      attributes: 0,
+      serialize: 0,
+      minify: 0,
+      formatDebugOnly: 0
+    };
     t0 = t();
     const virtualDom = rootElement.cloneNode(true);
     timings.clone = t() - t0;
@@ -2020,15 +1828,22 @@
       }
     );
     timings.init = t() - t0;
+    let n = 0;
+    optionsWithDefaults.uniqueIDs && traverseDom(
+      rootElement,
+      1 /* SHOW_ELEMENT */,
+      (elementNode) => {
+        elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
+      }
+    );
+    timings.uniqueIDs = t() - t0;
     t0 = t();
-    if (uiFeatureHeuristics.getElementsByType("replaceWithLabel").length) {
-      traverseDom(
-        virtualDom,
-        1 /* SHOW_ELEMENT */,
-        (node) => snapElementReplaceWithLabelNode(document2, node)
-      );
-    }
-    timings.replaceWithLabel = t() - t0;
+    optionsWithDefaults.liftImageDescription && traverseDom(
+      virtualDom,
+      1 /* SHOW_ELEMENT */,
+      (node) => liftImageDescription(document2, node)
+    );
+    timings.liftImageDescription = t() - t0;
     t0 = t();
     traverseDom(
       virtualDom,
@@ -2047,7 +1862,7 @@
     traverseDom(
       virtualDom,
       1 /* SHOW_ELEMENT */,
-      (node) => snapElementContainerNode(document2, node, rE)
+      (node) => snapElementContainerNode(node, rE)
     );
     timings.containers = t() - t0;
     t0 = t();
@@ -2066,7 +1881,7 @@
           virtualDom,
           1 /* SHOW_ELEMENT */,
           (elementNode) => {
-            if (uiFeatureHeuristics.isElementType("actionable", elementNode.tagName)) return;
+            if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
             if (hasActionableRole(elementNode)) return;
             if (elementNode.children.length || elementNode.textContent.trim().length) return;
             elementNode.remove();
@@ -2076,9 +1891,18 @@
       } while (hasRemovedElement);
     }
     if (rE === 1) {
-      [...virtualDom.children].forEach((element) => {
-        element.replaceWith(...element.childNodes);
-      });
+      const dissolveToplevelTags = (rootElement2) => {
+        [...rootElement2.children].forEach((element) => {
+          element.replaceWith(...element.childNodes);
+        });
+      };
+      dissolveToplevelTags(virtualDom);
+      [
+        ...virtualDom.querySelectorAll(ACTIONABLE_TAG_NAMES.join(", ")),
+        ...virtualDom.querySelectorAll(
+          [...ACTIONABLE_ROLE_ATTRIBUTE_VALUES].map((role) => `[role="${role}"]`).join(", ")
+        )
+      ].forEach((actionableElement) => dissolveToplevelTags(actionableElement));
     }
     t0 = t();
     const snapshot = virtualDom.innerHTML;

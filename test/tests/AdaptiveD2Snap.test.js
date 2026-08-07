@@ -1,6 +1,7 @@
 import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
 
 import { adaptiveD2Snap } from "../../dist.lib/api.js";
+import { ATTRIBUTE_SCORING } from "../../dist.lib/var.ATTRIBUTE_SCORING.js";
 
 
 
@@ -16,15 +17,11 @@ await test("Validate raw DOM snapshot (>= 25K tokens)", async () => {
 });
 
 
-await test("Take adaptive DOM snapshot (max 7K tokens)", async () => {
+await test("Take adaptive DOM snapshot (max 5K tokens)", async () => {
     const snapshot = await adaptiveD2Snap(WEBFUSE_HTML, 5000, 5, {
         debug: true,
-        uiFeatureHeuristics: {
-            typeAttribute: {
-                ratings: {
-                    class: 0.0
-                }
-            }
+        attributeScoring: {
+            class: 0
         },
         uniqueIDs: true
     });
@@ -38,12 +35,12 @@ await test("Take adaptive DOM snapshot (max 7K tokens)", async () => {
     );
     assertMore(
         snapshot.meta.tokenEstimate,
-        3000,
-        "Invalid adaptive DOM snapshot size (min 3K; close-to-cap paradigm)"
+        1500,
+        "Invalid adaptive DOM snapshot size (min 1.5K; close-to-cap paradigm)"
     );
 
     assertIn(
-        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"490\">About us</a>"),
+        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"646\">About us</a>"),
         flattenDOMSnapshot(snapshot.html),
         "Interactive element not preserved"
     );

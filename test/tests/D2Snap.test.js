@@ -16,14 +16,14 @@ await test("Take DOM snapshot (L)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.originalSize,
-        2700,
+        2780,
         -1,
         "Invalid DOM snapshot original size"
     );
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.5,
+        0.49,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -89,7 +89,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.37,
+        0.36,
         2,
         "Invalid DOM snapshot size ratio"
     );

@@ -17,12 +17,11 @@ export type TextNode = Node & {
     innerText?: string;
 };
 export type DOM = Document | Element;
-export type JSONValue = string | number | boolean | null | JSONValue[] | JSONObject;
-export interface JSONObject {
-    [key: string]: JSONValue;
-}
 export interface HTMLElementWithDepth extends HTMLElement {
     depth: number;
+}
+export interface AttributeScoring {
+    [name: string]: number;
 }
 export interface TextRankOptions {
     damping: number;
@@ -31,14 +30,13 @@ export interface TextRankOptions {
     tolerance: number;
 }
 export interface D2SnapOptions {
+    attributeScoring: AttributeScoring;
+    attributeScoringFallback: number;
     debug: boolean;
-    uiFeatureHeuristics: Partial<UIFeatureHeuristicsJSON>;
-    uiFeatureHeuristicsReplaceDefault: boolean;
-    groundTruth?: Partial<UIFeatureHeuristicsJSON>;
-    groundTruthReplaceDefault?: boolean;
     filterDataURLs: boolean;
     filterEmptyElements: boolean;
     filteredTagNames: string[];
+    liftImageDescription: boolean;
     skipMarkdown: boolean;
     skipTextRank: boolean;
     textRankOptions: Partial<TextRankOptions>;
@@ -48,7 +46,7 @@ export interface D2SnapTimings {
     uniqueIDs: number;
     clone: number;
     init: number;
-    replaceWithLabel: number;
+    liftImageDescription: number;
     textNodes: number;
     textFormatting: number;
     containers: number;
@@ -67,31 +65,5 @@ export interface D2SnapResult {
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
         timings?: D2SnapTimings;
-    };
-}
-export interface UIFeatureHeuristicsJSON extends JSONObject {
-    typeElement: {
-        container: {
-            tagNames: string[];
-            ratings: {
-                [key: string]: number;
-            };
-            fallbackRating: number;
-        };
-        actionable: {
-            tagNames: string[];
-        };
-        textFormatting: {
-            tagNames: string[];
-        };
-        replaceWithLabel?: {
-            tagNames?: string[];
-            labelAttrs?: string[];
-            labelChildTags?: string[];
-        };
-    };
-    typeAttribute: {
-        ratings: Record<string, number>;
-        fallbackRating: number;
     };
 }

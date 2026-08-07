@@ -34,17 +34,17 @@ D2Snap.adaptiveD2Snap(
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  debug?: boolean;                              // false
-  uiFeatureHeuristics?: object;                 // compare src/types.ts:UIFeatureHeuristicsJSON
-  uiFeatureHeuristicsReplaceDefault?: boolean;  // false
-  skipMarkdown?: boolean;                       // false
-  skipTextRank?: boolean;                       // false
-  uniqueIDs?: boolean;                          // false
+  debug?: boolean;             // false
+  attributeScoring?: {         // compare src/var.ATTRIBUTE_SCORING.ts
+    [ name: string ]: number;
+  };
+  skipMarkdown?: boolean;      // false
+  skipTextRank?: boolean;      // false
+  uniqueIDs?: boolean;         // false
 };
 ```
 
-> The downsampling [UI feature heuristics](./src/var.UI_FEATURE_HEURISTICS.ts) can be overridden via `options.uiFeatureHeuristics` (full replacement via `uiFeatureHeuristicsReplaceDefault: true`).
-> Wildcards for `aria` and `data` attributes are supported (`{aria-|data-}*`).
+> The attribute scoring lookup table supports wildcards for `aria` and `data` (`{aria-|data-}*`).
 
 #### Browser
 

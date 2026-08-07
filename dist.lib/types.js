@@ -17,7 +17,6 @@ var NodeType = /* @__PURE__ */ ((NodeType2) => {
 ;
 ;
 ;
-;
 export {
   NodeFilter,
   NodeType

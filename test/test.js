@@ -6,11 +6,7 @@ import { deepEqual as assertEqual, ok, throws } from "assert";
 const TEST_DIR_PATH = join(import.meta.dirname, "./tests");
 
 
-process.on("exit", code => {
-    code
-        ? console.error(`\x1b[31mTests failed (exit code ${code}).\x1b[0m`)
-        : console.log(`\x1b[32mTests succeeded.\x1b[0m`);
-});
+let exitCode = 0;
 
 
 // Test framework
@@ -39,7 +35,7 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
         console.log(`\x1b[2mEXPECTED${relationHint}:\x1b[0m`, printValue(expected ?? err.expected));
         console.log(`\x1b[2mACTUAL${relationHint}:\x1b[0m`, printValue(actual ?? err.actual));
 
-        process.exit(2);
+        exitCode = 2;
     }
 }
 
@@ -86,7 +82,13 @@ global.path = function(fileName) {
 global.test = async function(title, cb) {
     console.log(`\x1b[2m${title}\x1b[0m`);
 
-    await cb();
+    try {
+        await cb();
+    } catch(err) {
+        console.error(`\x1b[31mTest Error${err.message ? ` '${err.message}'` : ""}\x1b[0m`);
+
+        exitCode = 3;
+    }
 }
 
 
@@ -96,9 +98,16 @@ const testDirents = await readdir(TEST_DIR_PATH, {
     withFileTypes: true
 });
 
-await Promise.all(
-    testDirents
+for(
+    const dirent of testDirents
         .filter(dirent => dirent.isFile())
         .filter(dirent => dirent.name.endsWith(".test.js"))
-        .map(dirent => import(join(TEST_DIR_PATH, dirent.name)))
-);
+) {
+    await import(join(TEST_DIR_PATH, dirent.name));
+}
+
+exitCode
+    ? console.error(`\x1b[31mTests failed (exit code ${exitCode}).\x1b[0m`)
+    : console.log(`\x1b[32mTests succeeded.\x1b[0m`);
+
+process.exit(exitCode);

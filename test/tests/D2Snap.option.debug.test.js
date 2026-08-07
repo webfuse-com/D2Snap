@@ -11,8 +11,8 @@ await test("Take DOM snapshot (options.debug)", async () => {
         debug: false
     });
 
-    await writeActual("pizza/pizza.options.no-debug", snapshotNoDebug.html);
-    const expected = await readExpected("pizza/pizza.options.no-debug");
+    await writeActual("pizza/pizza.options.debug", snapshotNoDebug.html);
+    const expected = await readExpected("pizza/pizza.options.debug");
 
     assertEqual(
         snapshotNoDebug.html,

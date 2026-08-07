@@ -8,8 +8,8 @@ import { type TextRankOptions } from "./types.js";
 
 interface TextRankSentence {
 	index: number;
-	sentence: string;
 	score: number;
+	sentence: string;
 }
 
 

@@ -9,7 +9,8 @@ const PIZZA_HTML = await readTestFile("pizza/pizza");
 await test("Take DOM snapshot (options.filterDataURLs)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
         filterDataURLs: true,
-        debug: false
+        debug: false,
+		liftImageDescription: false
     });
 
     assertNotIn(
@@ -19,7 +20,8 @@ await test("Take DOM snapshot (options.filterDataURLs)", async () => {
     );
     const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
         filterDataURLs: false,
-        debug: false
+        debug: false,
+		liftImageDescription: false
     });
 
     assertIn(

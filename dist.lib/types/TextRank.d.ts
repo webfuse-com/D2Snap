@@ -1,8 +1,8 @@
 import { type TextRankOptions } from "./types.js";
 interface TextRankSentence {
     index: number;
-    sentence: string;
     score: number;
+    sentence: string;
 }
 export declare function tokenizeSentences(text: string): string[];
 export declare function textRank(sentences: string[], options?: Partial<TextRankOptions>): TextRankSentence[];
