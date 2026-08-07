@@ -25,8 +25,9 @@ The web-based task is denoted with the prefix `TASK:`, e.g. "TASK: Show 4-star h
 Follow these rules when considering an element for interaction:
 
 - In case there are multiple trajectories to solve the task, rank them in memory according to human-readability and choose the highest ranked alternative
-- If there are alternative elements per trajectory which seem to do the same thing, choose the most expressive alternative 
+- If there alternative elements per trajectory which seem to do the same thing, choose the most expressive alternative 
 - Suppose there are only point and click actions, so never imply any other interaction
+- Try not to over-suggest, i.e., suggest only mandatory elements to solve the task with
 
 ## Schema
 
