@@ -235,7 +235,7 @@
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
       for (var key in source) {
-        if (source.hasOwnProperty(key)) destination[key] = source[key];
+        if (Object.prototype.hasOwnProperty.call(source, key)) destination[key] = source[key];
       }
     }
     return destination;
@@ -251,97 +251,21 @@
     while (indexEnd > 0 && string[indexEnd - 1] === "\n") indexEnd--;
     return string.substring(0, indexEnd);
   }
-  var blockElements = [
-    "ADDRESS",
-    "ARTICLE",
-    "ASIDE",
-    "AUDIO",
-    "BLOCKQUOTE",
-    "BODY",
-    "CANVAS",
-    "CENTER",
-    "DD",
-    "DIR",
-    "DIV",
-    "DL",
-    "DT",
-    "FIELDSET",
-    "FIGCAPTION",
-    "FIGURE",
-    "FOOTER",
-    "FORM",
-    "FRAMESET",
-    "H1",
-    "H2",
-    "H3",
-    "H4",
-    "H5",
-    "H6",
-    "HEADER",
-    "HGROUP",
-    "HR",
-    "HTML",
-    "ISINDEX",
-    "LI",
-    "MAIN",
-    "MENU",
-    "NAV",
-    "NOFRAMES",
-    "NOSCRIPT",
-    "OL",
-    "OUTPUT",
-    "P",
-    "PRE",
-    "SECTION",
-    "TABLE",
-    "TBODY",
-    "TD",
-    "TFOOT",
-    "TH",
-    "THEAD",
-    "TR",
-    "UL"
-  ];
+  function trimNewlines(string) {
+    return trimTrailingNewlines(trimLeadingNewlines(string));
+  }
+  var blockElements = ["ADDRESS", "ARTICLE", "ASIDE", "AUDIO", "BLOCKQUOTE", "BODY", "CANVAS", "CENTER", "DD", "DIR", "DIV", "DL", "DT", "FIELDSET", "FIGCAPTION", "FIGURE", "FOOTER", "FORM", "FRAMESET", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HGROUP", "HR", "HTML", "ISINDEX", "LI", "MAIN", "MENU", "NAV", "NOFRAMES", "NOSCRIPT", "OL", "OUTPUT", "P", "PRE", "SECTION", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL"];
   function isBlock(node) {
     return is(node, blockElements);
   }
-  var voidElements = [
-    "AREA",
-    "BASE",
-    "BR",
-    "COL",
-    "COMMAND",
-    "EMBED",
-    "HR",
-    "IMG",
-    "INPUT",
-    "KEYGEN",
-    "LINK",
-    "META",
-    "PARAM",
-    "SOURCE",
-    "TRACK",
-    "WBR"
-  ];
+  var voidElements = ["AREA", "BASE", "BR", "COL", "COMMAND", "EMBED", "HR", "IMG", "INPUT", "KEYGEN", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
   function isVoid(node) {
     return is(node, voidElements);
   }
   function hasVoid(node) {
     return has(node, voidElements);
   }
-  var meaningfulWhenBlankElements = [
-    "A",
-    "TABLE",
-    "THEAD",
-    "TBODY",
-    "TFOOT",
-    "TH",
-    "TD",
-    "IFRAME",
-    "SCRIPT",
-    "AUDIO",
-    "VIDEO"
-  ];
+  var meaningfulWhenBlankElements = ["A", "TABLE", "THEAD", "TBODY", "TFOOT", "TH", "TD", "IFRAME", "SCRIPT", "AUDIO", "VIDEO"];
   function isMeaningfulWhenBlank(node) {
     return is(node, meaningfulWhenBlankElements);
   }
@@ -355,6 +279,12 @@
     return node.getElementsByTagName && tagNames.some(function(tagName) {
       return node.getElementsByTagName(tagName).length;
     });
+  }
+  var markdownEscapes = [[/\\/g, "\\\\"], [/\*/g, "\\*"], [/^-/g, "\\-"], [/^\+ /g, "\\+ "], [/^(=+)/g, "\\$1"], [/^(#{1,6}) /g, "\\$1 "], [/`/g, "\\`"], [/^~~~/g, "\\~~~"], [/\[/g, "\\["], [/\]/g, "\\]"], [/^>/g, "\\>"], [/_/g, "\\_"], [/^(\d+)\. /g, "$1\\. "]];
+  function escapeMarkdown(string) {
+    return markdownEscapes.reduce(function(accumulator, escape) {
+      return accumulator.replace(escape[0], escape[1]);
+    }, string);
   }
   var rules = {};
   rules.paragraph = {
@@ -384,8 +314,7 @@
   rules.blockquote = {
     filter: "blockquote",
     replacement: function(content) {
-      content = content.replace(/^\n+|\n+$/g, "");
-      content = content.replace(/^/gm, "> ");
+      content = trimNewlines(content).replace(/^/gm, "> ");
       return "\n\n" + content + "\n\n";
     }
   };
@@ -403,7 +332,6 @@
   rules.listItem = {
     filter: "li",
     replacement: function(content, node, options) {
-      content = content.replace(/^\n+/, "").replace(/\n+$/, "\n").replace(/\n/gm, "\n    ");
       var prefix = options.bulletListMarker + "   ";
       var parent = node.parentNode;
       if (parent.nodeName === "OL") {
@@ -411,7 +339,10 @@
         var index = Array.prototype.indexOf.call(parent.children, node);
         prefix = (start ? Number(start) + index : index + 1) + ".  ";
       }
-      return prefix + content + (node.nextSibling && !/\n$/.test(content) ? "\n" : "");
+      var isParagraph = /\n$/.test(content);
+      content = trimNewlines(content) + (isParagraph ? "\n" : "");
+      content = content.replace(/\n/gm, "\n" + " ".repeat(prefix.length));
+      return prefix + content + (node.nextSibling ? "\n" : "");
     }
   };
   rules.indentedCodeBlock = {
@@ -454,11 +385,10 @@
       return options.linkStyle === "inlined" && node.nodeName === "A" && node.getAttribute("href");
     },
     replacement: function(content, node) {
-      var href = node.getAttribute("href");
-      if (href) href = href.replace(/([()])/g, "\\$1");
-      var title = cleanAttribute(node.getAttribute("title"));
-      if (title) title = ' "' + title.replace(/"/g, '\\"') + '"';
-      return "[" + content + "](" + href + title + ")";
+      var href = escapeLinkDestination(node.getAttribute("href"));
+      var title = escapeLinkTitle(cleanAttribute(node.getAttribute("title")));
+      var titlePart = title ? ' "' + title + '"' : "";
+      return "[" + content + "](" + href + titlePart + ")";
     }
   };
   rules.referenceLink = {
@@ -466,9 +396,9 @@
       return options.linkStyle === "referenced" && node.nodeName === "A" && node.getAttribute("href");
     },
     replacement: function(content, node, options) {
-      var href = node.getAttribute("href");
+      var href = escapeLinkDestination(node.getAttribute("href"));
       var title = cleanAttribute(node.getAttribute("title"));
-      if (title) title = ' "' + title + '"';
+      if (title) title = ' "' + escapeLinkTitle(title) + '"';
       var replacement;
       var reference;
       switch (options.linkReferenceStyle) {
@@ -531,15 +461,22 @@
   rules.image = {
     filter: "img",
     replacement: function(content, node) {
-      var alt = cleanAttribute(node.getAttribute("alt"));
-      var src = node.getAttribute("src") || "";
+      var alt = escapeMarkdown(cleanAttribute(node.getAttribute("alt")));
+      var src = escapeLinkDestination(node.getAttribute("src") || "");
       var title = cleanAttribute(node.getAttribute("title"));
-      var titlePart = title ? ' "' + title + '"' : "";
+      var titlePart = title ? ' "' + escapeLinkTitle(title) + '"' : "";
       return src ? "![" + alt + "](" + src + titlePart + ")" : "";
     }
   };
   function cleanAttribute(attribute) {
     return attribute ? attribute.replace(/(\n+\s*)+/g, "\n") : "";
+  }
+  function escapeLinkDestination(destination) {
+    var escaped = destination.replace(/([<>()])/g, "\\$1");
+    return escaped.indexOf(" ") >= 0 ? "<" + escaped + ">" : escaped;
+  }
+  function escapeLinkTitle(title) {
+    return title.replace(/"/g, '\\"');
   }
   function Rules(options) {
     this.options = options;
@@ -672,7 +609,7 @@
     var Parser = root.DOMParser;
     var canParse = false;
     try {
-      if (new Parser().parseFromString("", "text/html")) {
+      if (new Parser().parseFromString(trustedTypes?.emptyHTML ?? "", "text/html")) {
         canParse = true;
       }
     } catch (e) {
@@ -756,7 +693,10 @@
   }
   function flankingWhitespace(node, options) {
     if (node.isBlock || options.preformattedCode && node.isCode) {
-      return { leading: "", trailing: "" };
+      return {
+        leading: "",
+        trailing: ""
+      };
     }
     var edges = edgeWhitespace(node.textContent);
     if (edges.leadingAscii && isFlankedByWhitespace("left", node, options)) {
@@ -765,7 +705,10 @@
     if (edges.trailingAscii && isFlankedByWhitespace("right", node, options)) {
       edges.trailing = edges.trailingNonAscii;
     }
-    return { leading: edges.leading, trailing: edges.trailing };
+    return {
+      leading: edges.leading,
+      trailing: edges.trailing
+    };
   }
   function edgeWhitespace(string) {
     var m = string.match(/^(([ \t\r\n]*)(\s*))(?:(?=\S)[\s\S]*\S)?((\s*?)([ \t\r\n]*))$/);
@@ -803,21 +746,6 @@
     return isFlanked;
   }
   var reduce = Array.prototype.reduce;
-  var escapes = [
-    [/\\/g, "\\\\"],
-    [/\*/g, "\\*"],
-    [/^-/g, "\\-"],
-    [/^\+ /g, "\\+ "],
-    [/^(=+)/g, "\\$1"],
-    [/^(#{1,6}) /g, "\\$1 "],
-    [/`/g, "\\`"],
-    [/^~~~/g, "\\~~~"],
-    [/\[/g, "\\["],
-    [/\]/g, "\\]"],
-    [/^>/g, "\\>"],
-    [/_/g, "\\_"],
-    [/^(\d+)\. /g, "$1\\. "]
-  ];
   function TurndownService(options) {
     if (!(this instanceof TurndownService)) return new TurndownService(options);
     var defaults = {
@@ -856,9 +784,7 @@
      */
     turndown: function(input) {
       if (!canConvert(input)) {
-        throw new TypeError(
-          input + " is not a string, or an element/document/fragment node."
-        );
+        throw new TypeError(input + " is not a string, or an element/document/fragment node.");
       }
       if (input === "") return "";
       var output = process.call(this, new RootNode(input, this.options));
@@ -923,9 +849,7 @@
      * @type String
      */
     escape: function(string) {
-      return escapes.reduce(function(accumulator, escape) {
-        return accumulator.replace(escape[0], escape[1]);
-      }, string);
+      return escapeMarkdown(string);
     }
   };
   function process(parentNode) {
@@ -967,7 +891,6 @@
   function canConvert(input) {
     return input != null && (typeof input === "string" || input.nodeType && (input.nodeType === 1 || input.nodeType === 9 || input.nodeType === 11));
   }
-  var turndown_browser_es_default = TurndownService;
 
   // node_modules/@truto/turndown-plugin-gfm/lib/index.js
   var highlightRegExp = /highlight-(?:(?:text|source)-)?([a-z0-9]+)/;
@@ -1179,7 +1102,7 @@
   var Turndown = class {
     service;
     constructor(retainElementCbs = []) {
-      this.service = new turndown_browser_es_default({
+      this.service = new TurndownService({
         headingStyle: "atx",
         bulletListMarker: "-",
         codeBlockStyle: "fenced"
