@@ -18,6 +18,7 @@ class GroundTruth {
   attributeRatingCache = /* @__PURE__ */ new Map();
   labelAttrs;
   labelChildTagsSet;
+  labelClassPatterns;
   constructor(groundTruth) {
     this.groundTruth = groundTruth;
     this.elementsByType = {
@@ -45,6 +46,19 @@ class GroundTruth {
     this.labelChildTagsSet = new Set(
       (this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
     );
+    this.labelClassPatterns = (this.groundTruth?.typeElement?.replaceWithLabel?.classPatterns ?? []).map((pattern) => new RegExp(pattern, "i"));
+  }
+  hasLabelClassPatterns() {
+    return this.labelClassPatterns.length > 0;
+  }
+  /**
+   * Class tokens that name an icon, per the configured patterns. An icon font
+   * needs its vendor class in the markup to render, so that class is the only
+   * description an icon-only control carries.
+   */
+  getLabelClassTokens(className) {
+    if (!className || !this.labelClassPatterns.length) return [];
+    return className.split(/\s+/).filter((token) => token && this.labelClassPatterns.some((pattern) => pattern.test(token)));
   }
   getElementsByType(type) {
     return [...this.elementsByType[type]];

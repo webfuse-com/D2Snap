@@ -182,9 +182,29 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
     sourceElement.parentNode?.removeChild(sourceElement);
   }
+  function resolveActionableHost(elementNode) {
+    let host = elementNode.parentElement;
+    while (host && !groundTruth.isElementType("actionable", host.tagName) && !hasActionableRole(host)) {
+      host = host.parentElement;
+    }
+    return host;
+  }
+  function hasNoNameOfItsOwn(elementNode) {
+    if ((elementNode.textContent ?? "").trim()) return false;
+    return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
+  }
   function snapElementReplaceWithLabelNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+    const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
+    const iconClassTokens = (elementNode.textContent ?? "").trim() ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+    if (!isReplaceWithLabelTag) {
+      if (!iconClassTokens.length) return;
+      if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
+        if (!hasNoNameOfItsOwn(elementNode)) return;
+        elementNode.appendChild(document2.createTextNode(iconClassTokens.join(" ")));
+        return;
+      }
+    }
     let label = null;
     for (const attrName of groundTruth.getLabelAttrs()) {
       const value = elementNode.getAttribute(attrName);
@@ -204,9 +224,19 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
         }
       }
     }
+    if (!label && iconClassTokens.length) {
+      const host = resolveActionableHost(elementNode);
+      if (host && hasNoNameOfItsOwn(host)) {
+        label = iconClassTokens.join(" ");
+      }
+    }
     if (label !== null) {
-      elementNode.replaceWith(document2.createTextNode(label));
-    } else {
+      elementNode.replaceWith(
+        document2.createTextNode(" "),
+        document2.createTextNode(label),
+        document2.createTextNode(" ")
+      );
+    } else if (isReplaceWithLabelTag) {
       elementNode.remove();
     }
   }
@@ -290,7 +320,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   timings.init = t() - t0;
   t0 = t();
-  if (groundTruth.getElementsByType("replaceWithLabel").length) {
+  if (groundTruth.getElementsByType("replaceWithLabel").length || groundTruth.hasLabelClassPatterns()) {
     traverseDom(
       virtualDom,
       NodeFilter.SHOW_ELEMENT,

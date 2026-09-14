@@ -569,7 +569,7 @@ await test("replaceWithLabel is no-op when default ground-truth list is empty (c
 
     const snapshot = await d2Snap(dom, rE, rA, rT, {
         debug: true,
-        groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
+        groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0, "class": 0 } } }
     });
 
     // No replaceWithLabel config → svg survives.
@@ -807,3 +807,191 @@ for (const cobroQ of [0.1, 0.5, 0.9]) {
         );
     });
 }
+
+// ---------------------------------------------------------------------------
+// Icon-class labels (replaceWithLabel.classPatterns)
+//
+// An icon font renders through a vendor class in the markup (`fa-plus`), so
+// that class is the only description an icon-only control carries. The carrier
+// is usually a <span>, which the Markdown pass renders away two passes before
+// attribute scoring ever runs — so preserving `class` cannot help, and the
+// label has to be lifted in replaceWithLabel like an svg's aria-label.
+// ---------------------------------------------------------------------------
+// Mirrors cobro's deployed ground truth, which rates `class` 0 — the icon class
+// is gone at every quality below 1.0, so lifting it is the only way it survives.
+const ICON_CLASS_GROUND_TRUTH = {
+    typeElement: {
+        replaceWithLabel: { classPatterns: ["^fa-", "^icon-"] }
+    },
+    typeAttribute: {
+        ratings: { "wf-id": 1.0, "class": 0 }
+    }
+};
+
+// Exact <button> captured from the Mobile Users page of
+// https://console.uat07.malauzai.com/v3#/end_user_management/mobile_users
+// The Add control: no text, no aria-label, meaning carried only by `fa-plus`
+// on a nested aria-hidden span.
+const MALAUZAI_ADD_DOM = `<html><body><div class="moxV4317">
+        <button class="moxV463 moxV4323" tabindex="0" type="button" wf-id="301">
+            <span class="moxV4324"><span class="moxV4347 moxV4350">
+                <span class="material-icons moxV4223 fa fa-plus" aria-hidden="true"></span>
+            </span></span>
+        </button>
+    </div></body></html>`;
+
+for (const cobroQ of [0.1, 0.5, 0.9]) {
+    await test(`Lift icon class out of icon-only button (malauzai regression, cobro q=${cobroQ})`, async () => {
+        const { rE, rA, rT } = downsamplingRatioToQualityRatio(cobroQ);
+
+        const snapshot = await d2Snap(MALAUZAI_ADD_DOM, rE, rA, rT, {
+            debug: true,
+            groundTruth: ICON_CLASS_GROUND_TRUTH
+        });
+
+        writeActual(`malauzai.add.q=${cobroQ}`, snapshot.html);
+
+        assertIn(
+            "fa-plus",
+            snapshot.html,
+            `Icon class was lost at cobro q=${cobroQ}`
+        );
+        assertIn(
+            "<button",
+            snapshot.html,
+            `Actionable <button> was lost at cobro q=${cobroQ}`
+        );
+        assertIn(
+            "wf-id=\"301\"",
+            snapshot.html,
+            `Button's wf-id interaction handle was lost at cobro q=${cobroQ}`
+        );
+        assertNotIn(
+            "moxV",
+            snapshot.html,
+            `Build-mangled class leaked through at cobro q=${cobroQ}`
+        );
+    });
+}
+
+await test("Icon class beside visible text is not lifted (no duplicate label)", async () => {
+    // The tab pairs fa-user with the word "User". Lifting the icon class here
+    // produced "UserUser" before the enclosing-control gate was added.
+    const dom = `<html><body><button type="button" wf-id="261">
+            <span><span class="material-icons fa fa-user" aria-hidden="true"></span>User</span>
+        </button></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertNotIn("fa-user", snapshot.html, "Decorative icon class was lifted beside visible text");
+    assertEqual(
+        (snapshot.html.match(/User/g) ?? []).length,
+        1,
+        "Label was duplicated next to the control's own text"
+    );
+});
+
+await test("Icon class inside an already-named control is not lifted", async () => {
+    const dom = `<html><body><button type="button" aria-label="Add mobile user" wf-id="301">
+            <span class="fa fa-plus" aria-hidden="true"></span>
+        </button></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            ...ICON_CLASS_GROUND_TRUTH,
+            typeAttribute: { ratings: { "wf-id": 1.0, "class": 0, "aria-label": 1.0 } }
+        }
+    });
+
+    assertIn("Add mobile user", snapshot.html, "Control's own aria-label was lost");
+    assertNotIn("fa-plus", snapshot.html, "Icon class was lifted despite an existing accessible name");
+});
+
+await test("Icon class on the control itself becomes text, never replaces the control", async () => {
+    const dom = `<html><body><button type="button" class="btn fa fa-filter" wf-id="7"></button></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertIn("<button", snapshot.html, "Control was replaced by its own label");
+    assertIn("fa-filter", snapshot.html, "Icon class on the control itself was lost");
+    assertIn("wf-id=\"7\"", snapshot.html, "Control's wf-id was lost");
+});
+
+await test("Icon element's own aria-label wins over its class", async () => {
+    const dom = `<html><body><button type="button" wf-id="9">
+            <span class="fa fa-plus" aria-label="Add mobile user" aria-hidden="true"></span>
+        </button></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertIn("Add mobile user", snapshot.html, "Accessible name lost to the class token");
+    assertNotIn("fa-plus", snapshot.html, "Class token used despite a real accessible name");
+});
+
+await test("Non-matching class tokens are ignored", async () => {
+    const dom = `<html><body><button type="button" wf-id="11">
+            <span class="spinner loading-indicator"></span>
+        </button></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertNotIn("spinner", snapshot.html, "Unmatched class token was lifted as a label");
+    assertIn("<button", snapshot.html, "Actionable <button> was lost");
+});
+
+await test("Icon-class lifting is a no-op without classPatterns", async () => {
+    const withPatterns = await d2Snap(MALAUZAI_ADD_DOM, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+    const withoutPatterns = await d2Snap(MALAUZAI_ADD_DOM, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: { typeAttribute: { ratings: { "wf-id": 1.0 } } }
+    });
+
+    assertNotIn("fa-plus", withoutPatterns.html, "Class token lifted without configured patterns");
+    assertMore(
+        withPatterns.html.length,
+        withoutPatterns.html.length,
+        "Configured patterns did not change the snapshot"
+    );
+});
+
+await test("Icon class outside any control is not lifted", async () => {
+    const dom = `<html><body><div><span class="fa fa-star" aria-hidden="true"></span></div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertNotIn("fa-star", snapshot.html, "Standalone decorative icon was lifted as a label");
+});
+
+await test("Lifted label does not glue to an adjacent text sibling", async () => {
+    // weather.com regression: the wind readout renders an icon element directly
+    // against its direction text. Replacing the element with a bare text node
+    // produced "arrowWSW" instead of "arrow WSW".
+    const dom = `<html><body><div><span class="fa fa-arrow" aria-label="arrow"></span>WSW 25 mph</div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: ICON_CLASS_GROUND_TRUTH
+    });
+
+    assertNotIn("arrowWSW", snapshot.html, "Label glued to the following text node");
+    assertIn("arrow WSW", snapshot.html, "Label and following text lost their separator");
+});

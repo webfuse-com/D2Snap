@@ -86,6 +86,7 @@ export interface GroundTruthJSON extends JSONObject {
             tagNames?: string[];
             labelAttrs?: string[];
             labelChildTags?: string[];
+            classPatterns?: string[];
         };
     };
     typeAttribute: {

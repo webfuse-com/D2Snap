@@ -12,7 +12,15 @@ export declare class GroundTruth {
     private readonly attributeRatingCache;
     private readonly labelAttrs;
     private readonly labelChildTagsSet;
+    private readonly labelClassPatterns;
     constructor(groundTruth: GroundTruthJSON);
+    hasLabelClassPatterns(): boolean;
+    /**
+     * Class tokens that name an icon, per the configured patterns. An icon font
+     * needs its vendor class in the markup to render, so that class is the only
+     * description an icon-only control carries.
+     */
+    getLabelClassTokens(className: string): string[];
     getElementsByType(type: ElementType): string[];
     getLabelAttrs(): readonly string[];
     isLabelChildTag(tagName: string): boolean;

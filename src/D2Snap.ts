@@ -279,9 +279,56 @@ export function d2Snap(
 			?.removeChild(sourceElement);
 	}
 
+	// Nearest enclosing control, or null if the element sits outside one.
+	function resolveActionableHost(elementNode: Element): Element | null {
+		let host: Element | null = elementNode.parentElement;
+
+		while(
+			host
+			&& !groundTruth.isElementType("actionable", host.tagName)
+			&& !hasActionableRole(host)
+		) {
+			host = host.parentElement;
+		}
+
+		return host;
+	}
+
+	function hasNoNameOfItsOwn(elementNode: Element): boolean {
+		if((elementNode.textContent ?? "").trim()) return false;
+
+		return !groundTruth.getLabelAttrs()
+			.some((attrName: string) => (elementNode.getAttribute(attrName) ?? "").trim());
+	}
+
 	function snapElementReplaceWithLabelNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+
+		const isReplaceWithLabelTag: boolean = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
+
+		// An empty element whose class names an icon. An icon font needs its
+		// vendor class in the markup to render, so that class is the only
+		// description the element carries once it is collapsed away.
+		const iconClassTokens: string[] = (elementNode.textContent ?? "").trim()
+			? []
+			: groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+
+		if(!isReplaceWithLabelTag) {
+			if(!iconClassTokens.length) return;
+
+			if(
+				groundTruth.isElementType("actionable", elementNode.tagName)
+				|| hasActionableRole(elementNode)
+			) {
+				// The control carries the icon class itself (<button class="fa fa-plus">).
+				// Never replace a control — give it the token as text and stop.
+				if(!hasNoNameOfItsOwn(elementNode)) return;
+
+				elementNode.appendChild(document.createTextNode(iconClassTokens.join(" ")));
+
+				return;
+			}
+		}
 
 		// Find an accessibility label, preferring attributes over child elements.
 		// Attribute order is taken from the ground truth (default: aria-label, title, alt).
@@ -299,12 +346,28 @@ export function d2Snap(
 			}
 		}
 
+		// Fall back to the icon class, but only for a control with no name of its
+		// own — a decorative icon beside visible text would otherwise duplicate it.
+		if(!label && iconClassTokens.length) {
+			const host: Element | null = resolveActionableHost(elementNode);
+
+			if(host && hasNoNameOfItsOwn(host)) {
+				label = iconClassTokens.join(" ");
+			}
+		}
+
 		if(label !== null) {
 			// Replace with a plain text node carrying the label. It lands under the
 			// element's former parent, so an actionable parent keeps it (icon buttons:
 			// <button><svg aria-label="X"/></button> -> <button>X</button>).
-			elementNode.replaceWith(document.createTextNode(label));
-		} else {
+			// Pad it: an adjacent text sibling would otherwise glue to the label
+			// ("arrow" + "WSW" -> "arrowWSW"). Minification collapses the runs.
+			elementNode.replaceWith(
+				document.createTextNode(" "),
+				document.createTextNode(label),
+				document.createTextNode(" ")
+			);
+		} else if(isReplaceWithLabelTag) {
 			// No label found anywhere — element is pure decoration. Drop it.
 			elementNode.remove();
 		}
@@ -442,7 +505,7 @@ export function d2Snap(
 
 	// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
 	t0 = t();
-	if(groundTruth.getElementsByType("replaceWithLabel").length) {
+	if(groundTruth.getElementsByType("replaceWithLabel").length || groundTruth.hasLabelClassPatterns()) {
 		traverseDom<HTMLElement>(
 			virtualDom,
 			NodeFilter.SHOW_ELEMENT,

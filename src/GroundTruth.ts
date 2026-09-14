@@ -24,6 +24,7 @@ export class GroundTruth {
 	private readonly attributeRatingCache: Map<string, number> = new Map();
 	private readonly labelAttrs: string[];
 	private readonly labelChildTagsSet: Set<string>;
+	private readonly labelClassPatterns: RegExp[];
 
 	constructor(groundTruth: GroundTruthJSON) {
 		this.groundTruth = groundTruth;
@@ -58,6 +59,26 @@ export class GroundTruth {
 			(this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS)
 				.map(t => t.toLowerCase())
 		);
+		this.labelClassPatterns = (this.groundTruth?.typeElement?.replaceWithLabel?.classPatterns ?? [])
+			.map((pattern: string) => new RegExp(pattern, "i"));
+	}
+
+	public hasLabelClassPatterns(): boolean {
+		return this.labelClassPatterns.length > 0;
+	}
+
+	/**
+	 * Class tokens that name an icon, per the configured patterns. An icon font
+	 * needs its vendor class in the markup to render, so that class is the only
+	 * description an icon-only control carries.
+	 */
+	public getLabelClassTokens(className: string): string[] {
+		if (!className || !this.labelClassPatterns.length) return [];
+
+		return className
+			.split(/\s+/)
+			.filter((token: string) => token
+				&& this.labelClassPatterns.some((pattern: RegExp) => pattern.test(token)));
 	}
 
 	public getElementsByType(type: ElementType): string[] {

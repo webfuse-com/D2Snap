@@ -106,6 +106,7 @@
     attributeRatingCache = /* @__PURE__ */ new Map();
     labelAttrs;
     labelChildTagsSet;
+    labelClassPatterns;
     constructor(groundTruth) {
       this.groundTruth = groundTruth;
       this.elementsByType = {
@@ -133,6 +134,19 @@
       this.labelChildTagsSet = new Set(
         (this.groundTruth?.typeElement?.replaceWithLabel?.labelChildTags ?? DEFAULT_LABEL_CHILD_TAGS).map((t) => t.toLowerCase())
       );
+      this.labelClassPatterns = (this.groundTruth?.typeElement?.replaceWithLabel?.classPatterns ?? []).map((pattern) => new RegExp(pattern, "i"));
+    }
+    hasLabelClassPatterns() {
+      return this.labelClassPatterns.length > 0;
+    }
+    /**
+     * Class tokens that name an icon, per the configured patterns. An icon font
+     * needs its vendor class in the markup to render, so that class is the only
+     * description an icon-only control carries.
+     */
+    getLabelClassTokens(className) {
+      if (!className || !this.labelClassPatterns.length) return [];
+      return className.split(/\s+/).filter((token) => token && this.labelClassPatterns.some((pattern) => pattern.test(token)));
     }
     getElementsByType(type) {
       return [...this.elementsByType[type]];
@@ -1914,9 +1928,29 @@
       }
       sourceElement.parentNode?.removeChild(sourceElement);
     }
+    function resolveActionableHost(elementNode) {
+      let host = elementNode.parentElement;
+      while (host && !groundTruth.isElementType("actionable", host.tagName) && !hasActionableRole(host)) {
+        host = host.parentElement;
+      }
+      return host;
+    }
+    function hasNoNameOfItsOwn(elementNode) {
+      if ((elementNode.textContent ?? "").trim()) return false;
+      return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
+    }
     function snapElementReplaceWithLabelNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!groundTruth.isElementType("replaceWithLabel", elementNode.tagName)) return;
+      const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
+      const iconClassTokens = (elementNode.textContent ?? "").trim() ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+      if (!isReplaceWithLabelTag) {
+        if (!iconClassTokens.length) return;
+        if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
+          if (!hasNoNameOfItsOwn(elementNode)) return;
+          elementNode.appendChild(document3.createTextNode(iconClassTokens.join(" ")));
+          return;
+        }
+      }
       let label = null;
       for (const attrName of groundTruth.getLabelAttrs()) {
         const value = elementNode.getAttribute(attrName);
@@ -1936,9 +1970,19 @@
           }
         }
       }
+      if (!label && iconClassTokens.length) {
+        const host = resolveActionableHost(elementNode);
+        if (host && hasNoNameOfItsOwn(host)) {
+          label = iconClassTokens.join(" ");
+        }
+      }
       if (label !== null) {
-        elementNode.replaceWith(document3.createTextNode(label));
-      } else {
+        elementNode.replaceWith(
+          document3.createTextNode(" "),
+          document3.createTextNode(label),
+          document3.createTextNode(" ")
+        );
+      } else if (isReplaceWithLabelTag) {
         elementNode.remove();
       }
     }
@@ -2022,7 +2066,7 @@
     );
     timings.init = t() - t0;
     t0 = t();
-    if (groundTruth.getElementsByType("replaceWithLabel").length) {
+    if (groundTruth.getElementsByType("replaceWithLabel").length || groundTruth.hasLabelClassPatterns()) {
       traverseDom(
         virtualDom,
         1 /* SHOW_ELEMENT */,
