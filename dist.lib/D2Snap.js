@@ -219,15 +219,19 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   function nameActionableNode(document2, elementNode) {
     if (!hasNoNameOfItsOwn(elementNode)) return;
+    const isVoidControl = VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase());
+    const applyName = (name) => {
+      isVoidControl ? elementNode.setAttribute("aria-label", name) : elementNode.appendChild(document2.createTextNode(name));
+    };
     const referenced = resolveAriaLabelledBy(virtualDom, elementNode);
     if (referenced) {
-      elementNode.appendChild(document2.createTextNode(referenced));
+      applyName(referenced);
       return;
     }
     if (elementNode.children.length) return;
     const ownTokens = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
     if (ownTokens.length) {
-      elementNode.appendChild(document2.createTextNode(ownTokens.join(" ")));
+      applyName(ownTokens.join(" "));
     }
   }
   function snapElementReplaceWithLabelNode(document2, elementNode) {

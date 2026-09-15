@@ -1252,3 +1252,65 @@ await test("aria-labelledby names a control that carries no icon at all", async 
         "Control with no icon was left unnamed"
     );
 });
+
+for (const cobroQ of [0.1, 0.5]) {
+    await test(`Void control keeps a referenced name as an attribute (cobro q=${cobroQ})`, async () => {
+        // <input> cannot hold a text child, so the materialized name has to land
+        // on an attribute or serialization drops it. The referenced id is rated
+        // below the reference, so by q=0.1 nothing else points at the label.
+        const { rE, rA, rT } = downsamplingRatioToQualityRatio(cobroQ);
+        const dom = `<html><body><div>
+                <span id="lbl">Email address</span>
+                <input type="text" wf-id="5" aria-labelledby="lbl">
+            </div></body></html>`;
+
+        const snapshot = await d2Snap(dom, rE, rA, rT, {
+            debug: true,
+            groundTruth: {
+                typeElement: { replaceWithLabel: { tagNames: ["img", "svg"] } },
+                typeAttribute: {
+                    ratings: { "wf-id": 1.0, "class": 0, "aria-label": 0.9, "aria-labelledby": 0.9, "id": 0.7 }
+                }
+            }
+        });
+
+        assertIn("<input", snapshot.html, `Void control was lost at cobro q=${cobroQ}`);
+        assertIn(
+            'aria-label="Email address"',
+            snapshot.html,
+            `Void control did not keep the referenced name at cobro q=${cobroQ}`
+        );
+    });
+}
+
+await test("Void control keeps its own icon class as an attribute", async () => {
+    const dom = `<html><body><div><input type="button" wf-id="6" class="fa-search"></div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            typeElement: { replaceWithLabel: { classPatterns: ["^fa-"] } },
+            typeAttribute: { ratings: { "wf-id": 1.0, "class": 0, "aria-label": 0.9 } }
+        }
+    });
+
+    assertIn('aria-label="fa-search"', snapshot.html, "Void control lost its icon class name");
+});
+
+await test("Void control that already has a name is left alone", async () => {
+    const dom = `<html><body><div>
+            <span id="lbl">Referenced</span>
+            <input type="text" wf-id="7" aria-label="Own name" aria-labelledby="lbl">
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            typeElement: { replaceWithLabel: { tagNames: ["img", "svg"] } },
+            typeAttribute: { ratings: { "wf-id": 1.0, "aria-label": 0.9, "aria-labelledby": 0.9 } }
+        }
+    });
+
+    assertIn('aria-label="Own name"', snapshot.html, "Existing accessible name was overwritten");
+    assertNotIn('aria-label="Referenced"', snapshot.html, "Referenced name replaced the control's own");
+});

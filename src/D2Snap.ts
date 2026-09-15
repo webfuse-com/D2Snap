@@ -346,9 +346,18 @@ export function d2Snap(
 	function nameActionableNode(document: Document, elementNode: HTMLElement): void {
 		if(!hasNoNameOfItsOwn(elementNode)) return;
 
+		// A void control (<input>) cannot hold a text child — serialization would
+		// drop it — so give it the name as an accessible label instead.
+		const isVoidControl: boolean = VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase());
+		const applyName = (name: string) => {
+			isVoidControl
+				? elementNode.setAttribute("aria-label", name)
+				: elementNode.appendChild(document.createTextNode(name));
+		};
+
 		const referenced: string | null = resolveAriaLabelledBy(virtualDom, elementNode);
 		if(referenced) {
-			elementNode.appendChild(document.createTextNode(referenced));
+			applyName(referenced);
 
 			return;
 		}
@@ -358,7 +367,7 @@ export function d2Snap(
 
 		const ownTokens: string[] = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
 		if(ownTokens.length) {
-			elementNode.appendChild(document.createTextNode(ownTokens.join(" ")));
+			applyName(ownTokens.join(" "));
 		}
 	}
 

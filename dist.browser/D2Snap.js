@@ -1986,15 +1986,19 @@
     }
     function nameActionableNode(document3, elementNode) {
       if (!hasNoNameOfItsOwn(elementNode)) return;
+      const isVoidControl = VOID_ELEMENT_TAG_NAMES.has(elementNode.tagName.toUpperCase());
+      const applyName = (name) => {
+        isVoidControl ? elementNode.setAttribute("aria-label", name) : elementNode.appendChild(document3.createTextNode(name));
+      };
       const referenced = resolveAriaLabelledBy(virtualDom, elementNode);
       if (referenced) {
-        elementNode.appendChild(document3.createTextNode(referenced));
+        applyName(referenced);
         return;
       }
       if (elementNode.children.length) return;
       const ownTokens = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
       if (ownTokens.length) {
-        elementNode.appendChild(document3.createTextNode(ownTokens.join(" ")));
+        applyName(ownTokens.join(" "));
       }
     }
     function snapElementReplaceWithLabelNode(document3, elementNode) {
