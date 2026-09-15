@@ -1937,6 +1937,7 @@
     }
     function hasNoNameOfItsOwn(elementNode) {
       if ((elementNode.textContent ?? "").trim()) return false;
+      if ((elementNode.getAttribute("aria-labelledby") ?? "").trim()) return false;
       return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
     }
     function snapElementReplaceWithLabelNode(document3, elementNode) {

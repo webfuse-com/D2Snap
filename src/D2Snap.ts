@@ -297,6 +297,10 @@ export function d2Snap(
 	function hasNoNameOfItsOwn(elementNode: Element): boolean {
 		if((elementNode.textContent ?? "").trim()) return false;
 
+		// aria-labelledby names the element from elsewhere in the document, so the
+		// name is absent here but the element is not anonymous.
+		if((elementNode.getAttribute("aria-labelledby") ?? "").trim()) return false;
+
 		return !groundTruth.getLabelAttrs()
 			.some((attrName: string) => (elementNode.getAttribute(attrName) ?? "").trim());
 	}

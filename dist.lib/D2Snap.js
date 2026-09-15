@@ -191,6 +191,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   function hasNoNameOfItsOwn(elementNode) {
     if ((elementNode.textContent ?? "").trim()) return false;
+    if ((elementNode.getAttribute("aria-labelledby") ?? "").trim()) return false;
     return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
   }
   function snapElementReplaceWithLabelNode(document2, elementNode) {

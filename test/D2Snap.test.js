@@ -995,3 +995,25 @@ await test("Lifted label does not glue to an adjacent text sibling", async () =>
     assertNotIn("arrowWSW", snapshot.html, "Label glued to the following text node");
     assertIn("arrow WSW", snapshot.html, "Label and following text lost their separator");
 });
+
+await test("Control named by aria-labelledby does not take its icon class", async () => {
+    // CCombobox regression: headlessui names the toggle from the field label, so
+    // the name lives on another element and the button itself looks anonymous.
+    const dom = `<html><body><div>
+            <label id="lbl">Is it Thursday yet?</label>
+            <button id="b" type="button" aria-labelledby="lbl b" aria-haspopup="listbox">
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            ...ICON_CLASS_GROUND_TRUTH,
+            typeAttribute: { ratings: { "wf-id": 1.0, "class": 0, "aria-labelledby": 1.0 } }
+        }
+    });
+
+    assertNotIn("fa-chevron-down", snapshot.html, "Icon class lifted onto a control named by aria-labelledby");
+    assertIn("Is it Thursday yet?", snapshot.html, "Referenced label text was lost");
+});
