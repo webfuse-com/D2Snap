@@ -1286,20 +1286,41 @@
   var Turndown = class {
     service;
     constructor(retainElementCbs = []) {
+      const isRetained = (node) => {
+        if (node.nodeType !== 1) return false;
+        const elementNode = node;
+        for (const retainElementCb of retainElementCbs) {
+          if (retainElementCb(elementNode)) return true;
+        }
+        return false;
+      };
+      const collectRetained = (node) => {
+        if (isRetained(node)) return [node];
+        const found = [];
+        for (const child of Array.from(node.childNodes ?? [])) {
+          found.push(...collectRetained(child));
+        }
+        return found;
+      };
       this.service = new turndown_browser_es_default({
         headingStyle: "atx",
         bulletListMarker: "-",
-        codeBlockStyle: "fenced"
+        codeBlockStyle: "fenced",
+        // Turndown consults its blank rule before any custom rule, and its
+        // "meaningful when blank" list holds no BUTTON, SELECT or TEXTAREA. A
+        // control left without text — an icon button whose icon was lifted away —
+        // was therefore discarded before the retain rule below could keep it, as
+        // was every control inside a textless wrapper.
+        blankReplacement: (_content, node) => {
+          const retained = collectRetained(node);
+          if (retained.length) {
+            return retained.map((elementNode) => elementNode.outerHTML).join("");
+          }
+          return node.isBlock ? "\n\n" : "";
+        }
       });
       this.service.addRule("retain", {
-        filter: (node) => {
-          if (node.nodeType !== 1) return false;
-          const elementNode = node;
-          for (const retainElementCb of retainElementCbs) {
-            if (retainElementCb(elementNode)) return true;
-          }
-          return false;
-        },
+        filter: (node) => isRetained(node),
         replacement: (_content, node) => node.outerHTML
       });
       this.service.use(gfm);
@@ -1963,18 +1984,28 @@
       if ((elementNode.textContent ?? "").trim()) return false;
       return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
     }
+    function nameActionableNode(document3, elementNode) {
+      if (!hasNoNameOfItsOwn(elementNode)) return;
+      const referenced = resolveAriaLabelledBy(virtualDom, elementNode);
+      if (referenced) {
+        elementNode.appendChild(document3.createTextNode(referenced));
+        return;
+      }
+      if (elementNode.children.length) return;
+      const ownTokens = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+      if (ownTokens.length) {
+        elementNode.appendChild(document3.createTextNode(ownTokens.join(" ")));
+      }
+    }
     function snapElementReplaceWithLabelNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
+      if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
+        nameActionableNode(document3, elementNode);
+        return;
+      }
       const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
       const iconClassTokens = (elementNode.textContent ?? "").trim() || elementNode.children.length ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
-      if (!isReplaceWithLabelTag) {
-        if (!iconClassTokens.length) return;
-        if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
-          if (!hasNoNameOfItsOwn(elementNode)) return;
-          elementNode.appendChild(document3.createTextNode(iconClassTokens.join(" ")));
-          return;
-        }
-      }
+      if (!isReplaceWithLabelTag && !iconClassTokens.length) return;
       let label = null;
       for (const attrName of groundTruth.getLabelAttrs()) {
         const value = elementNode.getAttribute(attrName);
@@ -1997,7 +2028,7 @@
       if (!label && iconClassTokens.length) {
         const host = resolveActionableHost(elementNode);
         if (host && hasNoNameOfItsOwn(host)) {
-          label = resolveAriaLabelledBy(virtualDom, host) ?? iconClassTokens.join(" ");
+          label = iconClassTokens.join(" ");
         }
       }
       if (label !== null) {

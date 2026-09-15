@@ -340,8 +340,39 @@ export function d2Snap(
 			.some((attrName: string) => (elementNode.getAttribute(attrName) ?? "").trim());
 	}
 
+	// A control is never replaced, only given a name it does not already have.
+	// Runs before its descendants, so a name found here stops an icon below it
+	// from being read as a second label.
+	function nameActionableNode(document: Document, elementNode: HTMLElement): void {
+		if(!hasNoNameOfItsOwn(elementNode)) return;
+
+		const referenced: string | null = resolveAriaLabelledBy(virtualDom, elementNode);
+		if(referenced) {
+			elementNode.appendChild(document.createTextNode(referenced));
+
+			return;
+		}
+
+		// The control may carry the icon class itself (<button class="fa fa-plus">).
+		if(elementNode.children.length) return;
+
+		const ownTokens: string[] = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+		if(ownTokens.length) {
+			elementNode.appendChild(document.createTextNode(ownTokens.join(" ")));
+		}
+	}
+
 	function snapElementReplaceWithLabelNode(document: Document, elementNode: HTMLElement) {
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+
+		if(
+			groundTruth.isElementType("actionable", elementNode.tagName)
+			|| hasActionableRole(elementNode)
+		) {
+			nameActionableNode(document, elementNode);
+
+			return;
+		}
 
 		const isReplaceWithLabelTag: boolean = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
 
@@ -359,22 +390,7 @@ export function d2Snap(
 			? []
 			: groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
 
-		if(!isReplaceWithLabelTag) {
-			if(!iconClassTokens.length) return;
-
-			if(
-				groundTruth.isElementType("actionable", elementNode.tagName)
-				|| hasActionableRole(elementNode)
-			) {
-				// The control carries the icon class itself (<button class="fa fa-plus">).
-				// Never replace a control — give it the token as text and stop.
-				if(!hasNoNameOfItsOwn(elementNode)) return;
-
-				elementNode.appendChild(document.createTextNode(iconClassTokens.join(" ")));
-
-				return;
-			}
-		}
+		if(!isReplaceWithLabelTag && !iconClassTokens.length) return;
 
 		// Find an accessibility label, preferring attributes over child elements.
 		// Attribute order is taken from the ground truth (default: aria-label, title, alt).
@@ -398,10 +414,7 @@ export function d2Snap(
 			const host: Element | null = resolveActionableHost(elementNode);
 
 			if(host && hasNoNameOfItsOwn(host)) {
-				// A name given through aria-labelledby lives on another element, whose
-				// id is usually dropped before the reference is. Copy the text in so the
-				// control keeps a name rather than a pointer to nothing.
-				label = resolveAriaLabelledBy(virtualDom, host) ?? iconClassTokens.join(" ");
+				label = iconClassTokens.join(" ");
 			}
 		}
 

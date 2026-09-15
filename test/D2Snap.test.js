@@ -1166,3 +1166,89 @@ await test("Icon class on a leaf is still claimed when a sibling wrapper matches
     assertIn("fa-plus", snapshot.html, "Leaf icon class was lost because an ancestor also matched");
     assertNotIn("icon-container", snapshot.html, "Wrapper class was used as a label");
 });
+
+// ---------------------------------------------------------------------------
+// Blank controls inside text-formatting elements
+//
+// Turndown consults its blank rule before any custom rule, and its "meaningful
+// when blank" list holds A but not BUTTON, SELECT or TEXTAREA. A control left
+// without text — an icon button whose icon was lifted away — was therefore
+// dropped outright whenever an ancestor went through the Markdown pass.
+// ---------------------------------------------------------------------------
+const BLANK_CONTROL_GROUND_TRUTH = {
+    typeElement: { replaceWithLabel: { tagNames: ["img", "svg"] } },
+    typeAttribute: { ratings: { "wf-id": 1.0, "class": 0, "aria-labelledby": 0.9, "id": 0.7 } }
+};
+
+for (const [label, markup] of [
+    ["button", '<button type="button" wf-id="9"><svg><path d="M0 0h4v4H0z"/></svg></button>'],
+    ["select", '<select wf-id="9"></select>'],
+    ["textarea", '<textarea wf-id="9"></textarea>'],
+]) {
+    await test(`Blank <${label}> survives the Markdown pass inside a <span>`, async () => {
+        const dom = `<html><body><div><span class="wrap">${markup}</span></div></body></html>`;
+
+        const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+            debug: true,
+            groundTruth: BLANK_CONTROL_GROUND_TRUTH
+        });
+
+        assertIn(`<${label}`, snapshot.html, `Blank <${label}> was dropped by the Markdown pass`);
+        assertIn('wf-id="9"', snapshot.html, `Blank <${label}> lost its interaction handle`);
+    });
+}
+
+await test("Blank control directly under a container is unaffected", async () => {
+    // The pre-existing path: no text-formatting ancestor, so Turndown never sees
+    // the control. Guards against the blank fix changing this case.
+    const dom = `<html><body><div><button type="button" wf-id="9"></button></div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: BLANK_CONTROL_GROUND_TRUTH
+    });
+
+    assertIn('wf-id="9"', snapshot.html, "Blank control under a container was dropped");
+});
+
+await test("Icon-only control named by aria-labelledby survives and is named", async () => {
+    // console.uat07.malauzai.com regression: the Download Queue control is an
+    // icon button wrapped in a <span>, named by a sibling. Before this it was
+    // removed entirely — no wf-id, no name, nothing to act on.
+    const dom = `<html><body><div>
+            <span class="wrap"><button type="button" wf-id="94" aria-labelledby="text-download_queue">
+                <span><svg data-testid="GetAppOutlinedIcon"><path d="M13 5v6h1.17z"/></svg></span>
+            </button></span>
+            <span id="text-download_queue">Download Queue</span>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: BLANK_CONTROL_GROUND_TRUTH
+    });
+
+    assertIn('wf-id="94"', snapshot.html, "Icon button was dropped");
+    assertIn(
+        "Download Queue</button>",
+        flattenDOMSnapshot(snapshot.html),
+        "Referenced name was not copied onto the control"
+    );
+});
+
+await test("aria-labelledby names a control that carries no icon at all", async () => {
+    const dom = `<html><body><div>
+            <span id="lbl">Export report</span>
+            <button type="button" wf-id="12" aria-labelledby="lbl"></button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: BLANK_CONTROL_GROUND_TRUTH
+    });
+
+    assertIn(
+        "Export report</button>",
+        flattenDOMSnapshot(snapshot.html),
+        "Control with no icon was left unnamed"
+    );
+});

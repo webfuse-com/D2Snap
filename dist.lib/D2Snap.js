@@ -217,18 +217,28 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if ((elementNode.textContent ?? "").trim()) return false;
     return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
   }
+  function nameActionableNode(document2, elementNode) {
+    if (!hasNoNameOfItsOwn(elementNode)) return;
+    const referenced = resolveAriaLabelledBy(virtualDom, elementNode);
+    if (referenced) {
+      elementNode.appendChild(document2.createTextNode(referenced));
+      return;
+    }
+    if (elementNode.children.length) return;
+    const ownTokens = groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+    if (ownTokens.length) {
+      elementNode.appendChild(document2.createTextNode(ownTokens.join(" ")));
+    }
+  }
   function snapElementReplaceWithLabelNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
+    if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
+      nameActionableNode(document2, elementNode);
+      return;
+    }
     const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
     const iconClassTokens = (elementNode.textContent ?? "").trim() || elementNode.children.length ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
-    if (!isReplaceWithLabelTag) {
-      if (!iconClassTokens.length) return;
-      if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {
-        if (!hasNoNameOfItsOwn(elementNode)) return;
-        elementNode.appendChild(document2.createTextNode(iconClassTokens.join(" ")));
-        return;
-      }
-    }
+    if (!isReplaceWithLabelTag && !iconClassTokens.length) return;
     let label = null;
     for (const attrName of groundTruth.getLabelAttrs()) {
       const value = elementNode.getAttribute(attrName);
@@ -251,7 +261,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if (!label && iconClassTokens.length) {
       const host = resolveActionableHost(elementNode);
       if (host && hasNoNameOfItsOwn(host)) {
-        label = resolveAriaLabelledBy(virtualDom, host) ?? iconClassTokens.join(" ");
+        label = iconClassTokens.join(" ");
       }
     }
     if (label !== null) {
