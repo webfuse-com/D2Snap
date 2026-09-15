@@ -1935,9 +1935,32 @@
       }
       return host;
     }
+    let idIndex = null;
+    function lookupById(root2, id) {
+      if (!idIndex) {
+        idIndex = /* @__PURE__ */ new Map();
+        for (const element of [root2, ...Array.from(root2.querySelectorAll("[id]"))]) {
+          const elementId = element.getAttribute("id") ?? "";
+          if (elementId && !idIndex.has(elementId)) idIndex.set(elementId, element);
+        }
+      }
+      return idIndex.get(id) ?? null;
+    }
+    function resolveAriaLabelledBy(root2, elementNode) {
+      const reference = (elementNode.getAttribute("aria-labelledby") ?? "").trim();
+      if (!reference) return null;
+      const parts = [];
+      for (const id of reference.split(/\s+/)) {
+        if (!id) continue;
+        const target = lookupById(root2, id);
+        if (!target || target === elementNode) continue;
+        const text = (target.textContent ?? "").trim();
+        if (text) parts.push(text);
+      }
+      return parts.length ? parts.join(" ") : null;
+    }
     function hasNoNameOfItsOwn(elementNode) {
       if ((elementNode.textContent ?? "").trim()) return false;
-      if ((elementNode.getAttribute("aria-labelledby") ?? "").trim()) return false;
       return !groundTruth.getLabelAttrs().some((attrName) => (elementNode.getAttribute(attrName) ?? "").trim());
     }
     function snapElementReplaceWithLabelNode(document3, elementNode) {
@@ -1974,7 +1997,7 @@
       if (!label && iconClassTokens.length) {
         const host = resolveActionableHost(elementNode);
         if (host && hasNoNameOfItsOwn(host)) {
-          label = iconClassTokens.join(" ");
+          label = resolveAriaLabelledBy(virtualDom, host) ?? iconClassTokens.join(" ");
         }
       }
       if (label !== null) {

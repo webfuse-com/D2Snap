@@ -294,12 +294,47 @@ export function d2Snap(
 		return host;
 	}
 
+	// Built on first use: an id lookup over the working tree. getElementById is
+	// unavailable because the snapshot is a detached clone.
+	let idIndex: Map<string, Element> | null = null;
+	function lookupById(root: Element, id: string): Element | null {
+		if(!idIndex) {
+			idIndex = new Map();
+			for(const element of [ root, ...Array.from(root.querySelectorAll("[id]")) ]) {
+				const elementId: string = element.getAttribute("id") ?? "";
+				if(elementId && !idIndex.has(elementId)) idIndex.set(elementId, element);
+			}
+		}
+
+		return idIndex.get(id) ?? null;
+	}
+
+	// Text of the elements an aria-labelledby points at. The reference alone does
+	// not survive downsampling — the target's id is rated lower than the reference
+	// on most ground truths — so the name has to be read while both still exist.
+	function resolveAriaLabelledBy(root: Element, elementNode: Element): string | null {
+		const reference: string = (elementNode.getAttribute("aria-labelledby") ?? "").trim();
+		if(!reference) return null;
+
+		const parts: string[] = [];
+		for(const id of reference.split(/\s+/)) {
+			if(!id) continue;
+
+			const target: Element | null = lookupById(root, id);
+
+			// A control often lists itself among its labels; its own text, if any,
+			// is already in place and must not be duplicated.
+			if(!target || target === elementNode) continue;
+
+			const text: string = (target.textContent ?? "").trim();
+			if(text) parts.push(text);
+		}
+
+		return parts.length ? parts.join(" ") : null;
+	}
+
 	function hasNoNameOfItsOwn(elementNode: Element): boolean {
 		if((elementNode.textContent ?? "").trim()) return false;
-
-		// aria-labelledby names the element from elsewhere in the document, so the
-		// name is absent here but the element is not anonymous.
-		if((elementNode.getAttribute("aria-labelledby") ?? "").trim()) return false;
 
 		return !groundTruth.getLabelAttrs()
 			.some((attrName: string) => (elementNode.getAttribute(attrName) ?? "").trim());
@@ -356,7 +391,10 @@ export function d2Snap(
 			const host: Element | null = resolveActionableHost(elementNode);
 
 			if(host && hasNoNameOfItsOwn(host)) {
-				label = iconClassTokens.join(" ");
+				// A name given through aria-labelledby lives on another element, whose
+				// id is usually dropped before the reference is. Copy the text in so the
+				// control keeps a name rather than a pointer to nothing.
+				label = resolveAriaLabelledBy(virtualDom, host) ?? iconClassTokens.join(" ");
 			}
 		}
 

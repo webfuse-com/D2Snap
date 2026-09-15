@@ -1017,3 +1017,111 @@ await test("Control named by aria-labelledby does not take its icon class", asyn
     assertNotIn("fa-chevron-down", snapshot.html, "Icon class lifted onto a control named by aria-labelledby");
     assertIn("Is it Thursday yet?", snapshot.html, "Referenced label text was lost");
 });
+
+// ---------------------------------------------------------------------------
+// aria-labelledby materialization
+//
+// The reference outlives its target: ground truths rate aria-labelledby above
+// the id it points at, so downsampling leaves a pointer to nothing. Read the
+// referenced text while both still exist and put it on the control.
+// ---------------------------------------------------------------------------
+const LABELLEDBY_GROUND_TRUTH = {
+    ...ICON_CLASS_GROUND_TRUTH,
+    typeAttribute: { ratings: { "wf-id": 1.0, "class": 0, "aria-labelledby": 0.9, "id": 0.7 } }
+};
+
+for (const cobroQ of [0.1, 0.5]) {
+    await test(`aria-labelledby name is copied onto the control (cobro q=${cobroQ})`, async () => {
+        // github.com regression: toolbar buttons point at a tooltip element. At
+        // cobro q=0.1 the id (0.7) is dropped while the reference (0.9) survives,
+        // so before this the button kept a dangling pointer and no name at all.
+        const { rE, rA, rT } = downsamplingRatioToQualityRatio(cobroQ);
+        const dom = `<html><body><div>
+                <span id="tooltip-1">Close menu</span>
+                <button type="button" wf-id="5" aria-labelledby="tooltip-1">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div></body></html>`;
+
+        const snapshot = await d2Snap(dom, rE, rA, rT, {
+            debug: true,
+            groundTruth: LABELLEDBY_GROUND_TRUTH
+        });
+
+        assertIn(
+            "<button",
+            snapshot.html,
+            `Actionable <button> was lost at cobro q=${cobroQ}`
+        );
+        assertIn(
+            "Close menu</button>",
+            flattenDOMSnapshot(snapshot.html),
+            `Referenced name was not copied onto the control at cobro q=${cobroQ}`
+        );
+        assertNotIn(
+            "fa-xmark",
+            snapshot.html,
+            `Icon class was used even though a referenced name resolved at cobro q=${cobroQ}`
+        );
+    });
+}
+
+await test("aria-labelledby joins several referenced elements", async () => {
+    const dom = `<html><body><div>
+            <span id="a">Delete</span><span id="b">repository</span>
+            <button type="button" aria-labelledby="a b"><i class="fa-trash"></i></button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: LABELLEDBY_GROUND_TRUTH });
+
+    assertIn(
+        "Delete repository</button>",
+        flattenDOMSnapshot(snapshot.html),
+        "Referenced elements were not joined in order"
+    );
+});
+
+await test("aria-labelledby self-reference does not duplicate the control's own text", async () => {
+    const dom = `<html><body><div>
+            <span id="lbl">Filter</span>
+            <button id="self" type="button" aria-labelledby="lbl self"><i class="fa-filter"></i></button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: LABELLEDBY_GROUND_TRUTH });
+
+    assertIn("Filter</button>", flattenDOMSnapshot(snapshot.html), "Referenced name lost");
+    assertNotIn(
+        "FilterFilter",
+        flattenDOMSnapshot(snapshot.html),
+        "Self-reference duplicated the control's name"
+    );
+});
+
+await test("Unresolvable aria-labelledby falls back to the icon class", async () => {
+    // The target lives outside the snapshot root, so no name can be recovered.
+    // An icon token is a worse name than the real one, but better than nothing.
+    const dom = `<html><body><div>
+            <button type="button" aria-labelledby="lives-elsewhere"><i class="fa-plus"></i></button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: LABELLEDBY_GROUND_TRUTH });
+
+    assertIn("fa-plus", snapshot.html, "Control left anonymous when the reference could not be resolved");
+});
+
+await test("aria-labelledby does not overwrite a control's own text", async () => {
+    const dom = `<html><body><div>
+            <span id="lbl">Referenced</span>
+            <button type="button" aria-labelledby="lbl">Visible<i class="fa-plus"></i></button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, { debug: true, groundTruth: LABELLEDBY_GROUND_TRUTH });
+
+    assertIn("Visible", snapshot.html, "Control's own text was lost");
+    assertNotIn(
+        "Referenced",
+        flattenDOMSnapshot(snapshot.html).split("<button")[1] ?? "",
+        "Referenced name was appended to a control that already has text"
+    );
+    assertNotIn("fa-plus", snapshot.html, "Decorative icon lifted beside visible text");
+});
