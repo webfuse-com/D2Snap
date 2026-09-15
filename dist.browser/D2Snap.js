@@ -1966,7 +1966,7 @@
     function snapElementReplaceWithLabelNode(document3, elementNode) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
-      const iconClassTokens = (elementNode.textContent ?? "").trim() ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+      const iconClassTokens = (elementNode.textContent ?? "").trim() || elementNode.children.length ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
       if (!isReplaceWithLabelTag) {
         if (!iconClassTokens.length) return;
         if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {

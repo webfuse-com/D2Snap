@@ -220,7 +220,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapElementReplaceWithLabelNode(document2, elementNode) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     const isReplaceWithLabelTag = groundTruth.isElementType("replaceWithLabel", elementNode.tagName);
-    const iconClassTokens = (elementNode.textContent ?? "").trim() ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
+    const iconClassTokens = (elementNode.textContent ?? "").trim() || elementNode.children.length ? [] : groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
     if (!isReplaceWithLabelTag) {
       if (!iconClassTokens.length) return;
       if (groundTruth.isElementType("actionable", elementNode.tagName) || hasActionableRole(elementNode)) {

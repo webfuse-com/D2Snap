@@ -348,7 +348,14 @@ export function d2Snap(
 		// An empty element whose class names an icon. An icon font needs its
 		// vendor class in the markup to render, so that class is the only
 		// description the element carries once it is collapsed away.
-		const iconClassTokens: string[] = (elementNode.textContent ?? "").trim()
+		//
+		// Only a leaf qualifies. A wrapper may match the same patterns
+		// (<div class="icon-container">) while holding the element that carries the
+		// real name, and claiming it would replace that name with the wrapper's class.
+		const iconClassTokens: string[] = (
+			(elementNode.textContent ?? "").trim()
+			|| elementNode.children.length
+		)
 			? []
 			: groundTruth.getLabelClassTokens(elementNode.getAttribute("class") ?? "");
 

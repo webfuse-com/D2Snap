@@ -1125,3 +1125,44 @@ await test("aria-labelledby does not overwrite a control's own text", async () =
     );
     assertNotIn("fa-plus", snapshot.html, "Decorative icon lifted beside visible text");
 });
+
+await test("Icon-class wrapper does not swallow the name it contains", async () => {
+    // SessionIconButton regression: the wrapper matches the same class patterns
+    // as the icon itself, and parents are visited first. Claiming the wrapper
+    // replaced the svg — and its aria-label — with the wrapper's own class name.
+    const dom = `<html><body><div>
+            <button type="button" wf-id="3">
+                <div class="icon-container"><svg aria-label="Search"></svg></div>
+            </button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            typeElement: { replaceWithLabel: { tagNames: ["img", "svg"], classPatterns: ["^fa-", "^icon-"] } },
+            typeAttribute: { ratings: { "wf-id": 1.0, "class": 0 } }
+        }
+    });
+
+    assertIn("Search", snapshot.html, "The svg's accessible name was replaced by the wrapper's class");
+    assertNotIn("icon-container", snapshot.html, "Wrapper class was used as a label");
+});
+
+await test("Icon class on a leaf is still claimed when a sibling wrapper matches", async () => {
+    const dom = `<html><body><div>
+            <button type="button" wf-id="4">
+                <div class="icon-container"><i class="fa-plus"></i></div>
+            </button>
+        </div></body></html>`;
+
+    const snapshot = await d2Snap(dom, 0.9, 0.9, 0.9, {
+        debug: true,
+        groundTruth: {
+            typeElement: { replaceWithLabel: { tagNames: ["img", "svg"], classPatterns: ["^fa-", "^icon-"] } },
+            typeAttribute: { ratings: { "wf-id": 1.0, "class": 0 } }
+        }
+    });
+
+    assertIn("fa-plus", snapshot.html, "Leaf icon class was lost because an ancestor also matched");
+    assertNotIn("icon-container", snapshot.html, "Wrapper class was used as a label");
+});
