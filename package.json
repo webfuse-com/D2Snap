@@ -17,7 +17,7 @@
     "build": "npm run clean && npm run _build",
     "lint": "npx eslint ./src/*",
     "lint:fix": "npm run lint -- --fix",
-    "test": "node --experimental-strip-types ./test/test.js",
+    "test": "node --experimental-strip-types ./test/test.js unit",
     "snapshots:create": "node ./snapshots/create.js",
     "eval:success:gui": "PYTHONPATH=eval/eval_shared:eval/eval_success python -m subjects.gui",
     "eval:success:gui:single": "npm run eval:success:gui -- --split 1 --verbose",

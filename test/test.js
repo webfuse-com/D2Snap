@@ -3,8 +3,9 @@ import { readdir } from "fs/promises";
 import { deepEqual as assertEqual, ok, throws } from "assert";
 
 
-const TEST_DIR_PATH = join(import.meta.dirname, "./tests");
+const TEST_SUITE_NAME = process.argv.slice(2)[0];
 
+if(!TEST_SUITE_NAME) throw new Error("Missing test suite name (arg pos 0)");
 
 let exitCode = 0;
 
@@ -92,22 +93,27 @@ global.test = async function(title, cb) {
 }
 
 
-// Run
+async function runSuite(name) {
+    const testDirPath = join(import.meta.dirname, name);
+    const testDirents = await readdir(testDirPath, {
+        withFileTypes: true
+    });
 
-const testDirents = await readdir(TEST_DIR_PATH, {
-    withFileTypes: true
-});
+    for(
+        const dirent of testDirents
+            .filter(dirent => dirent.isFile())
+            .filter(dirent => dirent.name.endsWith(".test.js"))
+    ) {
+        await import(join(testDirPath, dirent.name));
+    }
 
-for(
-    const dirent of testDirents
-        .filter(dirent => dirent.isFile())
-        .filter(dirent => dirent.name.endsWith(".test.js"))
-) {
-    await import(join(TEST_DIR_PATH, dirent.name));
+    const nameLogPrefix = `\x1b[1m[${name.toUpperCase()}]\x1b[22m`;
+    exitCode
+        ? console.error(`\x1b[31m${nameLogPrefix} Tests failed (exit code ${exitCode}).\x1b[0m`)
+        : console.log(`\x1b[32m${nameLogPrefix} Tests succeeded.\x1b[0m`);
+
+    process.exit(exitCode);
 }
 
-exitCode
-    ? console.error(`\x1b[31mTests failed (exit code ${exitCode}).\x1b[0m`)
-    : console.log(`\x1b[32mTests succeeded.\x1b[0m`);
 
-process.exit(exitCode);
+await runSuite(TEST_SUITE_NAME);
