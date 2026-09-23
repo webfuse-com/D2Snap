@@ -25,6 +25,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     debug: false,
     filter: void 0,
     labelToText: void 0,
+    minify: true,
     textRankOptions: void 0,
     uniqueIDs: false,
     ...options,
@@ -82,7 +83,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     sourceElement.parentNode?.removeChild(sourceElement);
   }
   function snapElementTextFormattingNode(document2, elementNode) {
-    if (!!optionsWithDefaults.skip?.markdown) return;
+    if (optionsWithDefaults.skip?.markdown) return;
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (isActionable(elementNode)) return;
     if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
@@ -203,7 +204,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   timings.serialize = t() - t0;
   t0 = t();
   htmlSnapshot = postProcessHTML(htmlSnapshot, {
-    debug: optionsWithDefaults.debug
+    debug: optionsWithDefaults.debug,
+    minify: optionsWithDefaults.minify
   });
   timings.htmlPostProcessing = t() - t0;
   return {

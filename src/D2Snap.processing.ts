@@ -25,6 +25,7 @@ interface DOMPostProcessingOptions {
 
 interface HTMLPostProcessingOptions {
 	debug: boolean;
+	minify: boolean;
 }
 
 
@@ -175,18 +176,23 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 export function postProcessHTML(html: string, options: Partial<HTMLPostProcessingOptions>): string {
 	const optionsWithDefaults: HTMLPostProcessingOptions = {
 		debug: false,
+		minify: true,
 
 		...options
 	};
 
+	let processedHTML = html;
+
 	// Minify
-	let processedHTML = html
-		.replace(/\s+/g, " ")
-		.replace(/>\s+</g, "><")
-		.replace(/\s+>/g, ">")
-		.replace(/<\s+/g, "<")
-		.replace(/\s+\/>/g, "/>")
-		.trim();
+	if (optionsWithDefaults.minify) {
+		processedHTML = processedHTML
+			.replace(/\s+/g, " ")
+			.replace(/>\s+</g, "><")
+			.replace(/\s+>/g, ">")
+			.replace(/<\s+/g, "<")
+			.replace(/\s+\/>/g, "/>")
+			.trim();
+	}
 
 	// Format if is debug mode
 	if (optionsWithDefaults.debug) {

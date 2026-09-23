@@ -52,6 +52,7 @@ export interface D2SnapOptions {
         iconFonts: boolean;
         tagNames: string[];
     }> | undefined;
+    minify: boolean;
     skip: Partial<{
         markdown: boolean;
         textRank: boolean;

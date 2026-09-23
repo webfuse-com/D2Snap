@@ -7,35 +7,35 @@ const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
 await test("Take DOM snapshot (options.skip.textRank)", async () => {
-    const snapshot = await d2Snap(PIZZA_HTML, 1, 1, 0.5, {
+    const snapshotTrue = await d2Snap(PIZZA_HTML, 1, 1, 0.5, {
         debug: true,
         skip: {
             textRank: true
         }
     });
 
-    await writeActual("pizza/pizza.options.skip.textRank", snapshot.html);
-    const expected = await readExpected("pizza/pizza.options.skip.textRank");
+    await writeActual("pizza/pizza.options.skip.textRank.true", snapshotTrue.html);
+    const expected = await readExpected("pizza/pizza.options.skip.textRank.true");
 
     assertEqual(
-        flattenDOMSnapshot(snapshot.html),
+        flattenDOMSnapshot(snapshotTrue.html),
         flattenDOMSnapshot(expected),
-        "Invalid DOM snapshot (without TextRank)"
+        "Invalid DOM snapshot (skip.textRank = true)"
     );
 
-    const snapshotSkipFalse = await d2Snap(PIZZA_HTML, 1, 1, 0.5, {
+    const snapshotFalse = await d2Snap(PIZZA_HTML, 1, 1, 0.5, {
         debug: true,
         skip: {
             textRank: false
         }
     });
 
-    await writeActual("pizza/pizza.options.skip.textRank.false", snapshotSkipFalse.html);
-    const expectedSkipFalse = await readExpected("pizza/pizza.options.skip.textRank.false");
+    await writeActual("pizza/pizza.options.skip.textRank.false", snapshotFalse.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.skip.textRank.false");
 
     assertEqual(
-        flattenDOMSnapshot(snapshotSkipFalse.html),
-        flattenDOMSnapshot(expectedSkipFalse),
-        "Invalid DOM snapshot (with TextRank)"
+        flattenDOMSnapshot(snapshotFalse.html),
+        flattenDOMSnapshot(expectedFalse),
+        "Invalid DOM snapshot (skip.textRank = false)"
     );
 });

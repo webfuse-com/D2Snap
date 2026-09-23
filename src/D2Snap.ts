@@ -47,6 +47,7 @@ export function d2Snap(
 		debug: false,
 		filter: undefined,
     	labelToText: undefined,
+		minify: true,
 		textRankOptions: undefined,
 		uniqueIDs: false,
 
@@ -313,7 +314,8 @@ export function d2Snap(
 
 	t0 = t();
 	htmlSnapshot = postProcessHTML(htmlSnapshot, {
-		debug: optionsWithDefaults.debug
+		debug: optionsWithDefaults.debug,
+		minify: optionsWithDefaults.minify
 	});
 	timings.htmlPostProcessing = t() - t0;
 

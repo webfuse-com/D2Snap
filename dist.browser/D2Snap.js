@@ -1819,7 +1819,7 @@
       sourceElement.parentNode?.removeChild(sourceElement);
     }
     function snapElementTextFormattingNode(document3, elementNode) {
-      if (!!optionsWithDefaults.skip?.markdown) return;
+      if (optionsWithDefaults.skip?.markdown) return;
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
       if (isActionable(elementNode)) return;
       if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;

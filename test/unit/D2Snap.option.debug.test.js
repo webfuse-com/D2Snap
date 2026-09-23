@@ -7,32 +7,41 @@ const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
 await test("Take DOM snapshot (options.debug)", async () => {
-    const snapshotNoDebug = await d2Snap(PIZZA_HTML, 0.75, 0.75, 0.75, {
+    const snapshotTrue = await d2Snap(PIZZA_HTML, 0.75, 0.75, 0.75, {
+        debug: true
+    });
+
+    await writeActual("pizza/pizza.options.debug.true", snapshotTrue.html);
+    const expectedTrue = await readExpected("pizza/pizza.options.debug.true");
+
+    assertEqual(
+        snapshotTrue.html,
+        expectedTrue,
+        "Invalid DOM snapshot (debug = true)"
+    );
+
+    assertIn(
+        "\n",
+        snapshotTrue.html,
+        "Invalid DOM snapshot (debug = true)"
+    );
+
+    const snapshotFalse = await d2Snap(PIZZA_HTML, 0.75, 0.75, 0.75, {
         debug: false
     });
 
-    await writeActual("pizza/pizza.options.debug", snapshotNoDebug.html);
-    const expected = await readExpected("pizza/pizza.options.debug");
+    await writeActual("pizza/pizza.options.debug.false", snapshotFalse.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.debug.false");
 
     assertEqual(
-        snapshotNoDebug.html,
-        expected,
-        "Invalid DOM snapshot"
+        snapshotFalse.html,
+        expectedFalse,
+        "Invalid DOM snapshot (debug = false)"
     );
 
     assertNotIn(
         "\n",
-        snapshotNoDebug.html,
-        "Invalid DOM snapshot (no debug)"
-    );
-
-    const snapshotDebug = await d2Snap(PIZZA_HTML, 0.75, 0.75, 0.75, {
-        debug: true
-    });
-
-    assertIn(
-        "\n",
-        snapshotDebug.html,
-        "Invalid DOM snapshot (debug)"
+        snapshotFalse.html,
+        "Invalid DOM snapshot (debug = false)"
     );
 });

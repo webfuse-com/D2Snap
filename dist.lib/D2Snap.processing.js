@@ -112,9 +112,13 @@ function postProcessDOM(domRoot, options, isActionable) {
 function postProcessHTML(html, options) {
   const optionsWithDefaults = {
     debug: false,
+    minify: true,
     ...options
   };
-  let processedHTML = html.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
+  let processedHTML = html;
+  if (optionsWithDefaults.minify) {
+    processedHTML = processedHTML.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
+  }
   if (optionsWithDefaults.debug) {
     processedHTML = formatHTML(processedHTML);
   }
