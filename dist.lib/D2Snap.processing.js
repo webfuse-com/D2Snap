@@ -1,6 +1,7 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES, VOID_TAG_NAMES } from "./var.CLASS_TAGS.js";
+import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
+import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { traverseDom } from "./util.dom.js";
 import { formatHTML } from "./util.html.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";

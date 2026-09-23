@@ -1,5 +1,6 @@
 const CONFIG = {
-  uniqueAttributeName: "data-uid"
+  uniqueAttributeName: "data-uid",
+  attributeScoringFallbackKey: "*"
 };
 export {
   CONFIG

@@ -1,21 +1,4 @@
-export const VOID_TAG_NAMES: Set<string> = new Set([
-	"AREA",
-	"BASE",
-	"BR",
-	"COL",
-	"EMBED",
-	"HR",
-	"IMG",
-	"INPUT",
-	"LINK",
-	"META",
-	"PARAM",
-	"SOURCE",
-	"TRACK",
-	"WBR"
-]);
-
-export const ACTIONABLE_TAG_NAMES: string[] = [
+export const DEFAULT_CLASS_ACTIONABLE_TAG_NAMES: string[] = [
 	"A",
 	"BUTTON",
 	"DETAILS",
@@ -28,7 +11,7 @@ export const ACTIONABLE_TAG_NAMES: string[] = [
 	"TEXTAREA"
 ];
 
-export const TEXT_TAG_NAMES: string[] = [
+export const DEFAULT_CLASS_TEXT_TAG_NAMES: string[] = [
 	"ADDRESS",
 	"BLOCKQUOTE",
 	"B",

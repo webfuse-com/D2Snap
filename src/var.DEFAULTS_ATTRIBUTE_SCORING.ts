@@ -1,4 +1,4 @@
-export const ATTRIBUTE_SCORING = {
+export const DEFAULT_ATTRIBUTE_SCORING = {
 	"alt": 0.46,
 	"href": 0.91,
 	"src": 0.83,
@@ -70,5 +70,7 @@ export const ATTRIBUTE_SCORING = {
 
 	"aria-*": 0.62,
 
-	"data-uid": 1.00
+	"data-uid": 1.00,
+
+	"*": 0.00	// fallback
 };

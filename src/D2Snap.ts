@@ -9,9 +9,11 @@ import {
 	type HTMLElementWithDepth,
 	type TextNode
 } from "./types.js";
-import { VOID_TAG_NAMES, ACTIONABLE_TAG_NAMES, TEXT_TAG_NAMES } from "./var.CLASS_TAGS.js";
-import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.CLASS_ATTRIBUTES.js";
-import { ATTRIBUTE_SCORING as DEFAULT_ATTRIBUTE_SCORING } from "./var.ATTRIBUTE_SCORING.js";
+import { CONFIG } from "./var.CONFIG.js";
+import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
+import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
+import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORING.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 
@@ -43,7 +45,6 @@ export function d2Snap(
 	validateUnitParameter("rT", rT);
 
 	const optionsWithDefaults: D2SnapOptions = {
-		attributeScoringFallback: 0,
 		debug: false,
 		filter: undefined,
     	labelToText: undefined,
@@ -53,10 +54,18 @@ export function d2Snap(
 
 		...options,
 
-		attributeScoring: {
+		attributeScores: {
 			...DEFAULT_ATTRIBUTE_SCORING,
 
-			...(options.attributeScoring ?? {})
+
+			...(options.attributeScoring ?? {}),	// deprecated
+			...(options.attributeScores ?? {})
+		},
+		elementClasses: {
+			actionables: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+			text: DEFAULT_CLASS_TEXT_TAG_NAMES,
+
+			...(options.elementClasses ?? {})
 		},
 		skip: {
 			markdown: false,
@@ -67,42 +76,40 @@ export function d2Snap(
 	};
 
 	const attributeScoring: Map<string, number> = new Map(
-		Object.entries(optionsWithDefaults.attributeScoring)
+		Object.entries(optionsWithDefaults.attributeScores)
 			.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 	);
 
-	const actionableTagNames: Set<string> = new Set(
-		ACTIONABLE_TAG_NAMES.map((tagName: string) => tagName.toUpperCase())
+	const actionableElementTagNames: Set<string> = new Set(
+		(optionsWithDefaults.elementClasses?.actionables ?? [])
+			.map((tagName: string) => tagName.toUpperCase())
+	);
+	const textElementTagNames: Set<string> = new Set(
+		(optionsWithDefaults.elementClasses?.text ?? [])
+			.map((tagName: string) => tagName.toUpperCase())
 	);
 	const actionableRoleAttributeValues: Set<string> = new Set(
 		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
 	);
 
 	const hasMDRetainTagName = (elementNode: Element): boolean => {
-		return actionableTagNames.has(elementNode.tagName.toUpperCase());
+		return actionableElementTagNames.has(elementNode.tagName.toUpperCase());
 	};
 	const hasActionableRole = (elementNode: Element): boolean => {
 		return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
 	};
 	const isActionable = (elementNode: Element): boolean => {
-		return ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
+		return actionableElementTagNames
+			.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
 	};
 
 	const turndown: Turndown = new Turndown([ hasMDRetainTagName, hasActionableRole ]);
 
 	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
-		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(isActionable(elementNode)) return;
-		if(VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
-
 		const considerContainerElement = (elementNode: Element) => {
 			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
-			if(hasActionableRole(elementNode)) return false;
-
-			const tagName: string = elementNode.tagName.toUpperCase();
-
-			if(VOID_TAG_NAMES.has(tagName)) return false;
-			if(ACTIONABLE_TAG_NAMES.includes(tagName)) return false;
+			if(isActionable(elementNode)) return false;
+			if(VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return false;
 
 			return true;
 		};
@@ -132,7 +139,7 @@ export function d2Snap(
 		if(optionsWithDefaults.skip?.markdown) return;
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 		if(isActionable(elementNode)) return;
-		if(!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+		if(!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
 
 		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
@@ -207,7 +214,9 @@ export function d2Snap(
 				}
 			}
 
-			const attributeScore: number = attributeScoring.get(normalizedName.toLowerCase()) ?? optionsWithDefaults.attributeScoringFallback;
+			const attributeScore: number = attributeScoring.get(normalizedName.toLowerCase())
+				?? attributeScoring.get(CONFIG.attributeScoringFallbackKey)
+				?? 0;
 			if(attributeScore >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);

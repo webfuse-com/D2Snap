@@ -4,9 +4,11 @@ import {
   NodeFilter,
   NodeType
 } from "./types.js";
-import { VOID_TAG_NAMES, ACTIONABLE_TAG_NAMES, TEXT_TAG_NAMES } from "./var.CLASS_TAGS.js";
-import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.CLASS_ATTRIBUTES.js";
-import { ATTRIBUTE_SCORING as DEFAULT_ATTRIBUTE_SCORING } from "./var.ATTRIBUTE_SCORING.js";
+import { CONFIG } from "./var.CONFIG.js";
+import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
+import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
+import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORING.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 const WHITESPACE_REGEX = /^\s$/;
@@ -21,7 +23,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   validateUnitParameter("rA", rA);
   validateUnitParameter("rT", rT);
   const optionsWithDefaults = {
-    attributeScoringFallback: 0,
     debug: false,
     filter: void 0,
     labelToText: void 0,
@@ -29,9 +30,16 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     textRankOptions: void 0,
     uniqueIDs: false,
     ...options,
-    attributeScoring: {
+    attributeScores: {
       ...DEFAULT_ATTRIBUTE_SCORING,
-      ...options.attributeScoring ?? {}
+      ...options.attributeScoring ?? {},
+      // deprecated
+      ...options.attributeScores ?? {}
+    },
+    elementClasses: {
+      actionables: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+      text: DEFAULT_CLASS_TEXT_TAG_NAMES,
+      ...options.elementClasses ?? {}
     },
     skip: {
       markdown: false,
@@ -40,34 +48,32 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     }
   };
   const attributeScoring = new Map(
-    Object.entries(optionsWithDefaults.attributeScoring).map((entry) => [entry[0].toLowerCase(), entry[1]])
+    Object.entries(optionsWithDefaults.attributeScores).map((entry) => [entry[0].toLowerCase(), entry[1]])
   );
-  const actionableTagNames = new Set(
-    ACTIONABLE_TAG_NAMES.map((tagName) => tagName.toUpperCase())
+  const actionableElementTagNames = new Set(
+    (optionsWithDefaults.elementClasses?.actionables ?? []).map((tagName) => tagName.toUpperCase())
+  );
+  const textElementTagNames = new Set(
+    (optionsWithDefaults.elementClasses?.text ?? []).map((tagName) => tagName.toUpperCase())
   );
   const actionableRoleAttributeValues = new Set(
     ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
   );
   const hasMDRetainTagName = (elementNode) => {
-    return actionableTagNames.has(elementNode.tagName.toUpperCase());
+    return actionableElementTagNames.has(elementNode.tagName.toUpperCase());
   };
   const hasActionableRole = (elementNode) => {
     return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
   };
   const isActionable = (elementNode) => {
-    return ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
+    return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
   };
   const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
   function snapElementContainerNode(elementNode, rE2) {
-    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (isActionable(elementNode)) return;
-    if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     const considerContainerElement = (elementNode2) => {
       if (elementNode2.nodeType !== NodeType.ELEMENT_NODE) return false;
-      if (hasActionableRole(elementNode2)) return false;
-      const tagName = elementNode2.tagName.toUpperCase();
-      if (VOID_TAG_NAMES.has(tagName)) return false;
-      if (ACTIONABLE_TAG_NAMES.includes(tagName)) return false;
+      if (isActionable(elementNode2)) return false;
+      if (VOID_TAG_NAMES.has(elementNode2.tagName.toUpperCase())) return false;
       return true;
     };
     if (!considerContainerElement(elementNode)) return;
@@ -86,7 +92,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if (optionsWithDefaults.skip?.markdown) return;
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     if (isActionable(elementNode)) return;
-    if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+    if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
     const replacingNodes = [...markdownNodesFragment.childNodes];
@@ -127,7 +133,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
           normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
         }
       }
-      const attributeScore = attributeScoring.get(normalizedName.toLowerCase()) ?? optionsWithDefaults.attributeScoringFallback;
+      const attributeScore = attributeScoring.get(normalizedName.toLowerCase()) ?? attributeScoring.get(CONFIG.attributeScoringFallbackKey) ?? 0;
       if (attributeScore >= rA2) continue;
       elementNode.removeAttribute(attr.name);
     }

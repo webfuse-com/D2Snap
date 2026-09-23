@@ -40,9 +40,13 @@ export interface TextRankOptions {
 }
 
 export interface D2SnapOptions {
-    attributeScoring: AttributeScoring;
-    attributeScoringFallback: number;
+    attributeScores: AttributeScoring;
+    attributeScoring?: AttributeScoring;    // deprecated (alias)
     debug: boolean;
+    elementClasses: Partial<{
+        actionables: string[];
+        text: string[];
+    }> | undefined;
     filter: Partial<{
         dataURLs: boolean;
         emptyElements: boolean;

@@ -1,4 +1,4 @@
-import { readTestFile, flattenDOMSnapshot } from "../test.util.js";
+import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
 
 import { d2Snap } from "../../dist.lib/api.js";
 
@@ -16,6 +16,15 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
             tagNames: []
         }
     });
+
+    await writeActual("pizza/pizza.options.filter.dataURLs", snapshotFilter.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.filter.dataURLs");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotFilter.html),
+        flattenDOMSnapshot(expectedFalse),
+        "Invalid DOM snapshot"
+    );
 
     assertNotIn(
         "data:image/png;base64,",
@@ -47,6 +56,15 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
             emptyElements: true
         }
     });
+
+    await writeActual("pizza/pizza.options.filter.emptyElements", snapshotFilter.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.filter.emptyElements");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotFilter.html),
+        flattenDOMSnapshot(expectedFalse),
+        "Invalid DOM snapshot"
+    );
 
     assertNotIn(
         "<div></div>",
@@ -97,26 +115,41 @@ await test("Take DOM snapshot (options.filter.tagNames)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
         debug: true,
         filter: {
-            tagNames: [ "main", "SECtion", "DIV", "BuTtOn" ]
+            tagNames: [ "li", "SMALL", "StYlE", "BUTTON" ]
         }
     });
 
-    assertNotIn(
-        "<div",
-        snapshotFilter.html,
-        "Invalid DOM snapshot (drop div)"
+    await writeActual("pizza/pizza.options.filter.tagNames", snapshotFilter.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.filter.tagNames");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotFilter.html),
+        flattenDOMSnapshot(expectedFalse),
+        "Invalid DOM snapshot"
     );
 
     assertNotIn(
-        "<section",
+        "<li>",
         snapshotFilter.html,
-        "Invalid DOM snapshot (drop section)"
+        "Invalid DOM snapshot (drop LI)"
+    );
+
+    assertNotIn(
+        "<small",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop SMALL)"
+    );
+
+    assertNotIn(
+        "<style",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop STYLE)"
     );
 
     // Can override actionables
     assertNotIn(
         "<button",
         snapshotFilter.html,
-        "Invalid DOM snapshot (retain button)"
+        "Invalid DOM snapshot (drop BUTTON)"
     );
 });
