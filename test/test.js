@@ -3,7 +3,9 @@ import { readdir } from "fs/promises";
 import { deepEqual as assertEqual, ok, throws } from "assert";
 
 
+const TEST_FILE_NAME_SUFFIX = ".test.js";
 const TEST_SUITE_NAME = process.argv.slice(2)[0];
+const TEST_CASE_NAME = process.argv.slice(2)[1];
 
 if(!TEST_SUITE_NAME) throw new Error("Missing test suite name (arg pos 0)");
 
@@ -93,21 +95,24 @@ global.test = async function(title, cb) {
 }
 
 
-async function runSuite(name) {
-    const testDirPath = join(import.meta.dirname, name);
+async function runSuite(suiteName, caseName = null) {
+    const testDirPath = join(import.meta.dirname, suiteName);
     const testDirents = await readdir(testDirPath, {
         withFileTypes: true
     });
 
-    for(
-        const dirent of testDirents
-            .filter(dirent => dirent.isFile())
-            .filter(dirent => dirent.name.endsWith(".test.js"))
-    ) {
+    const testCaseDirents = testDirents
+        .filter(dirent => dirent.isFile())
+        .filter(dirent => dirent.name.endsWith(TEST_FILE_NAME_SUFFIX))
+        .filter(dirent => caseName ? (dirent.name === `${caseName}${TEST_FILE_NAME_SUFFIX}`) : true);
+
+    if(!testCaseDirents.length) throw new RangeError("No test cases found");
+
+    for(const dirent of testCaseDirents) {
         await import(join(testDirPath, dirent.name));
     }
 
-    const nameLogPrefix = `\x1b[1m[${name.toUpperCase()}]\x1b[22m`;
+    const nameLogPrefix = `\x1b[1m[${suiteName.toUpperCase()}]\x1b[22m`;
     exitCode
         ? console.error(`\x1b[31m${nameLogPrefix} Tests failed (exit code ${exitCode}).\x1b[0m`)
         : console.log(`\x1b[32m${nameLogPrefix} Tests succeeded.\x1b[0m`);
@@ -116,4 +121,4 @@ async function runSuite(name) {
 }
 
 
-await runSuite(TEST_SUITE_NAME);
+await runSuite(TEST_SUITE_NAME, TEST_CASE_NAME);
