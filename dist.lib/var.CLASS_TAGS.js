@@ -1,29 +1,3 @@
-const FILTERED_TAG_NAMES = [
-  "CIRCLE",
-  "CLIPPATH",
-  "DEFS",
-  "ELLIPSE",
-  "FILTER",
-  "G",
-  "IMAGE",
-  "LINE",
-  "LINEARGRADIENT",
-  "LINK",
-  "MASK",
-  "META",
-  "NOSCRIPT",
-  "PATH",
-  "PATTERN",
-  "POLYGON",
-  "POLYLINE",
-  "RADIALGRADIENT",
-  "RECT",
-  "SCRIPT",
-  "STOP",
-  "STYLE",
-  "TEMPLATE",
-  "USE"
-];
 const VOID_TAG_NAMES = /* @__PURE__ */ new Set([
   "AREA",
   "BASE",
@@ -85,14 +59,40 @@ const TEXT_TAG_NAMES = [
   "TR",
   "UL"
 ];
-const REPLACE_WITH_LABELS_TAG_NAMES = [
+const DEFAULT_FILTER_TAG_NAMES = [
+  "CIRCLE",
+  "CLIPPATH",
+  "DEFS",
+  "ELLIPSE",
+  "FILTER",
+  "G",
+  "IMAGE",
+  "LINE",
+  "LINEARGRADIENT",
+  "LINK",
+  "MASK",
+  "META",
+  "NOSCRIPT",
+  "PATH",
+  "PATTERN",
+  "POLYGON",
+  "POLYLINE",
+  "RADIALGRADIENT",
+  "RECT",
+  "SCRIPT",
+  "STOP",
+  "STYLE",
+  "TEMPLATE",
+  "USE"
+];
+const DEFAULT_LABEL_TO_TEXT_TAG_NAMES = [
   "IMG",
   "SVG"
 ];
 export {
   ACTIONABLE_TAG_NAMES,
-  FILTERED_TAG_NAMES,
-  REPLACE_WITH_LABELS_TAG_NAMES,
+  DEFAULT_FILTER_TAG_NAMES,
+  DEFAULT_LABEL_TO_TEXT_TAG_NAMES,
   TEXT_TAG_NAMES,
   VOID_TAG_NAMES
 };

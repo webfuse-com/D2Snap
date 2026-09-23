@@ -1,67 +1,45 @@
-import { transform } from "./TextRank.js";
+import { transformWithTextRank } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
   NodeFilter,
   NodeType
 } from "./types.js";
-import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
-import { formatHTML } from "./util.html.js";
-import { CONFIG } from "./var.CONFIG.js";
-import {
-  FILTERED_TAG_NAMES as DEFAULT_FILTERED_TAG_NAMES,
-  VOID_TAG_NAMES,
-  ACTIONABLE_TAG_NAMES,
-  TEXT_TAG_NAMES,
-  REPLACE_WITH_LABELS_TAG_NAMES
-} from "./var.CLASS_TAGS.js";
+import { VOID_TAG_NAMES, ACTIONABLE_TAG_NAMES, TEXT_TAG_NAMES } from "./var.CLASS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.CLASS_ATTRIBUTES.js";
 import { ATTRIBUTE_SCORING as DEFAULT_ATTRIBUTE_SCORING } from "./var.ATTRIBUTE_SCORING.js";
-const DATA_URL_ATTRIBUTE_NAME = "src";
-const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
+import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
+import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 const WHITESPACE_REGEX = /^\s$/;
 const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
-function validateParameter(name, value) {
+function validateUnitParameter(name, value) {
   if (value < 0 || value > 1) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
-function unwrapColonTaggedElements(parent) {
-  for (const child of Array.from(parent.childNodes)) {
-    if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
-    unwrapColonTaggedElements(child);
-    if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
-    while (child.firstChild) {
-      parent.insertBefore(child.firstChild, child);
-    }
-    parent.removeChild(child);
-  }
-}
 function d2Snap(dom, rE, rA, rT, options = {}) {
-  validateParameter("rE", rE);
-  validateParameter("rA", rA);
-  validateParameter("rT", rT);
+  validateUnitParameter("rE", rE);
+  validateUnitParameter("rA", rA);
+  validateUnitParameter("rT", rT);
   const optionsWithDefaults = {
     attributeScoringFallback: 0,
     debug: false,
-    filterDataURLs: true,
-    filterEmptyElements: false,
-    filteredTagNames: DEFAULT_FILTERED_TAG_NAMES,
-    liftImageDescription: true,
-    skipMarkdown: false,
-    skipTextRank: false,
-    textRankOptions: {},
+    filter: void 0,
+    labelToText: void 0,
+    textRankOptions: void 0,
     uniqueIDs: false,
     ...options,
     attributeScoring: {
       ...DEFAULT_ATTRIBUTE_SCORING,
       ...options.attributeScoring ?? {}
+    },
+    skip: {
+      markdown: false,
+      textRank: false,
+      ...options.skip ?? {}
     }
   };
   const attributeScoring = new Map(
     Object.entries(optionsWithDefaults.attributeScoring).map((entry) => [entry[0].toLowerCase(), entry[1]])
-  );
-  const filteredTagNames = new Set(
-    optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
   );
   const actionableTagNames = new Set(
     ACTIONABLE_TAG_NAMES.map((tagName) => tagName.toUpperCase())
@@ -69,17 +47,19 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const actionableRoleAttributeValues = new Set(
     ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
   );
-  function hasMDRetainTagName(elementNode) {
+  const hasMDRetainTagName = (elementNode) => {
     return actionableTagNames.has(elementNode.tagName.toUpperCase());
-  }
-  function hasActionableRole(elementNode) {
+  };
+  const hasActionableRole = (elementNode) => {
     return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
-  }
+  };
+  const isActionable = (elementNode) => {
+    return ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
+  };
   const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
   function snapElementContainerNode(elementNode, rE2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (hasActionableRole(elementNode)) return;
-    if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
+    if (isActionable(elementNode)) return;
     if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
     const considerContainerElement = (elementNode2) => {
       if (elementNode2.nodeType !== NodeType.ELEMENT_NODE) return false;
@@ -102,17 +82,28 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     sourceElement.parentNode?.removeChild(sourceElement);
   }
   function snapElementTextFormattingNode(document2, elementNode) {
-    if (optionsWithDefaults.skipMarkdown) return;
+    if (!!optionsWithDefaults.skip?.markdown) return;
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (hasActionableRole(elementNode)) return;
+    if (isActionable(elementNode)) return;
     if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-    unwrapColonTaggedElements(markdownNodesFragment);
     const replacingNodes = [...markdownNodesFragment.childNodes];
     elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
     const sourceTagName = elementNode.tagName.toLowerCase();
-    return replacingNodes.filter((n2) => n2.nodeType !== NodeType.ELEMENT_NODE || n2.tagName.toLowerCase() !== sourceTagName);
+    const unwrapColonTaggedElements = (parent) => {
+      for (const child of [...parent.childNodes]) {
+        if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
+        unwrapColonTaggedElements(child);
+        if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
+        while (child.firstChild) {
+          parent.insertBefore(child.firstChild, child);
+        }
+        parent.removeChild(child);
+      }
+    };
+    unwrapColonTaggedElements(markdownNodesFragment);
+    return replacingNodes.filter((n) => n.nodeType !== NodeType.ELEMENT_NODE || n.tagName.toLowerCase() !== sourceTagName);
   }
   function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== NodeType.TEXT_NODE) return;
@@ -122,7 +113,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
     textNode.textContent = [
       leadingSpace,
-      transform(text, 1 - rT2, optionsWithDefaults.skipTextRank, true, optionsWithDefaults.textRankOptions),
+      transformWithTextRank(text, 1 - rT2, !!optionsWithDefaults.skip?.textRank, true, optionsWithDefaults.textRankOptions),
       trailingSpace
     ].join("");
   }
@@ -140,99 +131,34 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       elementNode.removeAttribute(attr.name);
     }
   }
-  function liftImageDescription(document2, elementNode) {
-    if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (!REPLACE_WITH_LABELS_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-    let label = null;
-    for (const attrName of ["aria-label", "title", "alt"]) {
-      const value = elementNode.getAttribute(attrName);
-      const trimmed = (value ?? "").trim();
-      if (trimmed) {
-        label = trimmed;
-        break;
-      }
-    }
-    if (!label) {
-      for (const child of Array.from(elementNode.children)) {
-        if (!["title", "desc"].includes(child.tagName)) continue;
-        const trimmed = (child.textContent ?? "").trim();
-        if (trimmed) {
-          label = trimmed;
-          break;
-        }
-      }
-    }
-    if (label !== null) {
-      elementNode.replaceWith(document2.createTextNode(label));
-    } else {
-      elementNode.remove();
-    }
-  }
   const document = resolveDocument(dom);
   if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
   const rootElement = resolveRoot(dom);
   const originalSize = rootElement.innerHTML.length;
   const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
   let t0;
-  const timings = {
-    uniqueIDs: 0,
-    clone: 0,
-    init: 0,
-    liftImageDescription: 0,
-    textNodes: 0,
-    textFormatting: 0,
-    containers: 0,
-    attributes: 0,
-    serialize: 0,
-    minify: 0,
-    formatDebugOnly: 0
-  };
+  const timings = {};
   t0 = t();
   const virtualDom = rootElement.cloneNode(true);
   timings.clone = t() - t0;
+  t0 = t();
+  preProcessDOM(virtualDom, document, {
+    filter: optionsWithDefaults.filter,
+    labelToText: optionsWithDefaults.labelToText,
+    uniqueIDs: optionsWithDefaults.uniqueIDs
+  });
+  timings.preProcessing = t() - t0;
   let domTreeHeight = 0;
   traverseDom(
     virtualDom,
-    NodeFilter.SHOW_ALL,
+    NodeFilter.SHOW_ELEMENT,
     (node) => {
-      if (node.nodeType === NodeType.COMMENT_NODE) {
-        node.parentNode?.removeChild(node);
-        return;
-      }
-      if (node.nodeType !== NodeType.ELEMENT_NODE) return;
-      const elementNode = node;
-      if (filteredTagNames.has(elementNode.tagName.toUpperCase())) {
-        elementNode.remove();
-        return;
-      }
-      if (optionsWithDefaults.filterDataURLs) {
-        for (const attr of Array.from(elementNode.attributes)) {
-          if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-          elementNode.removeAttribute(attr.name);
-        }
-      }
-      const depth = (elementNode.parentNode.depth ?? 0) + 1;
-      elementNode.depth = depth;
+      const depth = (node.parentNode.depth ?? 0) + 1;
+      node.depth = depth;
       domTreeHeight = Math.max(depth, domTreeHeight);
     }
   );
-  timings.init = t() - t0;
-  let n = 0;
-  optionsWithDefaults.uniqueIDs && traverseDom(
-    rootElement,
-    NodeFilter.SHOW_ELEMENT,
-    (elementNode) => {
-      elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
-    }
-  );
-  timings.uniqueIDs = t() - t0;
-  t0 = t();
-  optionsWithDefaults.liftImageDescription && traverseDom(
-    virtualDom,
-    NodeFilter.SHOW_ELEMENT,
-    (node) => liftImageDescription(document, node)
-  );
-  timings.liftImageDescription = t() - t0;
+  timings.writeDepth = t() - t0;
   t0 = t();
   traverseDom(
     virtualDom,
@@ -262,55 +188,31 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     // work on parent element
   );
   timings.attributes = t() - t0;
-  if (optionsWithDefaults.filterEmptyElements) {
-    let hasRemovedElement;
-    do {
-      hasRemovedElement = false;
-      traverseDom(
-        virtualDom,
-        NodeFilter.SHOW_ELEMENT,
-        (elementNode) => {
-          if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-          if (hasActionableRole(elementNode)) return;
-          if (elementNode.children.length || elementNode.textContent.trim().length) return;
-          elementNode.remove();
-          hasRemovedElement = true;
-        }
-      );
-    } while (hasRemovedElement);
-  }
   if (rE === 1) {
-    const dissolveToplevelTags = (rootElement2) => {
-      [...rootElement2.children].forEach((element) => {
-        element.replaceWith(...element.childNodes);
-      });
-    };
-    dissolveToplevelTags(virtualDom);
-    [
-      ...virtualDom.querySelectorAll(ACTIONABLE_TAG_NAMES.join(", ")),
-      ...virtualDom.querySelectorAll(
-        [...ACTIONABLE_ROLE_ATTRIBUTE_VALUES].map((role) => `[role="${role}"]`).join(", ")
-      )
-    ].forEach((actionableElement) => dissolveToplevelTags(actionableElement));
+    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !isActionable(elementNode)).forEach((element) => {
+      element.replaceWith(...element.childNodes);
+    });
   }
   t0 = t();
-  const snapshot = virtualDom.innerHTML;
+  postProcessDOM(virtualDom, {
+    filter: optionsWithDefaults.filter
+  }, isActionable);
+  timings.domPostProcessing = t() - t0;
+  t0 = t();
+  let htmlSnapshot = virtualDom.innerHTML;
   timings.serialize = t() - t0;
   t0 = t();
-  let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
-  timings.minify = t() - t0;
-  if (optionsWithDefaults.debug) {
-    t0 = t();
-    html = formatHTML(html);
-    timings.formatDebugOnly = t() - t0;
-  }
+  htmlSnapshot = postProcessHTML(htmlSnapshot, {
+    debug: optionsWithDefaults.debug
+  });
+  timings.htmlPostProcessing = t() - t0;
   return {
-    html,
+    html: htmlSnapshot,
     meta: {
       originalSize,
-      snapshotSize: snapshot.length,
-      sizeRatio: snapshot.length / originalSize,
-      tokenEstimate: Math.round(snapshot.length / 4),
+      snapshotSize: htmlSnapshot.length,
+      sizeRatio: htmlSnapshot.length / originalSize,
+      tokenEstimate: Math.round(htmlSnapshot.length / 4),
       // according to https://platform.openai.com/tokenizer
       ...optionsWithDefaults.debug && { timings }
     }

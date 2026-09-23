@@ -214,7 +214,7 @@
       score: currentScores[i]
     })).sort((a, b) => b.score - a.score);
   }
-  function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
+  function transformWithTextRank(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
     const sentences = tokenizeSentences(text);
     const k = Math.min(
       Math.max(
@@ -1202,272 +1202,8 @@
     }
   };
 
-  // src/util.html.ts
-  var INLINE_TAG_NAMES = [
-    "A",
-    "ABBR",
-    "B",
-    "BDI",
-    "BDO",
-    "CITE",
-    "CODE",
-    "DATA",
-    "DFN",
-    "EM",
-    "I",
-    "KBD",
-    "MARK",
-    "Q",
-    "RP",
-    "RT",
-    "RUBY",
-    "S",
-    "SAMP",
-    "SMALL",
-    "SPAN",
-    "STRONG",
-    "SUB",
-    "SUP",
-    "TIME",
-    "U",
-    "VAR",
-    "WBR",
-    "BR"
-  ];
-  var RAW_TEXT_TAG_NAMES = [
-    "SCRIPT",
-    "STYLE",
-    "TEXTAREA",
-    "TITLE"
-  ];
-  var VOID_TAG_NAMES = [
-    "AREA",
-    "BASE",
-    "BR",
-    "COL",
-    "EMBED",
-    "HR",
-    "IMG",
-    "INPUT",
-    "LINK",
-    "META",
-    "SOURCE",
-    "TRACK",
-    "WBR"
-  ];
-  function tokenize(html) {
-    const tokens = [];
-    const n = html.length;
-    let i = 0;
-    while (i < n) {
-      if (html[i] !== "<") {
-        const start = i;
-        while (i < n && html[i] !== "<") i++;
-        const raw2 = html.slice(start, i);
-        if (raw2.trim()) tokens.push({
-          kind: "text",
-          raw: raw2
-        });
-        continue;
-      }
-      if (html.startsWith("<!--", i)) {
-        const end = html.indexOf("-->", i + 4);
-        const stop = end < 0 ? n : end + 3;
-        tokens.push({
-          kind: "comment",
-          raw: html.slice(i, stop)
-        });
-        i = stop;
-        continue;
-      }
-      const tagStart = i;
-      i++;
-      const isClose = html[i] === "/";
-      isClose && i++;
-      let quote = null;
-      while (i < n) {
-        const c = html[i];
-        if (quote) {
-          if (c === quote) quote = null;
-          i++;
-          continue;
-        }
-        if (c === '"' || c === "'") {
-          quote = c;
-          i++;
-          continue;
-        }
-        if (c === ">") break;
-        i++;
-      }
-      if (i >= n) {
-        tokens.push({
-          kind: "text",
-          raw: html.slice(tagStart)
-        });
-        break;
-      }
-      i++;
-      const raw = html.slice(tagStart, i);
-      const inner = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
-      const selfClosing = inner.endsWith("/");
-      const tagName = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
-      if (!tagName) {
-        tokens.push({
-          kind: "text",
-          raw
-        });
-        continue;
-      }
-      if (isClose) {
-        tokens.push({
-          kind: "close",
-          tag: tagName,
-          raw
-        });
-        continue;
-      }
-      if (VOID_TAG_NAMES.includes(tagName) || selfClosing) {
-        tokens.push({
-          kind: "void",
-          tag: tagName,
-          raw
-        });
-        continue;
-      }
-      if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
-        const rest = html.slice(i);
-        const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
-        if (!m) {
-          tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
-          i = n;
-          continue;
-        }
-        const contentEnd = i + m.index;
-        const content = html.slice(i, contentEnd);
-        const closeRaw = html.slice(contentEnd, contentEnd + m[0].length);
-        tokens.push({
-          kind: "raw",
-          tag: tagName,
-          openRaw: raw,
-          content,
-          closeRaw
-        });
-        i = contentEnd + m[0].length;
-        continue;
-      }
-      tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
-    }
-    return tokens;
-  }
-  function formatHTML(html, indentSize = 2) {
-    const indent = " ".repeat(indentSize);
-    const tokens = tokenize(html);
-    const lines = [];
-    const stack = [];
-    let buffer = "";
-    let bufferDepth = 0;
-    const flushBuffer = () => {
-      const text = buffer.replace(/\s+/g, " ").trim();
-      text && lines.push(indent.repeat(bufferDepth) + text);
-      buffer = "";
-    };
-    const emit = (line, depth) => {
-      flushBuffer();
-      lines.push(indent.repeat(depth) + line);
-    };
-    const isInline = (tag) => {
-      return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
-    };
-    for (const token of tokens) {
-      switch (token.kind) {
-        case "text":
-          if (buffer === "") {
-            bufferDepth = stack.length;
-          }
-          buffer += token.raw;
-          break;
-        case "comment":
-        case "doctype":
-        case "cdata":
-          emit(token.raw, stack.length);
-          break;
-        case "void":
-          if (isInline(token.tag)) {
-            if (buffer === "") {
-              bufferDepth = stack.length;
-            }
-            buffer += token.raw;
-          } else {
-            emit(token.raw, stack.length);
-          }
-          break;
-        case "raw":
-          emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
-          break;
-        case "open":
-          if (isInline(token.tag)) {
-            if (buffer === "") {
-              bufferDepth = stack.length;
-            }
-            buffer += token.raw;
-            stack.push(token.tag);
-          } else {
-            flushBuffer();
-            lines.push(indent.repeat(stack.length) + token.raw);
-            stack.push(token.tag);
-          }
-          break;
-        case "close":
-          if (isInline(token.tag)) {
-            buffer += token.raw;
-            stack[stack.length - 1] === token.tag && stack.pop();
-          } else {
-            while (stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
-            stack.length && stack.pop();
-            flushBuffer();
-            lines.push(indent.repeat(stack.length) + token.raw);
-          }
-          break;
-      }
-    }
-    flushBuffer();
-    return lines.join("\n");
-  }
-
-  // src/var.CONFIG.ts
-  var CONFIG = {
-    uniqueAttributeName: "data-uid"
-  };
-
   // src/var.CLASS_TAGS.ts
-  var FILTERED_TAG_NAMES = [
-    "CIRCLE",
-    "CLIPPATH",
-    "DEFS",
-    "ELLIPSE",
-    "FILTER",
-    "G",
-    "IMAGE",
-    "LINE",
-    "LINEARGRADIENT",
-    "LINK",
-    "MASK",
-    "META",
-    "NOSCRIPT",
-    "PATH",
-    "PATTERN",
-    "POLYGON",
-    "POLYLINE",
-    "RADIALGRADIENT",
-    "RECT",
-    "SCRIPT",
-    "STOP",
-    "STYLE",
-    "TEMPLATE",
-    "USE"
-  ];
-  var VOID_TAG_NAMES2 = /* @__PURE__ */ new Set([
+  var VOID_TAG_NAMES = /* @__PURE__ */ new Set([
     "AREA",
     "BASE",
     "BR",
@@ -1528,7 +1264,33 @@
     "TR",
     "UL"
   ];
-  var REPLACE_WITH_LABELS_TAG_NAMES = [
+  var DEFAULT_FILTER_TAG_NAMES = [
+    "CIRCLE",
+    "CLIPPATH",
+    "DEFS",
+    "ELLIPSE",
+    "FILTER",
+    "G",
+    "IMAGE",
+    "LINE",
+    "LINEARGRADIENT",
+    "LINK",
+    "MASK",
+    "META",
+    "NOSCRIPT",
+    "PATH",
+    "PATTERN",
+    "POLYGON",
+    "POLYLINE",
+    "RADIALGRADIENT",
+    "RECT",
+    "SCRIPT",
+    "STOP",
+    "STYLE",
+    "TEMPLATE",
+    "USE"
+  ];
+  var DEFAULT_LABEL_TO_TEXT_TAG_NAMES = [
     "IMG",
     "SVG"
   ];
@@ -1626,53 +1388,395 @@
     "data-uid": 1
   };
 
-  // src/D2Snap.ts
+  // src/var.CONFIG.ts
+  var CONFIG = {
+    uniqueAttributeName: "data-uid"
+  };
+
+  // src/util.html.ts
+  var INLINE_TAG_NAMES = [
+    "A",
+    "ABBR",
+    "B",
+    "BDI",
+    "BDO",
+    "CITE",
+    "CODE",
+    "DATA",
+    "DFN",
+    "EM",
+    "I",
+    "KBD",
+    "MARK",
+    "Q",
+    "RP",
+    "RT",
+    "RUBY",
+    "S",
+    "SAMP",
+    "SMALL",
+    "SPAN",
+    "STRONG",
+    "SUB",
+    "SUP",
+    "TIME",
+    "U",
+    "VAR",
+    "WBR",
+    "BR"
+  ];
+  var RAW_TEXT_TAG_NAMES = [
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "TITLE"
+  ];
+  var VOID_TAG_NAMES2 = [
+    "AREA",
+    "BASE",
+    "BR",
+    "COL",
+    "EMBED",
+    "HR",
+    "IMG",
+    "INPUT",
+    "LINK",
+    "META",
+    "SOURCE",
+    "TRACK",
+    "WBR"
+  ];
+  function tokenize(html) {
+    const tokens = [];
+    const n = html.length;
+    let i = 0;
+    while (i < n) {
+      if (html[i] !== "<") {
+        const start = i;
+        while (i < n && html[i] !== "<") i++;
+        const raw2 = html.slice(start, i);
+        if (raw2.trim()) tokens.push({
+          kind: "text",
+          raw: raw2
+        });
+        continue;
+      }
+      if (html.startsWith("<!--", i)) {
+        const end = html.indexOf("-->", i + 4);
+        const stop = end < 0 ? n : end + 3;
+        tokens.push({
+          kind: "comment",
+          raw: html.slice(i, stop)
+        });
+        i = stop;
+        continue;
+      }
+      const tagStart = i;
+      i++;
+      const isClose = html[i] === "/";
+      isClose && i++;
+      let quote = null;
+      while (i < n) {
+        const c = html[i];
+        if (quote) {
+          if (c === quote) quote = null;
+          i++;
+          continue;
+        }
+        if (c === '"' || c === "'") {
+          quote = c;
+          i++;
+          continue;
+        }
+        if (c === ">") break;
+        i++;
+      }
+      if (i >= n) {
+        tokens.push({
+          kind: "text",
+          raw: html.slice(tagStart)
+        });
+        break;
+      }
+      i++;
+      const raw = html.slice(tagStart, i);
+      const inner = raw.slice(isClose ? 2 : 1, raw.length - 1).trim();
+      const selfClosing = inner.endsWith("/");
+      const tagName = (inner.match(/^[a-zA-Z][\w:-]*/)?.[0] ?? "").toUpperCase();
+      if (!tagName) {
+        tokens.push({
+          kind: "text",
+          raw
+        });
+        continue;
+      }
+      if (isClose) {
+        tokens.push({
+          kind: "close",
+          tag: tagName,
+          raw
+        });
+        continue;
+      }
+      if (VOID_TAG_NAMES2.includes(tagName) || selfClosing) {
+        tokens.push({
+          kind: "void",
+          tag: tagName,
+          raw
+        });
+        continue;
+      }
+      if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
+        const rest = html.slice(i);
+        const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
+        if (!m) {
+          tokens.push({ kind: "raw", tag: tagName, openRaw: raw, content: rest, closeRaw: "" });
+          i = n;
+          continue;
+        }
+        const contentEnd = i + m.index;
+        const content = html.slice(i, contentEnd);
+        const closeRaw = html.slice(contentEnd, contentEnd + m[0].length);
+        tokens.push({
+          kind: "raw",
+          tag: tagName,
+          openRaw: raw,
+          content,
+          closeRaw
+        });
+        i = contentEnd + m[0].length;
+        continue;
+      }
+      tokens.push({ kind: "open", tag: tagName, raw, selfClosing: false });
+    }
+    return tokens;
+  }
+  function formatHTML(html, indentSize = 2) {
+    const indent = " ".repeat(indentSize);
+    const tokens = tokenize(html);
+    const lines = [];
+    const stack = [];
+    let buffer = "";
+    let bufferDepth = 0;
+    const flushBuffer = () => {
+      const text = buffer.replace(/\s+/g, " ").trim();
+      text && lines.push(indent.repeat(bufferDepth) + text);
+      buffer = "";
+    };
+    const emit = (line, depth) => {
+      flushBuffer();
+      lines.push(indent.repeat(depth) + line);
+    };
+    const isInline = (tag) => {
+      return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES2.includes(tag);
+    };
+    for (const token of tokens) {
+      switch (token.kind) {
+        case "text":
+          if (buffer === "") {
+            bufferDepth = stack.length;
+          }
+          buffer += token.raw;
+          break;
+        case "comment":
+        case "doctype":
+        case "cdata":
+          emit(token.raw, stack.length);
+          break;
+        case "void":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+          } else {
+            emit(token.raw, stack.length);
+          }
+          break;
+        case "raw":
+          emit(`${token.openRaw}${token.content}${token.closeRaw}`, stack.length);
+          break;
+        case "open":
+          if (isInline(token.tag)) {
+            if (buffer === "") {
+              bufferDepth = stack.length;
+            }
+            buffer += token.raw;
+            stack.push(token.tag);
+          } else {
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+            stack.push(token.tag);
+          }
+          break;
+        case "close":
+          if (isInline(token.tag)) {
+            buffer += token.raw;
+            stack[stack.length - 1] === token.tag && stack.pop();
+          } else {
+            while (stack.length && stack[stack.length - 1] !== token.tag) stack.pop();
+            stack.length && stack.pop();
+            flushBuffer();
+            lines.push(indent.repeat(stack.length) + token.raw);
+          }
+          break;
+      }
+    }
+    flushBuffer();
+    return lines.join("\n");
+  }
+
+  // src/D2Snap.processing.ts
   var DATA_URL_ATTRIBUTE_NAME = "src";
   var DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
+  function tagNamesToNormalizedSet(tagNames) {
+    return new Set(
+      tagNames.map((tagName) => tagName.toUpperCase())
+    );
+  }
+  function liftImageDescription(document2, elementNode) {
+    let label = null;
+    for (const attrName of ["aria-label", "title", "alt"]) {
+      const value = elementNode.getAttribute(attrName);
+      const trimmed = (value ?? "").trim();
+      if (trimmed) {
+        label = trimmed;
+        break;
+      }
+    }
+    if (!label) {
+      for (const child of Array.from(elementNode.children)) {
+        if (!["title", "desc"].includes(child.tagName)) continue;
+        const trimmed = (child.textContent ?? "").trim();
+        if (trimmed) {
+          label = trimmed;
+          break;
+        }
+      }
+    }
+    if (label !== null) {
+      elementNode.replaceWith(document2.createTextNode(label));
+    } else {
+      elementNode.remove();
+    }
+  }
+  function preProcessDOM(domRoot, document2, options) {
+    const optionsWithDefaults = {
+      uniqueIDs: false,
+      ...options,
+      filter: {
+        dataURLs: true,
+        tagNames: DEFAULT_FILTER_TAG_NAMES,
+        ...options.filter ?? {}
+      },
+      labelToText: {
+        iconFonts: true,
+        tagNames: DEFAULT_LABEL_TO_TEXT_TAG_NAMES,
+        ...options.labelToText ?? {}
+      }
+    };
+    const filterTagNames = tagNamesToNormalizedSet(optionsWithDefaults.filter?.tagNames ?? []);
+    const labelToTextTagNames = tagNamesToNormalizedSet(optionsWithDefaults.labelToText?.tagNames ?? []);
+    let i = 0;
+    traverseDom(
+      domRoot,
+      4294967295 /* SHOW_ALL */,
+      (node) => {
+        if (node.nodeType === 8 /* COMMENT_NODE */) {
+          node.parentNode?.removeChild(node);
+          return;
+        }
+        if (node.nodeType !== 1 /* ELEMENT_NODE */) return;
+        const elementNode = node;
+        if (filterTagNames.has(elementNode.tagName.toUpperCase())) {
+          elementNode.remove();
+          return;
+        }
+        if (optionsWithDefaults.uniqueIDs) {
+          elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
+          i++;
+        }
+        if (optionsWithDefaults.filter?.dataURLs ?? []) {
+          for (const attr of Array.from(elementNode.attributes)) {
+            if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+            elementNode.removeAttribute(attr.name);
+          }
+        }
+        if (labelToTextTagNames.has(elementNode.tagName.toUpperCase())) {
+          liftImageDescription(document2, elementNode);
+        }
+      }
+    );
+  }
+  function postProcessDOM(domRoot, options, isActionable) {
+    const optionsWithDefaults = {
+      filter: {
+        emptyElements: true,
+        ...options.filter ?? {}
+      }
+    };
+    if (optionsWithDefaults.filter?.emptyElements ?? []) {
+      let hasRemovedElement;
+      do {
+        hasRemovedElement = false;
+        traverseDom(
+          domRoot,
+          1 /* SHOW_ELEMENT */,
+          (elementNode) => {
+            if (isActionable(elementNode)) return;
+            if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+            if (elementNode.children.length || elementNode.textContent.trim().length) return;
+            elementNode.remove();
+            hasRemovedElement = true;
+          }
+        );
+      } while (hasRemovedElement);
+    }
+  }
+  function postProcessHTML(html, options) {
+    const optionsWithDefaults = {
+      debug: false,
+      ...options
+    };
+    let processedHTML = html.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
+    if (optionsWithDefaults.debug) {
+      processedHTML = formatHTML(processedHTML);
+    }
+    return processedHTML;
+  }
+
+  // src/D2Snap.ts
   var WHITESPACE_REGEX = /^\s$/;
   var COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
-  function validateParameter(name, value) {
+  function validateUnitParameter(name, value) {
     if (value < 0 || value > 1) {
       throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
     }
   }
-  function unwrapColonTaggedElements(parent) {
-    for (const child of Array.from(parent.childNodes)) {
-      if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
-      unwrapColonTaggedElements(child);
-      if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
-      while (child.firstChild) {
-        parent.insertBefore(child.firstChild, child);
-      }
-      parent.removeChild(child);
-    }
-  }
   function d2Snap(dom, rE, rA, rT, options = {}) {
-    validateParameter("rE", rE);
-    validateParameter("rA", rA);
-    validateParameter("rT", rT);
+    validateUnitParameter("rE", rE);
+    validateUnitParameter("rA", rA);
+    validateUnitParameter("rT", rT);
     const optionsWithDefaults = {
       attributeScoringFallback: 0,
       debug: false,
-      filterDataURLs: true,
-      filterEmptyElements: false,
-      filteredTagNames: FILTERED_TAG_NAMES,
-      liftImageDescription: true,
-      skipMarkdown: false,
-      skipTextRank: false,
-      textRankOptions: {},
+      filter: void 0,
+      labelToText: void 0,
+      textRankOptions: void 0,
       uniqueIDs: false,
       ...options,
       attributeScoring: {
         ...ATTRIBUTE_SCORING,
         ...options.attributeScoring ?? {}
+      },
+      skip: {
+        markdown: false,
+        textRank: false,
+        ...options.skip ?? {}
       }
     };
     const attributeScoring = new Map(
       Object.entries(optionsWithDefaults.attributeScoring).map((entry) => [entry[0].toLowerCase(), entry[1]])
-    );
-    const filteredTagNames = new Set(
-      optionsWithDefaults.filteredTagNames.map((t2) => t2.toUpperCase())
     );
     const actionableTagNames = new Set(
       ACTIONABLE_TAG_NAMES.map((tagName) => tagName.toUpperCase())
@@ -1680,23 +1784,25 @@
     const actionableRoleAttributeValues = new Set(
       ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
     );
-    function hasMDRetainTagName(elementNode) {
+    const hasMDRetainTagName = (elementNode) => {
       return actionableTagNames.has(elementNode.tagName.toUpperCase());
-    }
-    function hasActionableRole(elementNode) {
+    };
+    const hasActionableRole = (elementNode) => {
       return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
-    }
+    };
+    const isActionable = (elementNode) => {
+      return ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
+    };
     const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
     function snapElementContainerNode(elementNode, rE2) {
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (hasActionableRole(elementNode)) return;
-      if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-      if (VOID_TAG_NAMES2.has(elementNode.tagName.toUpperCase())) return;
+      if (isActionable(elementNode)) return;
+      if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
       const considerContainerElement = (elementNode2) => {
         if (elementNode2.nodeType !== 1 /* ELEMENT_NODE */) return false;
         if (hasActionableRole(elementNode2)) return false;
         const tagName = elementNode2.tagName.toUpperCase();
-        if (VOID_TAG_NAMES2.has(tagName)) return false;
+        if (VOID_TAG_NAMES.has(tagName)) return false;
         if (ACTIONABLE_TAG_NAMES.includes(tagName)) return false;
         return true;
       };
@@ -1713,17 +1819,28 @@
       sourceElement.parentNode?.removeChild(sourceElement);
     }
     function snapElementTextFormattingNode(document3, elementNode) {
-      if (optionsWithDefaults.skipMarkdown) return;
+      if (!!optionsWithDefaults.skip?.markdown) return;
       if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (hasActionableRole(elementNode)) return;
+      if (isActionable(elementNode)) return;
       if (!TEXT_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
-      unwrapColonTaggedElements(markdownNodesFragment);
       const replacingNodes = [...markdownNodesFragment.childNodes];
       elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
       const sourceTagName = elementNode.tagName.toLowerCase();
-      return replacingNodes.filter((n2) => n2.nodeType !== 1 /* ELEMENT_NODE */ || n2.tagName.toLowerCase() !== sourceTagName);
+      const unwrapColonTaggedElements = (parent) => {
+        for (const child of [...parent.childNodes]) {
+          if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
+          unwrapColonTaggedElements(child);
+          if (!COLON_SCHEME_TAG_REGEX.test(child.tagName)) continue;
+          while (child.firstChild) {
+            parent.insertBefore(child.firstChild, child);
+          }
+          parent.removeChild(child);
+        }
+      };
+      unwrapColonTaggedElements(markdownNodesFragment);
+      return replacingNodes.filter((n) => n.nodeType !== 1 /* ELEMENT_NODE */ || n.tagName.toLowerCase() !== sourceTagName);
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
@@ -1733,7 +1850,7 @@
       const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
       textNode.textContent = [
         leadingSpace,
-        transform(text, 1 - rT2, optionsWithDefaults.skipTextRank, true, optionsWithDefaults.textRankOptions),
+        transformWithTextRank(text, 1 - rT2, !!optionsWithDefaults.skip?.textRank, true, optionsWithDefaults.textRankOptions),
         trailingSpace
       ].join("");
     }
@@ -1751,99 +1868,34 @@
         elementNode.removeAttribute(attr.name);
       }
     }
-    function liftImageDescription(document3, elementNode) {
-      if (elementNode.nodeType !== 1 /* ELEMENT_NODE */) return;
-      if (!REPLACE_WITH_LABELS_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-      let label = null;
-      for (const attrName of ["aria-label", "title", "alt"]) {
-        const value = elementNode.getAttribute(attrName);
-        const trimmed = (value ?? "").trim();
-        if (trimmed) {
-          label = trimmed;
-          break;
-        }
-      }
-      if (!label) {
-        for (const child of Array.from(elementNode.children)) {
-          if (!["title", "desc"].includes(child.tagName)) continue;
-          const trimmed = (child.textContent ?? "").trim();
-          if (trimmed) {
-            label = trimmed;
-            break;
-          }
-        }
-      }
-      if (label !== null) {
-        elementNode.replaceWith(document3.createTextNode(label));
-      } else {
-        elementNode.remove();
-      }
-    }
     const document2 = resolveDocument(dom);
     if (!document2) throw new ReferenceError("Could not resolve a valid document object from DOM");
     const rootElement = resolveRoot(dom);
     const originalSize = rootElement.innerHTML.length;
     const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
     let t0;
-    const timings = {
-      uniqueIDs: 0,
-      clone: 0,
-      init: 0,
-      liftImageDescription: 0,
-      textNodes: 0,
-      textFormatting: 0,
-      containers: 0,
-      attributes: 0,
-      serialize: 0,
-      minify: 0,
-      formatDebugOnly: 0
-    };
+    const timings = {};
     t0 = t();
     const virtualDom = rootElement.cloneNode(true);
     timings.clone = t() - t0;
+    t0 = t();
+    preProcessDOM(virtualDom, document2, {
+      filter: optionsWithDefaults.filter,
+      labelToText: optionsWithDefaults.labelToText,
+      uniqueIDs: optionsWithDefaults.uniqueIDs
+    });
+    timings.preProcessing = t() - t0;
     let domTreeHeight = 0;
     traverseDom(
       virtualDom,
-      4294967295 /* SHOW_ALL */,
+      1 /* SHOW_ELEMENT */,
       (node) => {
-        if (node.nodeType === 8 /* COMMENT_NODE */) {
-          node.parentNode?.removeChild(node);
-          return;
-        }
-        if (node.nodeType !== 1 /* ELEMENT_NODE */) return;
-        const elementNode = node;
-        if (filteredTagNames.has(elementNode.tagName.toUpperCase())) {
-          elementNode.remove();
-          return;
-        }
-        if (optionsWithDefaults.filterDataURLs) {
-          for (const attr of Array.from(elementNode.attributes)) {
-            if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-            elementNode.removeAttribute(attr.name);
-          }
-        }
-        const depth = (elementNode.parentNode.depth ?? 0) + 1;
-        elementNode.depth = depth;
+        const depth = (node.parentNode.depth ?? 0) + 1;
+        node.depth = depth;
         domTreeHeight = Math.max(depth, domTreeHeight);
       }
     );
-    timings.init = t() - t0;
-    let n = 0;
-    optionsWithDefaults.uniqueIDs && traverseDom(
-      rootElement,
-      1 /* SHOW_ELEMENT */,
-      (elementNode) => {
-        elementNode.setAttribute(CONFIG.uniqueAttributeName, (n++).toString());
-      }
-    );
-    timings.uniqueIDs = t() - t0;
-    t0 = t();
-    optionsWithDefaults.liftImageDescription && traverseDom(
-      virtualDom,
-      1 /* SHOW_ELEMENT */,
-      (node) => liftImageDescription(document2, node)
-    );
-    timings.liftImageDescription = t() - t0;
+    timings.writeDepth = t() - t0;
     t0 = t();
     traverseDom(
       virtualDom,
@@ -1873,55 +1925,31 @@
       // work on parent element
     );
     timings.attributes = t() - t0;
-    if (optionsWithDefaults.filterEmptyElements) {
-      let hasRemovedElement;
-      do {
-        hasRemovedElement = false;
-        traverseDom(
-          virtualDom,
-          1 /* SHOW_ELEMENT */,
-          (elementNode) => {
-            if (ACTIONABLE_TAG_NAMES.includes(elementNode.tagName.toUpperCase())) return;
-            if (hasActionableRole(elementNode)) return;
-            if (elementNode.children.length || elementNode.textContent.trim().length) return;
-            elementNode.remove();
-            hasRemovedElement = true;
-          }
-        );
-      } while (hasRemovedElement);
-    }
     if (rE === 1) {
-      const dissolveToplevelTags = (rootElement2) => {
-        [...rootElement2.children].forEach((element) => {
-          element.replaceWith(...element.childNodes);
-        });
-      };
-      dissolveToplevelTags(virtualDom);
-      [
-        ...virtualDom.querySelectorAll(ACTIONABLE_TAG_NAMES.join(", ")),
-        ...virtualDom.querySelectorAll(
-          [...ACTIONABLE_ROLE_ATTRIBUTE_VALUES].map((role) => `[role="${role}"]`).join(", ")
-        )
-      ].forEach((actionableElement) => dissolveToplevelTags(actionableElement));
+      [...virtualDom.querySelectorAll("*")].filter((elementNode) => !isActionable(elementNode)).forEach((element) => {
+        element.replaceWith(...element.childNodes);
+      });
     }
     t0 = t();
-    const snapshot = virtualDom.innerHTML;
+    postProcessDOM(virtualDom, {
+      filter: optionsWithDefaults.filter
+    }, isActionable);
+    timings.domPostProcessing = t() - t0;
+    t0 = t();
+    let htmlSnapshot = virtualDom.innerHTML;
     timings.serialize = t() - t0;
     t0 = t();
-    let html = snapshot.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
-    timings.minify = t() - t0;
-    if (optionsWithDefaults.debug) {
-      t0 = t();
-      html = formatHTML(html);
-      timings.formatDebugOnly = t() - t0;
-    }
+    htmlSnapshot = postProcessHTML(htmlSnapshot, {
+      debug: optionsWithDefaults.debug
+    });
+    timings.htmlPostProcessing = t() - t0;
     return {
-      html,
+      html: htmlSnapshot,
       meta: {
         originalSize,
-        snapshotSize: snapshot.length,
-        sizeRatio: snapshot.length / originalSize,
-        tokenEstimate: Math.round(snapshot.length / 4),
+        snapshotSize: htmlSnapshot.length,
+        sizeRatio: htmlSnapshot.length / originalSize,
+        tokenEstimate: Math.round(htmlSnapshot.length / 4),
         // according to https://platform.openai.com/tokenizer
         ...optionsWithDefaults.debug && { timings }
       }

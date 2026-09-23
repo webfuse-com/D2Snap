@@ -33,28 +33,21 @@ export interface D2SnapOptions {
     attributeScoring: AttributeScoring;
     attributeScoringFallback: number;
     debug: boolean;
-    filterDataURLs: boolean;
-    filterEmptyElements: boolean;
-    filteredTagNames: string[];
-    liftImageDescription: boolean;
-    skipMarkdown: boolean;
-    skipTextRank: boolean;
-    textRankOptions: Partial<TextRankOptions>;
+    filter: Partial<{
+        dataURLs: boolean;
+        emptyElements: boolean;
+        tagNames: string[];
+    }> | undefined;
+    labelToText: Partial<{
+        iconFonts: boolean;
+        tagNames: string[];
+    }> | undefined;
+    skip: Partial<{
+        markdown: boolean;
+        textRank: boolean;
+    }> | undefined;
+    textRankOptions: Partial<TextRankOptions> | undefined;
     uniqueIDs: boolean;
-}
-export interface D2SnapTimings {
-    uniqueIDs: number;
-    clone: number;
-    init: number;
-    liftImageDescription: number;
-    textNodes: number;
-    textFormatting: number;
-    containers: number;
-    attributes: number;
-    serialize: number;
-    minify: number;
-    /** @internal Only non-zero when `debug: true` — formatHTML is skipped in production. */
-    formatDebugOnly: number;
 }
 export interface D2SnapResult {
     html: string;
@@ -64,6 +57,8 @@ export interface D2SnapResult {
         sizeRatio: number;
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
-        timings?: D2SnapTimings;
+        timings?: {
+            [key: string]: number;
+        };
     };
 }

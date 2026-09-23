@@ -10,8 +10,7 @@ await test("Take DOM snapshot (options.attributeScoring)", async () => {
     const snapshot = await d2Snap(PIZZA_HTML, 0.9, 0.5, 0.1, {
         debug: true,
         attributeScoring: {
-            class: 0,
-
+            class: 0
         },
         attributeScoringFallback: 1
     });

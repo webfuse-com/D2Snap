@@ -40,7 +40,7 @@ await test("Take adaptive DOM snapshot (max 5K tokens)", async () => {
     );
 
     assertIn(
-        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"646\">About us</a>"),
+        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"597\">About us</a>"),
         flattenDOMSnapshot(snapshot.html),
         "Interactive element not preserved"
     );

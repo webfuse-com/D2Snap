@@ -27,4 +27,4 @@ export async function adaptiveD2Snap(
 export { type D2SnapOptions, type TextRankOptions, type D2SnapResult, type AttributeScoring } from "./types.js";
 
 
-// TODO: Class interface
+// TODO: Class interface?

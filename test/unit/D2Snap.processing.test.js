@@ -1,4 +1,4 @@
-import { readTestFile, writeActual, readExpected, flattenDOMSnapshot, qualityRatioToDownsamplingRatio } from "../test.util.js";
+import { readTestFile, writeActual, qualityRatioToDownsamplingRatio } from "../test.util.js";
 
 import { d2Snap } from "../../dist.lib/api.js";
 
@@ -12,7 +12,6 @@ import { d2Snap } from "../../dist.lib/api.js";
 // ---------------------------------------------------------------------------
 
 
-const FUTURUM_HTML = await readTestFile("futurum/futurum");
 const FUTURUM_HAMBURGER_HTML = await readTestFile("futurum/futurum.hamburger");
 
 
@@ -63,7 +62,9 @@ await test("Lift svg aria-label out of icon-only button at D2Snap rE=rA=rT=1.0 (
     // here replaceWithLabel must preserve the label.
     const snapshot = await d2Snap(FUTURUM_HAMBURGER_HTML, 1.0, 1.0, 1.0, {
         debug: true,
-        liftImageDescription: true
+		labelToText: {
+            tagNames: [ "IMG", "SVG" ]
+        }
     });
 
     assertIn("Open menu", snapshot.html, "Label lost at maximum downsampling");
@@ -94,7 +95,9 @@ await test("replaceWithLabel recovers label from <title> child element (q=0.1)",
 
     const snapshot = await d2Snap(html, rE, rA, rT, {
         debug: true,
-        liftImageDescription: true
+		labelToText: {
+            tagNames: [ "IMG", "SVG" ]
+        }
     });
 
     assertIn("Delete item", snapshot.html, "Label from <title> child was not lifted");

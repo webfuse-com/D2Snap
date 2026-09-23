@@ -126,7 +126,7 @@ function textRank(sentences, options = {}) {
     score: currentScores[i]
   })).sort((a, b) => b.score - a.score);
 }
-function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
+function transformWithTextRank(text, ratio = 0.5, simple = false, noEmpty = false, textRankOptions = {}) {
   const sentences = tokenizeSentences(text);
   const k = Math.min(
     Math.max(
@@ -144,5 +144,5 @@ function transform(text, ratio = 0.5, simple = false, noEmpty = false, textRankO
 export {
   textRank,
   tokenizeSentences,
-  transform
+  transformWithTextRank
 };

@@ -6,11 +6,17 @@ import { d2Snap } from "../../dist.lib/api.js";
 const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
-await test("Take DOM snapshot (options.filterDataURLs)", async () => {
+// TODO: tagNames
+
+await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
-        filterDataURLs: true,
         debug: false,
-		liftImageDescription: false
+        filter: {
+            dataURLs: true
+        },
+		labelToText: {
+            tagNames: []
+        }
     });
 
     assertNotIn(
@@ -19,9 +25,13 @@ await test("Take DOM snapshot (options.filterDataURLs)", async () => {
         "Invalid DOM snapshot"
     );
     const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
-        filterDataURLs: false,
         debug: false,
-		liftImageDescription: false
+        filter: {
+            dataURLs: false
+        },
+		labelToText: {
+            tagNames: []
+        }
     });
 
     assertIn(
@@ -31,10 +41,12 @@ await test("Take DOM snapshot (options.filterDataURLs)", async () => {
     );
 });
 
-await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
+await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
-        filterEmptyElements: true,
-        debug: false
+        debug: false,
+        filter: {
+            emptyElements: true
+        }
     });
 
     assertNotIn(
@@ -43,7 +55,7 @@ await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
         "Invalid DOM snapshot"
     );
 
-    assertNotIn(
+    assertIn(
         "<br>",
         flattenDOMSnapshot(snapshotFilter.html),
         "Invalid DOM snapshot"
@@ -56,8 +68,11 @@ await test("Take DOM snapshot (options.filterEmptyElements)", async () => {
     );
 
     const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
-        filterEmptyElements: false,
-        debug: false
+        debug: false,
+        filter:
+        {
+            emptyElements: false
+        }
     });
 
     assertIn(

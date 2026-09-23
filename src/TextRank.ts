@@ -192,7 +192,7 @@ export function textRank(sentences: string[], options: Partial<TextRankOptions> 
 		.sort((a: TextRankSentence, b: TextRankSentence) => b.score - a.score);
 }
 
-export function transform(
+export function transformWithTextRank(
 	text: string,
 	ratio: number = 0.5,
 	simple: boolean = false,
@@ -209,7 +209,7 @@ export function transform(
 	);
 
 	if(sentences.length <= k) return sentences.join("\n");
-	
+
 	if(simple) {
 		return sentences
 			.slice(0, k)

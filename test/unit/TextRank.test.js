@@ -1,4 +1,4 @@
-import { tokenizeSentences, textRank, transform } from "../../dist.lib/TextRank.js";
+import { tokenizeSentences, textRank, transformWithTextRank } from "../../dist.lib/TextRank.js";
 
 
 await test("Tokenize sentences", async () => {
@@ -99,7 +99,7 @@ await test("Apply sentence-based TextRank algorithm", async () => {
 });
 
 await test("Summarize text via highlevel text transform algorithm (ratio = 0.6)", async () => {
-    const summary = transform(`
+    const summary = transformWithTextRank(`
         Amsterdam was founded at the mouth of the Amstel River, which was dammed to control flooding.
         Originally a small fishing village in the 12th century, Amsterdam became a major world port during the Dutch Golden Age of the 17th century, when the Netherlands was an economic powerhouse.
         Amsterdam was the leading centre for finance and trade, as well as a hub of secular art production.
