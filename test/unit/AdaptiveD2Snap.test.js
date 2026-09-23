@@ -1,7 +1,6 @@
-import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
+import { readTestFile, writeActual, flattenDOMSnapshot } from "../test.util.js";
 
 import { adaptiveD2Snap } from "../../dist.lib/api.js";
-import { ATTRIBUTE_SCORING } from "../../dist.lib/var.ATTRIBUTE_SCORING.js";
 
 
 

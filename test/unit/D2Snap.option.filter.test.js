@@ -6,11 +6,9 @@ import { d2Snap } from "../../dist.lib/api.js";
 const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
-// TODO: tagNames
-
 await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
-        debug: false,
+        debug: true,
         filter: {
             dataURLs: true
         },
@@ -24,8 +22,9 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
         snapshotFilter.html,
         "Invalid DOM snapshot"
     );
+
     const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
-        debug: false,
+        debug: true,
         filter: {
             dataURLs: false
         },
@@ -43,7 +42,7 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
 
 await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
-        debug: false,
+        debug: true,
         filter: {
             emptyElements: true
         }
@@ -68,7 +67,7 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     );
 
     const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
-        debug: false,
+        debug: true,
         filter:
         {
             emptyElements: false
@@ -91,5 +90,33 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
         "<input>",
         flattenDOMSnapshot(snapshotNoFilter.html),
         "Invalid DOM snapshot"
+    );
+});
+
+await test("Take DOM snapshot (options.filter.tagNames)", async () => {
+    const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
+        debug: true,
+        filter: {
+            tagNames: [ "main", "SECtion", "DIV", "BuTtOn" ]
+        }
+    });
+
+    assertNotIn(
+        "<div",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop div)"
+    );
+
+    assertNotIn(
+        "<section",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop section)"
+    );
+
+    // Can override actionables
+    assertNotIn(
+        "<button",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (retain button)"
     );
 });

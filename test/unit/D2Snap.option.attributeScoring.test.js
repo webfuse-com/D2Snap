@@ -10,9 +10,9 @@ await test("Take DOM snapshot (options.attributeScoring)", async () => {
     const snapshot = await d2Snap(PIZZA_HTML, 0.9, 0.5, 0.1, {
         debug: true,
         attributeScoring: {
-            class: 0
-        },
-        attributeScoringFallback: 1
+            class: 0,
+            "*": 1
+        }
     });
 
     await writeActual("pizza/pizza.attribute-scoring", snapshot.html);
@@ -28,7 +28,8 @@ await test("Take DOM snapshot (options.attributeScoring)", async () => {
         debug: true,
         attributeScoring: {
             "aria-*": 1.0,
-            "data-*": 1.0
+            "data-*": 1.0,
+            "*": 0
         }
     });
 
