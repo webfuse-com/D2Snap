@@ -5,11 +5,11 @@ import {
   NodeType
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORING.js";
+import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
+import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 const WHITESPACE_REGEX = /^\s$/;
 const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
@@ -65,15 +65,15 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const hasActionableRole = (elementNode) => {
     return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
   };
-  const isActionable = (elementNode) => {
+  const isActionableElement = (elementNode) => {
     return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
   };
   const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
   function snapElementContainerNode(elementNode, rE2) {
     const considerContainerElement = (elementNode2) => {
       if (elementNode2.nodeType !== NodeType.ELEMENT_NODE) return false;
-      if (isActionable(elementNode2)) return false;
-      if (VOID_TAG_NAMES.has(elementNode2.tagName.toUpperCase())) return false;
+      if (isActionableElement(elementNode2)) return false;
+      if (isVoidElement(elementNode2.tagName)) return false;
       return true;
     };
     if (!considerContainerElement(elementNode)) return;
@@ -91,7 +91,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapElementTextFormattingNode(document2, elementNode) {
     if (optionsWithDefaults.skip?.markdown) return;
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (isActionable(elementNode)) return;
+    if (isActionableElement(elementNode)) return;
     if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
@@ -196,14 +196,14 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   timings.attributes = t() - t0;
   if (rE === 1) {
-    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !isActionable(elementNode)).forEach((element) => {
+    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !isActionableElement(elementNode)).forEach((element) => {
       element.replaceWith(...element.childNodes);
     });
   }
   t0 = t();
   postProcessDOM(virtualDom, {
     filter: optionsWithDefaults.filter
-  }, isActionable);
+  }, isActionableElement);
   timings.domPostProcessing = t() - t0;
   t0 = t();
   let htmlSnapshot = virtualDom.innerHTML;

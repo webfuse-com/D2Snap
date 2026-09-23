@@ -1,9 +1,8 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { traverseDom } from "./util.dom.js";
-import { formatHTML } from "./util.html.js";
+import { formatHTML, isVoidElement } from "./util.html.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 function tagNamesToNormalizedSet(tagNames) {
@@ -85,7 +84,7 @@ function preProcessDOM(domRoot, document, options) {
     }
   );
 }
-function postProcessDOM(domRoot, options, isActionable) {
+function postProcessDOM(domRoot, options, isActionableElement) {
   const optionsWithDefaults = {
     filter: {
       emptyElements: true,
@@ -100,8 +99,8 @@ function postProcessDOM(domRoot, options, isActionable) {
         domRoot,
         NodeFilter.SHOW_ELEMENT,
         (elementNode) => {
-          if (isActionable(elementNode)) return;
-          if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+          if (isActionableElement(elementNode)) return;
+          if (isVoidElement(elementNode.tagName)) return;
           if (elementNode.children.length || elementNode.textContent.trim().length) return;
           elementNode.remove();
           hasRemovedElement = true;

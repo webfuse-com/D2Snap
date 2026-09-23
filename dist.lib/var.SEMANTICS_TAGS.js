@@ -14,6 +14,45 @@ const VOID_TAG_NAMES = /* @__PURE__ */ new Set([
   "TRACK",
   "WBR"
 ]);
+const INLINE_TAG_NAMES = /* @__PURE__ */ new Set([
+  "A",
+  "ABBR",
+  "B",
+  "BDI",
+  "BDO",
+  "CITE",
+  "CODE",
+  "DATA",
+  "DFN",
+  "EM",
+  "I",
+  "KBD",
+  "MARK",
+  "Q",
+  "RP",
+  "RT",
+  "RUBY",
+  "S",
+  "SAMP",
+  "SMALL",
+  "SPAN",
+  "STRONG",
+  "SUB",
+  "SUP",
+  "TIME",
+  "U",
+  "VAR",
+  "WBR",
+  "BR"
+]);
+const RAW_TEXT_TAG_NAMES = /* @__PURE__ */ new Set([
+  "SCRIPT",
+  "STYLE",
+  "TEXTAREA",
+  "TITLE"
+]);
 export {
+  INLINE_TAG_NAMES,
+  RAW_TEXT_TAG_NAMES,
   VOID_TAG_NAMES
 };

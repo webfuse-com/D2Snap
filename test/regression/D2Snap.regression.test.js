@@ -165,8 +165,10 @@ await test("Markdown autolink URL does not become a bogus container element", as
     for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
         const html = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
         const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-            attributeScoringFallback: 1,
-            debug: true
+            debug: true,
+            attributeScores: {
+                "*": 1
+            }
         });
 
         assertNotIn("<https:", snapshot.html, `URL <${url}> re-parsed into a bogus <https:> element`);
@@ -178,10 +180,10 @@ await test("Markdown autolink URL does not become a bogus container element", as
     // actionable (`<a …>`) sitting alongside the autolink in the same markdown.
     const linkHTML = `<html><body><main><p>visit &lt;https://example.com follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
     const linkSnapshot = await d2Snap(linkHTML, 0.9, 0.9, 0.9, {
-        attributeScoring: {
+        debug: true,
+        attributeScores: {
             href: 1
-        },
-        debug: true
+        }
     });
 
     assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");

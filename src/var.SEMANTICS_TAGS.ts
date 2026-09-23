@@ -14,3 +14,39 @@ export const VOID_TAG_NAMES: Set<string> = new Set([
 	"TRACK",
 	"WBR"
 ]);
+
+export const INLINE_TAG_NAMES: Set<string> = new Set([
+	"A",
+	"ABBR",
+	"B",
+	"BDI",
+	"BDO",
+	"CITE",
+	"CODE",
+	"DATA",
+	"DFN",
+	"EM",
+	"I",
+	"KBD",
+	"MARK",
+	"Q",
+	"RP",
+	"RT",
+	"RUBY",
+	"S",
+	"SAMP",
+	"SMALL",
+	"SPAN",
+	"STRONG",
+	"SUB",
+	"SUP",
+	"TIME",
+	"U",
+	"VAR",
+	"WBR",
+	"BR"
+]);
+
+export const RAW_TEXT_TAG_NAMES: Set<string> = new Set([
+	"SCRIPT", "STYLE", "TEXTAREA", "TITLE"
+]);

@@ -1,9 +1,8 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { traverseDom } from "./util.dom.js";
-import { formatHTML } from "./util.html.js";
+import { formatHTML, isVoidElement } from "./util.html.js";
 
 
 interface DOMPreProcessingOptions {
@@ -140,7 +139,7 @@ export function preProcessDOM(domRoot: Element, document: Document, options: Par
 	);
 }
 
-export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcessingOptions>, isActionable: (elementNode: Element) => boolean): void {
+export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcessingOptions>, isActionableElement: (elementNode: Element) => boolean): void {
 	const optionsWithDefaults: DOMPostProcessingOptions = {
 		filter: {
 			emptyElements: true,
@@ -160,9 +159,9 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 				domRoot,
 				NodeFilter.SHOW_ELEMENT,
 				(elementNode: HTMLElement) => {
-					if (isActionable(elementNode)) return;
+					if (isActionableElement(elementNode)) return;
 					// TODO: isVoid helper, too
-					if (VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return;
+					if (isVoidElement(elementNode.tagName)) return;
 					if (elementNode.children.length || elementNode.textContent.trim().length) return;
 
 					elementNode.remove();

@@ -10,11 +10,11 @@ import {
 	type TextNode
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORING.js";
+import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
+import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 
 
@@ -98,7 +98,7 @@ export function d2Snap(
 	const hasActionableRole = (elementNode: Element): boolean => {
 		return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
 	};
-	const isActionable = (elementNode: Element): boolean => {
+	const isActionableElement = (elementNode: Element): boolean => {
 		return actionableElementTagNames
 			.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
 	};
@@ -108,8 +108,8 @@ export function d2Snap(
 	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
 		const considerContainerElement = (elementNode: Element) => {
 			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
-			if(isActionable(elementNode)) return false;
-			if(VOID_TAG_NAMES.has(elementNode.tagName.toUpperCase())) return false;
+			if(isActionableElement(elementNode)) return false;
+			if(isVoidElement(elementNode.tagName)) return false;
 
 			return true;
 		};
@@ -138,7 +138,7 @@ export function d2Snap(
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
 		if(optionsWithDefaults.skip?.markdown) return;
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(isActionable(elementNode)) return;
+		if(isActionableElement(elementNode)) return;
 		if(!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
 
 		// Markdown
@@ -305,7 +305,7 @@ export function d2Snap(
 	// Dissolve toplevel tags for rE = 1 (allows full linearization)
 	if(rE === 1.0) {
 		[ ...virtualDom.querySelectorAll("*") ]
-			.filter((elementNode: Element) => !isActionable(elementNode))
+			.filter((elementNode: Element) => !isActionableElement(elementNode))
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);
 			});
@@ -314,7 +314,7 @@ export function d2Snap(
 	t0 = t();
 	postProcessDOM(virtualDom, {
 		filter: optionsWithDefaults.filter
-	}, isActionable);
+	}, isActionableElement);
 	timings.domPostProcessing = t() - t0;
 
 	t0 = t();

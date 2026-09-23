@@ -34,13 +34,20 @@ D2Snap.adaptiveD2Snap(
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  debug?: boolean;             // false
-  attributeScoring?: {         // compare src/var.ATTRIBUTE_SCORING.ts
+  debug?: boolean;            // false
+  minify?: boolean;           // true
+  uniqueIDs?: boolean;        // false
+  attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
     [ name: string ]: number;
   };
-  skipMarkdown?: boolean;      // false
-  skipTextRank?: boolean;      // false
-  uniqueIDs?: boolean;         // false
+  labelToText?: {
+    iconFonts?: boolean;       // false
+    tagNames?: string[];       // [ "IMG", "SVG" ]
+  }>;
+  skip?: {
+    markdown?: boolean;       // false
+    skipTextRank?: boolean;   // false
+  };
 };
 ```
 
@@ -154,6 +161,19 @@ npm run build
 npm run test
 ```
 
+##### Unit Test(s)
+
+``` console
+npm run test:unit
+npm run test:unit -- <test-name> # e.g., D2Snap.option.filters
+```
+
+##### Regression Tests
+
+``` console
+npm run test:regression
+```
+
 #### Evaluate
 
 > Provide LLM API provider key(s) to .env (compare [example](./.env.example)).
@@ -162,9 +182,10 @@ npm run test
 cs eval && pip install -r requirements.txt
 ```
 
+##### Success Rate
+
 ``` console
 npm run eval:success:<subject>
-npm run eval:ratio
 ```
 
 > `<subject>` ∈ { `gui`, `dom`, `bu`, `D2Snap` }
@@ -173,11 +194,23 @@ npm run eval:ratio
 npm run eval:success:D2Snap -- --verbose --split 10,20 --provider openai --model gpt-4o
 ```
 
+> Does use the LLM backend.
+
+##### Size Ratio
+
+``` console
+npm run eval:ratio
+```
+
+> Does not use the LLM backend.
+
 #### Re-create Snapshots
 
 ``` console
 npm run snapshots:create
 ```
+
+> 
 
 ##
 

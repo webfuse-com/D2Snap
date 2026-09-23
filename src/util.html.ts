@@ -1,3 +1,6 @@
+import { INLINE_TAG_NAMES, RAW_TEXT_TAG_NAMES, VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
+
+
 type Token =
     | { kind: "open"; tag: string; raw: string; selfClosing: boolean }
     | { kind: "close"; tag: string; raw: string }
@@ -7,17 +10,6 @@ type Token =
     | { kind: "doctype"; raw: string }
     | { kind: "cdata"; raw: string }
     | { kind: "raw"; tag: string; openRaw: string; content: string; closeRaw: string };
-
-
-const INLINE_TAG_NAMES: string[] = [
-	"A", "ABBR", "B", "BDI", "BDO", "CITE", "CODE", "DATA", "DFN", "EM", "I", "KBD", "MARK", "Q", "RP", "RT", "RUBY", "S", "SAMP", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TIME", "U", "VAR", "WBR", "BR"
-];
-const RAW_TEXT_TAG_NAMES: string[] = [
-	"SCRIPT", "STYLE", "TEXTAREA", "TITLE"
-];
-const VOID_TAG_NAMES: string[] = [
-	"AREA", "BASE", "BR", "COL", "EMBED", "HR", "IMG", "INPUT", "LINK", "META", "SOURCE", "TRACK", "WBR"
-];
 
 
 function tokenize(html: string): Token[] {
@@ -125,7 +117,7 @@ function tokenize(html: string): Token[] {
 			continue;
 		}
 
-		if(VOID_TAG_NAMES.includes(tagName) || selfClosing) {
+		if(isVoidElement(tagName) || selfClosing) {
 			tokens.push({
 				kind: "void",
 				tag: tagName,
@@ -135,7 +127,7 @@ function tokenize(html: string): Token[] {
 			continue;
 		}
 
-		if(RAW_TEXT_TAG_NAMES.includes(tagName)) {
+		if(RAW_TEXT_TAG_NAMES.has(tagName)) {
 			const rest: string = html.slice(i);
 			const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
 
@@ -170,6 +162,11 @@ function tokenize(html: string): Token[] {
 	return tokens;
 }
 
+
+export function isVoidElement(tagName: string): boolean {
+	return VOID_TAG_NAMES.has(tagName.toUpperCase());
+}
+
 export function formatHTML(html: string, indentSize: number = 2): string {
 	const indent: string = " ".repeat(indentSize);
 	const tokens: Token[] = tokenize(html);
@@ -194,8 +191,10 @@ export function formatHTML(html: string, indentSize: number = 2): string {
 		lines.push(indent.repeat(depth) + line);
 	}
 
-	const isInline = (tag: string) => {
-		return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
+	const isInline = (tagName: string) => {
+		tagName = tagName.toUpperCase();
+
+		return INLINE_TAG_NAMES.has(tagName) || isVoidElement(tagName);
 	}
 
 	for(const token of tokens) {

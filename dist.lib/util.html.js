@@ -1,55 +1,4 @@
-const INLINE_TAG_NAMES = [
-  "A",
-  "ABBR",
-  "B",
-  "BDI",
-  "BDO",
-  "CITE",
-  "CODE",
-  "DATA",
-  "DFN",
-  "EM",
-  "I",
-  "KBD",
-  "MARK",
-  "Q",
-  "RP",
-  "RT",
-  "RUBY",
-  "S",
-  "SAMP",
-  "SMALL",
-  "SPAN",
-  "STRONG",
-  "SUB",
-  "SUP",
-  "TIME",
-  "U",
-  "VAR",
-  "WBR",
-  "BR"
-];
-const RAW_TEXT_TAG_NAMES = [
-  "SCRIPT",
-  "STYLE",
-  "TEXTAREA",
-  "TITLE"
-];
-const VOID_TAG_NAMES = [
-  "AREA",
-  "BASE",
-  "BR",
-  "COL",
-  "EMBED",
-  "HR",
-  "IMG",
-  "INPUT",
-  "LINK",
-  "META",
-  "SOURCE",
-  "TRACK",
-  "WBR"
-];
+import { INLINE_TAG_NAMES, RAW_TEXT_TAG_NAMES, VOID_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 function tokenize(html) {
   const tokens = [];
   const n = html.length;
@@ -122,7 +71,7 @@ function tokenize(html) {
       });
       continue;
     }
-    if (VOID_TAG_NAMES.includes(tagName) || selfClosing) {
+    if (isVoidElement(tagName) || selfClosing) {
       tokens.push({
         kind: "void",
         tag: tagName,
@@ -130,7 +79,7 @@ function tokenize(html) {
       });
       continue;
     }
-    if (RAW_TEXT_TAG_NAMES.includes(tagName)) {
+    if (RAW_TEXT_TAG_NAMES.has(tagName)) {
       const rest = html.slice(i);
       const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
       if (!m) {
@@ -155,6 +104,9 @@ function tokenize(html) {
   }
   return tokens;
 }
+function isVoidElement(tagName) {
+  return VOID_TAG_NAMES.has(tagName.toUpperCase());
+}
 function formatHTML(html, indentSize = 2) {
   const indent = " ".repeat(indentSize);
   const tokens = tokenize(html);
@@ -171,8 +123,9 @@ function formatHTML(html, indentSize = 2) {
     flushBuffer();
     lines.push(indent.repeat(depth) + line);
   };
-  const isInline = (tag) => {
-    return INLINE_TAG_NAMES.includes(tag) || VOID_TAG_NAMES.includes(tag);
+  const isInline = (tagName) => {
+    tagName = tagName.toUpperCase();
+    return INLINE_TAG_NAMES.has(tagName) || isVoidElement(tagName);
   };
   for (const token of tokens) {
     switch (token.kind) {
@@ -230,5 +183,6 @@ function formatHTML(html, indentSize = 2) {
   return lines.join("\n");
 }
 export {
-  formatHTML
+  formatHTML,
+  isVoidElement
 };
