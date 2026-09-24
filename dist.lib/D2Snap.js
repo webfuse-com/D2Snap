@@ -27,7 +27,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     filter: void 0,
     labelToText: void 0,
     minify: true,
-    outerHTML: false,
     textRankOptions: void 0,
     uniqueIDs: false,
     ...options,
@@ -206,22 +205,41 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     filter: optionsWithDefaults.filter
   }, isActionableElement);
   timings.domPostProcessing = t() - t0;
-  t0 = t();
-  let htmlSnapshot = !optionsWithDefaults.outerHTML ? virtualDom.innerHTML : virtualDom.outerHTML;
-  timings.serialize = t() - t0;
-  t0 = t();
-  htmlSnapshot = postProcessHTML(htmlSnapshot, {
-    debug: optionsWithDefaults.debug,
-    minify: optionsWithDefaults.minify
-  });
-  timings.htmlPostProcessing = t() - t0;
+  const serialisation = {};
+  const getHTML = (property) => {
+    if (serialisation[property]) return serialisation[property];
+    t0 = t();
+    let html = virtualDom[property];
+    timings.serialize = t() - t0;
+    t0 = t();
+    html = postProcessHTML(html, {
+      debug: optionsWithDefaults.debug,
+      minify: optionsWithDefaults.minify
+    });
+    timings.htmlPostProcessing = t() - t0;
+    serialisation[property] = html;
+    return html;
+  };
   return {
-    html: htmlSnapshot,
+    dom: virtualDom,
+    get html() {
+      return getHTML("innerHTML");
+    },
+    get innerHTML() {
+      return getHTML("innerHTML");
+    },
+    get outerHTML() {
+      return getHTML("outerHTML");
+    },
     meta: {
       originalSize,
-      snapshotSize: htmlSnapshot.length,
-      sizeRatio: htmlSnapshot.length / originalSize,
-      tokenEstimate: Math.round(htmlSnapshot.length / 4),
+      get snapshotSize() {
+        return getHTML("innerHTML").length;
+      },
+      get sizeRatio() {
+        return getHTML("innerHTML").length / originalSize;
+      },
+      tokenEstimate: Math.round(getHTML("innerHTML").length / 4),
       // according to https://platform.openai.com/tokenizer
       ...optionsWithDefaults.debug && { timings }
     }

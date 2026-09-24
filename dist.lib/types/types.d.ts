@@ -55,7 +55,10 @@ export interface D2SnapOptions {
     uniqueIDs: boolean;
 }
 export interface D2SnapResult {
+    dom: DOM;
+    innerHTML: string;
     html: string;
+    outerHTML: string;
     meta: {
         tokenEstimate: number;
         originalSize: number;

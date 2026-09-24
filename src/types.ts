@@ -57,7 +57,6 @@ export interface D2SnapOptions {
         tagNames: string[];
     }> | undefined;
     minify: boolean;
-	outerHTML: boolean,
     skip: Partial<{
         markdown: boolean;
         textRank: boolean;
@@ -67,7 +66,9 @@ export interface D2SnapOptions {
 };
 
 export interface D2SnapResult {
-    html: string;
+    dom: DOM,
+    innerHTML: string; html: string;
+    outerHTML: string;
     meta: {
         tokenEstimate: number;
         originalSize: number;

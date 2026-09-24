@@ -24,7 +24,9 @@ D2Snap.adaptiveD2Snap(
   maxIterations: number = 5,
   options?: Options
 ): Promise<{
-  html: string;
+  dom: string;
+  innerHTML: string;  // alias: html
+  outerHTML: string;
   meta: {};
   parameters: {};
   adaptiveIterations: number;

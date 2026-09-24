@@ -1516,7 +1516,7 @@
         });
         continue;
       }
-      if (RAW_TEXT_TAG_NAMES.has(tagName)) {
+      if (isRawTextElement(tagName)) {
         const rest = html.slice(i);
         const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
         if (!m) {
@@ -1544,6 +1544,12 @@
   function isVoidElement(tagName) {
     return VOID_TAG_NAMES.has(tagName.toUpperCase());
   }
+  function isInlineElement(tagName) {
+    return INLINE_TAG_NAMES.has(tagName.toUpperCase());
+  }
+  function isRawTextElement(tagName) {
+    return RAW_TEXT_TAG_NAMES.has(tagName.toUpperCase());
+  }
   function formatHTML(html, indentSize = 2) {
     const indent = " ".repeat(indentSize);
     const tokens = tokenize(html);
@@ -1562,7 +1568,7 @@
     };
     const isInline = (tagName) => {
       tagName = tagName.toUpperCase();
-      return INLINE_TAG_NAMES.has(tagName) || isVoidElement(tagName);
+      return isInlineElement(tagName) || isVoidElement(tagName);
     };
     for (const token of tokens) {
       switch (token.kind) {
@@ -1938,22 +1944,41 @@
       filter: optionsWithDefaults.filter
     }, isActionableElement);
     timings.domPostProcessing = t() - t0;
-    t0 = t();
-    let htmlSnapshot = virtualDom.innerHTML;
-    timings.serialize = t() - t0;
-    t0 = t();
-    htmlSnapshot = postProcessHTML(htmlSnapshot, {
-      debug: optionsWithDefaults.debug,
-      minify: optionsWithDefaults.minify
-    });
-    timings.htmlPostProcessing = t() - t0;
+    const serialisation = {};
+    const getHTML = (property) => {
+      if (serialisation[property]) return serialisation[property];
+      t0 = t();
+      let html = virtualDom[property];
+      timings.serialize = t() - t0;
+      t0 = t();
+      html = postProcessHTML(html, {
+        debug: optionsWithDefaults.debug,
+        minify: optionsWithDefaults.minify
+      });
+      timings.htmlPostProcessing = t() - t0;
+      serialisation[property] = html;
+      return html;
+    };
     return {
-      html: htmlSnapshot,
+      dom: virtualDom,
+      get html() {
+        return getHTML("innerHTML");
+      },
+      get innerHTML() {
+        return getHTML("innerHTML");
+      },
+      get outerHTML() {
+        return getHTML("outerHTML");
+      },
       meta: {
         originalSize,
-        snapshotSize: htmlSnapshot.length,
-        sizeRatio: htmlSnapshot.length / originalSize,
-        tokenEstimate: Math.round(htmlSnapshot.length / 4),
+        get snapshotSize() {
+          return getHTML("innerHTML").length;
+        },
+        get sizeRatio() {
+          return getHTML("innerHTML").length / originalSize;
+        },
+        tokenEstimate: Math.round(getHTML("innerHTML").length / 4),
         // according to https://platform.openai.com/tokenizer
         ...optionsWithDefaults.debug && { timings }
       }

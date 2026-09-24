@@ -49,7 +49,6 @@ export function d2Snap(
 		filter: undefined,
     	labelToText: undefined,
 		minify: true,
-		outerHTML: false,
 		textRankOptions: undefined,
 		uniqueIDs: false,
 
@@ -321,28 +320,51 @@ export function d2Snap(
 	}, isActionableElement);
 	timings.domPostProcessing = t() - t0;
 
-	// Serialize
-	t0 = t();
-	let htmlSnapshot = !optionsWithDefaults.outerHTML
-		? virtualDom.innerHTML
-		: virtualDom.outerHTML;
-	timings.serialize = t() - t0;
+	const serialisation: {
+		innerHTML?: string;
+		outerHTML?: string;
+	} = {};
+	const getHTML = (property: "innerHTML" | "outerHTML"): string => {
+		if(serialisation[property]) return serialisation[property];
 
-	// Post-process (HTML)
-	t0 = t();
-	htmlSnapshot = postProcessHTML(htmlSnapshot, {
-		debug: optionsWithDefaults.debug,
-		minify: optionsWithDefaults.minify
-	});
-	timings.htmlPostProcessing = t() - t0;
+		// Serialize
+		t0 = t();
+		let html = virtualDom[property];
+		timings.serialize = t() - t0;
+
+		// Post-process (HTML)
+		t0 = t();
+		html = postProcessHTML(html, {
+			debug: optionsWithDefaults.debug,
+			minify: optionsWithDefaults.minify
+		});
+		timings.htmlPostProcessing = t() - t0;
+
+		serialisation[property] = html;
+
+		return html;
+	};
 
 	return {
-		html: htmlSnapshot,
+		dom: virtualDom,
+		get html() {
+			return getHTML("innerHTML");
+		},
+		get innerHTML() {
+			return getHTML("innerHTML");
+		},
+		get outerHTML() {
+			return getHTML("outerHTML");
+		},
 		meta: {
 			originalSize,
-			snapshotSize: htmlSnapshot.length,
-			sizeRatio: htmlSnapshot.length / originalSize,
-			tokenEstimate: Math.round(htmlSnapshot.length / 4),	// according to https://platform.openai.com/tokenizer
+			get snapshotSize() {
+				return getHTML("innerHTML").length;
+			},
+			get sizeRatio() {
+				return getHTML("innerHTML").length / originalSize
+			},
+			tokenEstimate: Math.round(getHTML("innerHTML").length / 4),	// according to https://platform.openai.com/tokenizer
 
 			...(optionsWithDefaults.debug && { timings })
 		}
