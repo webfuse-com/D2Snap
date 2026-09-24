@@ -127,7 +127,7 @@ function tokenize(html: string): Token[] {
 			continue;
 		}
 
-		if(RAW_TEXT_TAG_NAMES.has(tagName)) {
+		if(isRawTextElement(tagName)) {
 			const rest: string = html.slice(i);
 			const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
 
@@ -167,6 +167,14 @@ export function isVoidElement(tagName: string): boolean {
 	return VOID_TAG_NAMES.has(tagName.toUpperCase());
 }
 
+export function isInlineElement(tagName: string): boolean {
+	return INLINE_TAG_NAMES.has(tagName.toUpperCase());
+}
+
+export function isRawTextElement(tagName: string): boolean {
+	return RAW_TEXT_TAG_NAMES.has(tagName.toUpperCase());
+}
+
 export function formatHTML(html: string, indentSize: number = 2): string {
 	const indent: string = " ".repeat(indentSize);
 	const tokens: Token[] = tokenize(html);
@@ -194,7 +202,7 @@ export function formatHTML(html: string, indentSize: number = 2): string {
 	const isInline = (tagName: string) => {
 		tagName = tagName.toUpperCase();
 
-		return INLINE_TAG_NAMES.has(tagName) || isVoidElement(tagName);
+		return isInlineElement(tagName) || isVoidElement(tagName);
 	}
 
 	for(const token of tokens) {

@@ -2,8 +2,11 @@ import { join } from "path";
 import { readFile as readFileFs, writeFile } from "fs/promises";
 
 
+const FILES_DIRECTORY_NAME = "_files";
+
+
 function filePath(fileName) {
-    return join(import.meta.dirname, `./files/${fileName}.html`);
+    return join(import.meta.dirname, FILES_DIRECTORY_NAME, `${fileName}.html`);
 }
 
 

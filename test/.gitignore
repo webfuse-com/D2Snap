@@ -1,2 +1,1 @@
-files/**/*.actual.html
-files/**/*.actual.serial.html
+_files/**/*.actual.html

@@ -79,7 +79,7 @@ function tokenize(html) {
       });
       continue;
     }
-    if (RAW_TEXT_TAG_NAMES.has(tagName)) {
+    if (isRawTextElement(tagName)) {
       const rest = html.slice(i);
       const m = rest.match(new RegExp(`</${tagName}\\s*>`, "i"));
       if (!m) {
@@ -107,6 +107,12 @@ function tokenize(html) {
 function isVoidElement(tagName) {
   return VOID_TAG_NAMES.has(tagName.toUpperCase());
 }
+function isInlineElement(tagName) {
+  return INLINE_TAG_NAMES.has(tagName.toUpperCase());
+}
+function isRawTextElement(tagName) {
+  return RAW_TEXT_TAG_NAMES.has(tagName.toUpperCase());
+}
 function formatHTML(html, indentSize = 2) {
   const indent = " ".repeat(indentSize);
   const tokens = tokenize(html);
@@ -125,7 +131,7 @@ function formatHTML(html, indentSize = 2) {
   };
   const isInline = (tagName) => {
     tagName = tagName.toUpperCase();
-    return INLINE_TAG_NAMES.has(tagName) || isVoidElement(tagName);
+    return isInlineElement(tagName) || isVoidElement(tagName);
   };
   for (const token of tokens) {
     switch (token.kind) {
@@ -184,5 +190,7 @@ function formatHTML(html, indentSize = 2) {
 }
 export {
   formatHTML,
+  isInlineElement,
+  isRawTextElement,
   isVoidElement
 };

@@ -43,6 +43,10 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
 }
 
 
+global.assertTrue = function(a, message) {
+    wrapAssertion(() => ok(a, message));
+}
+
 global.assertEqual = function(a, b, message) {
     wrapAssertion(() => assertEqual(a, b, message));
 }
