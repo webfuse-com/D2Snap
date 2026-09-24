@@ -36,6 +36,7 @@ type DOM = Document | Element | string;
 type Options = {
   debug?: boolean;            // false
   minify?: boolean;           // true
+  outerHTML?: boolean;        // false
   uniqueIDs?: boolean;        // false
   attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
     [ name: string ]: number;

@@ -27,6 +27,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     filter: void 0,
     labelToText: void 0,
     minify: true,
+    outerHTML: false,
     textRankOptions: void 0,
     uniqueIDs: false,
     ...options,
@@ -206,7 +207,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }, isActionableElement);
   timings.domPostProcessing = t() - t0;
   t0 = t();
-  let htmlSnapshot = virtualDom.innerHTML;
+  let htmlSnapshot = !optionsWithDefaults.outerHTML ? virtualDom.innerHTML : virtualDom.outerHTML;
   timings.serialize = t() - t0;
   t0 = t();
   htmlSnapshot = postProcessHTML(htmlSnapshot, {

@@ -49,6 +49,7 @@ export function d2Snap(
 		filter: undefined,
     	labelToText: undefined,
 		minify: true,
+		outerHTML: false,
 		textRankOptions: undefined,
 		uniqueIDs: false,
 
@@ -236,10 +237,12 @@ export function d2Snap(
 	let t0: number;
 	const timings: D2SnapResult["meta"]["timings"] = {};
 
+	// Clone
 	t0 = t();
 	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
 	timings.clone = t() - t0;
 
+	// Pre-process
 	t0 = t();
 	preProcessDOM(virtualDom, document, {
 		filter: optionsWithDefaults.filter,
@@ -311,16 +314,21 @@ export function d2Snap(
 			});
 	}
 
+	// Post-process (DOM)
 	t0 = t();
 	postProcessDOM(virtualDom, {
 		filter: optionsWithDefaults.filter
 	}, isActionableElement);
 	timings.domPostProcessing = t() - t0;
 
+	// Serialize
 	t0 = t();
-	let htmlSnapshot = virtualDom.innerHTML;
+	let htmlSnapshot = !optionsWithDefaults.outerHTML
+		? virtualDom.innerHTML
+		: virtualDom.outerHTML;
 	timings.serialize = t() - t0;
 
+	// Post-process (HTML)
 	t0 = t();
 	htmlSnapshot = postProcessHTML(htmlSnapshot, {
 		debug: optionsWithDefaults.debug,
