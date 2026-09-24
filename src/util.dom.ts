@@ -1,4 +1,5 @@
-import { type DOM, NodeFilter, NodeType } from "./types.js";
+import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
+import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
 export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
@@ -84,4 +85,140 @@ export function traverseDom<T>(
 		// the top of the stack and gets popped first.
 		stack.splice(childIndex, childCount, ...[ ...replacingNodes ].reverse());
 	}
+}
+
+export function minifyDOM(domRoot: Element): void {
+	traverseDom<HTMLElement>(
+		domRoot,
+		NodeFilter.SHOW_TEXT,
+		(textNode: TextNode) => {
+			const parent = textNode.parentElement;
+			if(!parent) return;
+
+			if(isRawTextElement(parent.tagName.toLowerCase())) return;
+
+			const value = textNode.nodeValue ?? "";
+			if(!value) return;
+
+			textNode.nodeValue = value.replace(/\s+/g, " ");
+		}
+	);
+
+	traverseDom<HTMLElement>(
+		domRoot,
+		NodeFilter.SHOW_TEXT,
+		(textNode: TextNode) => {
+			const parent = textNode.parentElement;
+			if(!parent) return;
+
+			if(isRawTextElement(parent.tagName.toLowerCase())) return;
+
+			let value = textNode.nodeValue ?? "";
+			if(!value) {
+				textNode.parentNode?.removeChild(textNode);
+
+				return;
+			}
+
+			const previous = textNode.previousSibling;
+			const next = textNode.nextSibling;
+			const previousIsText = previous?.nodeType === NodeType.TEXT_NODE;
+			const nextIsText = next?.nodeType === NodeType.TEXT_NODE;
+			const previousIsElement = previous?.nodeType === NodeType.ELEMENT_NODE;
+			const nextIsElement = next?.nodeType === NodeType.ELEMENT_NODE;
+			const previousTag = previousIsElement
+				? (previous as Element).tagName.toLowerCase()
+				: "";
+			const nextTag = nextIsElement
+				? (next as Element).tagName.toLowerCase()
+				: "";
+			const previousIsBR = (previousIsElement && previousTag === "br");
+			const nextIsBR = (nextIsElement && nextTag === "br");
+			const previousIsInline = previousIsText ||
+				(
+					previousIsElement &&
+					isInlineElement(previousTag)
+				);
+			const nextIsInline = nextIsText ||
+				(
+					nextIsElement &&
+					isInlineElement(nextTag)
+				);
+
+			if(value.trim() === "") {
+				if(
+					previousIsInline &&
+					nextIsInline &&
+					!previousIsBR &&
+					!nextIsBR
+				) {
+					if(previousIsText) {
+						const previousText = previous as TextNode;
+
+						previousText.nodeValue =
+							(previousText.nodeValue ?? "").trimEnd();
+					}
+
+					if(nextIsText) {
+						const nextText = next as TextNode;
+
+						nextText.nodeValue =
+							(nextText.nodeValue ?? "").trimStart();
+					}
+
+					textNode.nodeValue = " ";
+
+					return;
+				}
+
+				textNode.parentNode?.removeChild(textNode);
+
+				return;
+			}
+
+			if(previousIsBR) {
+				value = value.trimStart();
+			}
+
+			if(nextIsBR) {
+				value = value.trimEnd();
+			}
+
+			if(
+				/^\s/.test(value) &&
+				previousIsElement &&
+				!previousIsInline
+			) {
+				value = value.trimStart();
+			}
+
+			if(/^\s/.test(value) && !previous) {
+				value = value.trimStart();
+			}
+
+			if(
+				/\s$/.test(value) &&
+				nextIsElement &&
+				!nextIsInline
+			) {
+				value = value.trimEnd();
+			}
+
+			if(/\s$/.test(value) && !next) {
+				value = value.trimEnd();
+			}
+
+			textNode.nodeValue = value;
+		}
+	);
+
+	traverseDom<HTMLElement>(
+		domRoot,
+		NodeFilter.SHOW_TEXT,
+		(textNode: TextNode) => {
+			if(textNode.nodeValue === "") {
+				textNode.parentNode?.removeChild(textNode);
+			}
+		}
+	);
 }

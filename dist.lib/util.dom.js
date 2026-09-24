@@ -1,4 +1,5 @@
 import { NodeFilter, NodeType } from "./types.js";
+import { isInlineElement, isRawTextElement } from "./util.html.js";
 async function ensureDOM(domOrString) {
   if (typeof domOrString !== "string") return domOrString;
   if (typeof window !== "undefined") {
@@ -53,8 +54,93 @@ function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
     stack.splice(childIndex, childCount, ...[...replacingNodes].reverse());
   }
 }
+function minifyDOM(domRoot) {
+  traverseDom(
+    domRoot,
+    NodeFilter.SHOW_TEXT,
+    (textNode) => {
+      const parent = textNode.parentElement;
+      if (!parent) return;
+      if (isRawTextElement(parent.tagName.toLowerCase())) return;
+      const value = textNode.nodeValue ?? "";
+      if (!value) return;
+      textNode.nodeValue = value.replace(/\s+/g, " ");
+    }
+  );
+  traverseDom(
+    domRoot,
+    NodeFilter.SHOW_TEXT,
+    (textNode) => {
+      const parent = textNode.parentElement;
+      if (!parent) return;
+      if (isRawTextElement(parent.tagName.toLowerCase())) return;
+      let value = textNode.nodeValue ?? "";
+      if (!value) {
+        textNode.parentNode?.removeChild(textNode);
+        return;
+      }
+      const previous = textNode.previousSibling;
+      const next = textNode.nextSibling;
+      const previousIsText = previous?.nodeType === NodeType.TEXT_NODE;
+      const nextIsText = next?.nodeType === NodeType.TEXT_NODE;
+      const previousIsElement = previous?.nodeType === NodeType.ELEMENT_NODE;
+      const nextIsElement = next?.nodeType === NodeType.ELEMENT_NODE;
+      const previousTag = previousIsElement ? previous.tagName.toLowerCase() : "";
+      const nextTag = nextIsElement ? next.tagName.toLowerCase() : "";
+      const previousIsBR = previousIsElement && previousTag === "br";
+      const nextIsBR = nextIsElement && nextTag === "br";
+      const previousIsInline = previousIsText || previousIsElement && isInlineElement(previousTag);
+      const nextIsInline = nextIsText || nextIsElement && isInlineElement(nextTag);
+      if (value.trim() === "") {
+        if (previousIsInline && nextIsInline && !previousIsBR && !nextIsBR) {
+          if (previousIsText) {
+            const previousText = previous;
+            previousText.nodeValue = (previousText.nodeValue ?? "").trimEnd();
+          }
+          if (nextIsText) {
+            const nextText = next;
+            nextText.nodeValue = (nextText.nodeValue ?? "").trimStart();
+          }
+          textNode.nodeValue = " ";
+          return;
+        }
+        textNode.parentNode?.removeChild(textNode);
+        return;
+      }
+      if (previousIsBR) {
+        value = value.trimStart();
+      }
+      if (nextIsBR) {
+        value = value.trimEnd();
+      }
+      if (/^\s/.test(value) && previousIsElement && !previousIsInline) {
+        value = value.trimStart();
+      }
+      if (/^\s/.test(value) && !previous) {
+        value = value.trimStart();
+      }
+      if (/\s$/.test(value) && nextIsElement && !nextIsInline) {
+        value = value.trimEnd();
+      }
+      if (/\s$/.test(value) && !next) {
+        value = value.trimEnd();
+      }
+      textNode.nodeValue = value;
+    }
+  );
+  traverseDom(
+    domRoot,
+    NodeFilter.SHOW_TEXT,
+    (textNode) => {
+      if (textNode.nodeValue === "") {
+        textNode.parentNode?.removeChild(textNode);
+      }
+    }
+  );
+}
 export {
   ensureDOM,
+  minifyDOM,
   resolveDocument,
   resolveRoot,
   traverseDom

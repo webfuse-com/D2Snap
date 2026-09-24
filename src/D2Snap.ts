@@ -316,7 +316,8 @@ export function d2Snap(
 	// Post-process (DOM)
 	t0 = t();
 	postProcessDOM(virtualDom, {
-		filter: optionsWithDefaults.filter
+		filter: optionsWithDefaults.filter,
+		minify: optionsWithDefaults.minify
 	}, isActionableElement);
 	timings.domPostProcessing = t() - t0;
 
@@ -335,8 +336,7 @@ export function d2Snap(
 		// Post-process (HTML)
 		t0 = t();
 		html = postProcessHTML(html, {
-			debug: optionsWithDefaults.debug,
-			minify: optionsWithDefaults.minify
+			debug: optionsWithDefaults.debug
 		});
 		timings.htmlPostProcessing = t() - t0;
 

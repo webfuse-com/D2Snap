@@ -202,7 +202,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   t0 = t();
   postProcessDOM(virtualDom, {
-    filter: optionsWithDefaults.filter
+    filter: optionsWithDefaults.filter,
+    minify: optionsWithDefaults.minify
   }, isActionableElement);
   timings.domPostProcessing = t() - t0;
   const serialisation = {};
@@ -213,8 +214,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     timings.serialize = t() - t0;
     t0 = t();
     html = postProcessHTML(html, {
-      debug: optionsWithDefaults.debug,
-      minify: optionsWithDefaults.minify
+      debug: optionsWithDefaults.debug
     });
     timings.htmlPostProcessing = t() - t0;
     serialisation[property] = html;

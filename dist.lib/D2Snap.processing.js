@@ -1,7 +1,7 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
-import { traverseDom } from "./util.dom.js";
+import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
@@ -89,7 +89,9 @@ function postProcessDOM(domRoot, options, isActionableElement) {
     filter: {
       emptyElements: true,
       ...options.filter ?? {}
-    }
+    },
+    minify: true,
+    ...options
   };
   if (optionsWithDefaults.filter?.emptyElements ?? []) {
     let hasRemovedElement;
@@ -108,17 +110,16 @@ function postProcessDOM(domRoot, options, isActionableElement) {
       );
     } while (hasRemovedElement);
   }
+  if (optionsWithDefaults.minify) {
+    minifyDOM(domRoot);
+  }
 }
 function postProcessHTML(html, options) {
   const optionsWithDefaults = {
     debug: false,
-    minify: true,
     ...options
   };
   let processedHTML = html;
-  if (optionsWithDefaults.minify) {
-    processedHTML = processedHTML.replace(/\s+/g, " ").replace(/>\s+</g, "><").replace(/\s+>/g, ">").replace(/<\s+/g, "<").replace(/\s+\/>/g, "/>").trim();
-  }
   if (optionsWithDefaults.debug) {
     processedHTML = formatHTML(processedHTML);
   }

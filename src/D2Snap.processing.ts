@@ -1,7 +1,7 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
-import { traverseDom } from "./util.dom.js";
+import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
 
 
@@ -21,11 +21,11 @@ interface DOMPostProcessingOptions {
 	filter: Partial<{
 		emptyElements: boolean;
 	}>;
+	minify: boolean;
 }
 
 interface HTMLPostProcessingOptions {
 	debug: boolean;
-	minify: boolean;
 }
 
 
@@ -145,7 +145,10 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 			emptyElements: true,
 
 			...(options.filter ?? {})
-		}
+		},
+		minify: true,
+
+		...options
 	};
 
 	// Remove elements that became empty
@@ -171,28 +174,21 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 			);
 		} while (hasRemovedElement);
 	}
+
+	// Minify
+	if (optionsWithDefaults.minify) {
+		minifyDOM(domRoot);
+	}
 }
 
 export function postProcessHTML(html: string, options: Partial<HTMLPostProcessingOptions>): string {
 	const optionsWithDefaults: HTMLPostProcessingOptions = {
 		debug: false,
-		minify: true,
 
 		...options
 	};
 
 	let processedHTML = html;
-
-	// Minify
-	if (optionsWithDefaults.minify) {
-		processedHTML = processedHTML
-			.replace(/\s+/g, " ")
-			.replace(/>\s+</g, "><")
-			.replace(/\s+>/g, ">")
-			.replace(/<\s+/g, "<")
-			.replace(/\s+\/>/g, "/>")
-			.trim();
-	}
 
 	// Format
 	if (optionsWithDefaults.debug) {
