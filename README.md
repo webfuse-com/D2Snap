@@ -4,78 +4,8 @@
 
 **D2Snap** is a first-of-its-kind DOM downsampling algorithm, designed for use with LLM-based web agents.
 
-##
 
-### Integrate
-
-``` ts
-D2Snap.d2Snap(
-  dom: DOM,
-  rE: number, rA: number, rT: number,
-  options?: Options
-): Promise<{
-  html: string;
-  meta: {};
-}>
-
-D2Snap.adaptiveD2Snap(
-  dom: DOM,
-  maxTokens: number = 4096,
-  maxIterations: number = 5,
-  options?: Options
-): Promise<{
-  dom: string;
-  innerHTML: string;  // alias: html
-  outerHTML: string;
-  meta: {};
-  parameters: {};
-  adaptiveIterations: number;
-}>
-```
-
-``` ts
-type DOM = Document | Element | string;
-type Options = {
-  debug?: boolean;            // false
-  minify?: boolean;           // true
-  outerHTML?: boolean;        // false
-  uniqueIDs?: boolean;        // false
-  attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
-    [ name: string ]: number;
-  };
-  labelToText?: {
-    iconFonts?: boolean;       // false
-    tagNames?: string[];       // [ "IMG", "SVG" ]
-  }>;
-  skip?: {
-    markdown?: boolean;       // false
-    skipTextRank?: boolean;   // false
-  };
-};
-```
-
-> The attribute scoring lookup table supports wildcards for `aria` and `data` (`{aria-|data-}*`).
-
-#### Browser
-
-``` html
-<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
-```
-
-#### Module
-
-``` console
-npm install webfuse-com/D2Snap
-```
-
-> Install [jsdom](https://github.com/jsdom/jsdom) to use the library with Node.js:
-> ``` console
-> npm install jsdom
-> ```
-
-``` js
-import * as D2Snap from "@webfuse-com/d2snap";
-```
+> _Downsampling is a technique to reduce data through local, lossy consolidation, such that encoded features are largely preserved. A digital image can be locally consolidated by averaging an n-tile of pixels – the depicted object would remain recognisable. We transfer this principle to the DOM: it can analogously be locally consolidated by merging n-subtrees of nodes into a single ’average’ node. What constitutes a feature thereby depends on the intended purpose of the downsampled DOM; in our case, features are implied by the downsampled DOM’s utility as a snapshot for a web agent’s LLM backend. A gradual increase of the downsampling ratio should yield a gradual DOM reduction. Since HTML lexemes have unbounded length, however, monotonic size reduction is a strong aim, and linear size reduction a weak, best-effort aim._
 
 ##
 
@@ -139,6 +69,85 @@ An everyday choice!
 A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
 A true favourite!
 <button>Add</button>
+```
+
+##
+
+### Integrate
+
+``` ts
+D2Snap.d2Snap(
+  dom: DOM,
+  rE: number, rA: number, rT: number,
+  options?: Options
+): Promise<{
+  dom: string;
+  innerHTML: string;  // alias: html
+  outerHTML: string;
+  meta: {
+    tokenEstimate: number;
+    originalSize: number;
+    sizeRatio: number;
+    snapshotSize: number;
+  };
+}>
+
+D2Snap.adaptiveD2Snap(
+  dom: DOM,
+  maxTokens: number = 4096,
+  maxIterations: number = 5,
+  options?: Options
+): Promise<{
+  dom: string;
+  html: string;
+  meta: {};
+  parameters: {};
+  adaptiveIterations: number;
+}>
+```
+
+``` ts
+type DOM = Document | Element | string;
+type Options = {
+  debug?: boolean;            // false
+  minify?: boolean;           // true
+  outerHTML?: boolean;        // false
+  uniqueIDs?: boolean;        // false
+  attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
+    [ name: string ]: number;
+  };
+  labelToText?: {
+    iconFonts?: boolean;       // false
+    tagNames?: string[];       // [ "IMG", "SVG" ]
+  }>;
+  skip?: {
+    markdown?: boolean;       // false
+    skipTextRank?: boolean;   // false
+  };
+};
+```
+
+> The attribute scoring lookup table supports wildcards for `aria` and `data` (`{aria-|data-}*`).
+
+#### Browser
+
+``` html
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
+```
+
+#### Module
+
+``` console
+npm install webfuse-com/D2Snap
+```
+
+> Install [jsdom](https://github.com/jsdom/jsdom) to use the library with Node.js:
+> ``` console
+> npm install jsdom
+> ```
+
+``` js
+import * as D2Snap from "@webfuse-com/d2snap";
 ```
 
 ##

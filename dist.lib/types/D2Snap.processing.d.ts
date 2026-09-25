@@ -13,10 +13,10 @@ interface DOMPostProcessingOptions {
     filter: Partial<{
         emptyElements: boolean;
     }>;
+    minify: boolean;
 }
 interface HTMLPostProcessingOptions {
     debug: boolean;
-    minify: boolean;
 }
 export declare function preProcessDOM(domRoot: Element, document: Document, options: Partial<DOMPreProcessingOptions>): void;
 export declare function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcessingOptions>, isActionableElement: (elementNode: Element) => boolean): void;
