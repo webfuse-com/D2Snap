@@ -1,4 +1,5 @@
 export declare const CONFIG: {
     uniqueAttributeName: string;
-    attributeScoringFallbackKey: string;
+    attributeScoresDefaultFallbackValue: number;
+    attributeScoresFallbackKey: string;
 };

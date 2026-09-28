@@ -7,7 +7,7 @@ import {
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import { DEFAULT_ATTRIBUTE_SCORES } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
@@ -21,7 +21,19 @@ function validateUnitParameter(name, value) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
-function isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES) {
+function getAttributeScore(attrName, attributeScores = new Map(
+  Object.entries(DEFAULT_ATTRIBUTE_SCORES).map((entry) => [entry[0].toLowerCase(), entry[1]])
+)) {
+  let normalizedName = attrName;
+  if (!attributeScores.has(normalizedName)) {
+    if (normalizedName.includes("-")) {
+      normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+    }
+  }
+  const attributeScore = attributeScores.get(normalizedName.toLowerCase()) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
+  return attributeScore;
+}
+function isActionableElement(elementNode, actionableElementTagNames = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES), actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES) {
   return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
 }
 function d2Snap(dom, rE, rA, rT, options = {}) {
@@ -41,8 +53,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     uniqueIDs: false,
     ...options,
     attributeScores: {
-      ...DEFAULT_ATTRIBUTE_SCORING,
-      ...options.attributeScoring ?? {},
+      ...DEFAULT_ATTRIBUTE_SCORES,
+      ...options.attributeScores ?? {},
       // deprecated
       ...options.attributeScores ?? {}
     },
@@ -57,7 +69,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       ...options.skip ?? {}
     }
   };
-  const attributeScoring = new Map(
+  const attributeScores = new Map(
     Object.entries(optionsWithDefaults.attributeScores).map((entry) => [entry[0].toLowerCase(), entry[1]])
   );
   const actionableElementTagNames = new Set(
@@ -128,14 +140,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapAttributeNode(elementNode, rA2) {
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
     for (const attr of Array.from(elementNode.attributes)) {
-      let normalizedName = attr.name;
-      if (!attributeScoring.has(normalizedName)) {
-        if (normalizedName.includes("-")) {
-          normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
-        }
-      }
-      const attributeScore = attributeScoring.get(normalizedName.toLowerCase()) ?? attributeScoring.get(CONFIG.attributeScoringFallbackKey) ?? 0;
-      if (attributeScore >= rA2) continue;
+      if (getAttributeScore(attr.name, attributeScores) >= rA2) continue;
       elementNode.removeAttribute(attr.name);
     }
   }
@@ -244,5 +249,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
 }
 export {
   d2Snap,
+  getAttributeScore,
   isActionableElement
 };

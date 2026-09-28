@@ -1,4 +1,4 @@
-export const DEFAULT_ATTRIBUTE_SCORING = {
+export const DEFAULT_ATTRIBUTE_SCORES = {
 	"alt": 0.46,
 	"href": 0.91,
 	"src": 0.83,

@@ -1,4 +1,4 @@
-export declare const DEFAULT_ATTRIBUTE_SCORING: {
+export declare const DEFAULT_ATTRIBUTE_SCORES: {
     alt: number;
     href: number;
     src: number;

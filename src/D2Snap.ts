@@ -12,7 +12,7 @@ import {
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import { DEFAULT_ATTRIBUTE_SCORES } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
@@ -37,9 +37,28 @@ function validateUnitParameter(name: string, value: number) {
 }
 
 
+export function getAttributeScore(attrName: string, attributeScores: Map<string, number> = new Map(
+	Object.entries(DEFAULT_ATTRIBUTE_SCORES)
+		.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
+)) {
+	let normalizedName: string = attrName;
+
+	if(!attributeScores.has(normalizedName)) {
+		if(normalizedName.includes("-")) {
+			normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+		}
+	}
+
+	const attributeScore: number = attributeScores.get(normalizedName.toLowerCase())
+		?? attributeScores.get(CONFIG.attributeScoresFallbackKey)
+		?? CONFIG.attributeScoresDefaultFallbackValue;
+
+	return attributeScore;
+}
+
 export function isActionableElement(
 	elementNode: Element,
-	actionableElementTagNames: Set<string>,
+	actionableElementTagNames: Set<string> = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES),
 	actionableRoleAttributeValues: Set<string> = ACTIONABLE_ROLE_ATTRIBUTE_VALUES
 ): boolean {
 	return (
@@ -74,10 +93,10 @@ export function d2Snap(
 		...options,
 
 		attributeScores: {
-			...DEFAULT_ATTRIBUTE_SCORING,
+			...DEFAULT_ATTRIBUTE_SCORES,
 
 
-			...(options.attributeScoring ?? {}),	// deprecated
+			...(options.attributeScores ?? {}),	// deprecated
 			...(options.attributeScores ?? {})
 		},
 		elementClasses: {
@@ -94,7 +113,7 @@ export function d2Snap(
 		}
 	};
 
-	const attributeScoring: Map<string, number> = new Map(
+	const attributeScores: Map<string, number> = new Map(
 		Object.entries(optionsWithDefaults.attributeScores)
 			.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 	);
@@ -215,18 +234,7 @@ export function d2Snap(
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
 		for(const attr of Array.from(elementNode.attributes)) {
-			let normalizedName: string = attr.name;
-
-			if(!attributeScoring.has(normalizedName)) {
-				if(normalizedName.includes("-")) {
-					normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
-				}
-			}
-
-			const attributeScore: number = attributeScoring.get(normalizedName.toLowerCase())
-				?? attributeScoring.get(CONFIG.attributeScoringFallbackKey)
-				?? 0;
-			if(attributeScore >= rA) continue;
+			if(getAttributeScore(attr.name, attributeScores) >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);
 		}

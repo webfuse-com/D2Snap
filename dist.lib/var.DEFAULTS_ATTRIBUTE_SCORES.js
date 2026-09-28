@@ -1,4 +1,4 @@
-const DEFAULT_ATTRIBUTE_SCORING = {
+const DEFAULT_ATTRIBUTE_SCORES = {
   "alt": 0.46,
   "href": 0.91,
   "src": 0.83,
@@ -73,5 +73,5 @@ const DEFAULT_ATTRIBUTE_SCORING = {
   // fallback
 };
 export {
-  DEFAULT_ATTRIBUTE_SCORING
+  DEFAULT_ATTRIBUTE_SCORES
 };
