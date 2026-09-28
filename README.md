@@ -173,18 +173,15 @@ npm run build
 npm run test
 ```
 
-##### Unit Test(s)
-
-``` console
-npm run test:unit
-npm run test:unit -- <test-name> # e.g., D2Snap.option.filters
+```
+npm run test:<SUITE> -- [<TEST-NAME=*> # e.g., D2Snap.options.filter] [<FLAG>*]
 ```
 
-##### Regression Tests
-
-``` console
-npm run test:regression
-```
+| Suite | Flags |
+| :- | :- |
+| `unit` | |
+| `end-to-end` | |
+| `regression` | `--fail-stop` |
 
 #### Evaluate
 
