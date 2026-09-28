@@ -11,7 +11,7 @@ import {
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
-import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
 import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
@@ -26,7 +26,9 @@ const WHITESPACE_REGEX: RegExp = /^\s$/;
 // negative lookahead spares real namespaced custom elements (`FB:LIKE`), whose
 // tail after `:` is a valid NCName.
 const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
-
+const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set(
+	ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY.map(t => t.toLowerCase())
+);
 
 function validateUnitParameter(name: string, value: number) {
 	if(value < 0 || value > 1) {
@@ -38,7 +40,7 @@ function validateUnitParameter(name: string, value: number) {
 export function isActionableElement(
 	elementNode: Element,
 	actionableElementTagNames: Set<string>,
-	actionableRoleAttributeValues: Set<string>
+	actionableRoleAttributeValues: Set<string> = ACTIONABLE_ROLE_ATTRIBUTE_VALUES
 ): boolean {
 	return (
 		actionableElementTagNames.has(elementNode.tagName.toUpperCase())
@@ -101,16 +103,13 @@ export function d2Snap(
 		(optionsWithDefaults.elementClasses?.actionables ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
-	const actionableRoleAttributeValues: Set<string> = new Set(
-		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
-	);
 	const textElementTagNames: Set<string> = new Set(
 		(optionsWithDefaults.elementClasses?.text ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
 
 	const _isActionableElement = (elementNode: Element) => {
-		return isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues);
+		return isActionableElement(elementNode, actionableElementTagNames);
 	};
 
 	const turndown: Turndown = new Turndown([ _isActionableElement ]);

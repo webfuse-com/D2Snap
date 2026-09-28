@@ -6,19 +6,22 @@ import {
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
 import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
-import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
 import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 const WHITESPACE_REGEX = /^\s$/;
 const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
+const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = new Set(
+  ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY.map((t) => t.toLowerCase())
+);
 function validateUnitParameter(name, value) {
   if (value < 0 || value > 1) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
-function isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues) {
+function isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES) {
   return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
 }
 function d2Snap(dom, rE, rA, rT, options = {}) {
@@ -60,14 +63,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const actionableElementTagNames = new Set(
     (optionsWithDefaults.elementClasses?.actionables ?? []).map((tagName) => tagName.toUpperCase())
   );
-  const actionableRoleAttributeValues = new Set(
-    ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
-  );
   const textElementTagNames = new Set(
     (optionsWithDefaults.elementClasses?.text ?? []).map((tagName) => tagName.toUpperCase())
   );
   const _isActionableElement = (elementNode) => {
-    return isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues);
+    return isActionableElement(elementNode, actionableElementTagNames);
   };
   const turndown = new Turndown([_isActionableElement]);
   function snapElementContainerNode(elementNode, rE2) {

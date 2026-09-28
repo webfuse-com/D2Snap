@@ -34,7 +34,7 @@ const _wrapIsActionableElement = element => {
 
 
 await test("Check element actionability", () => {
-    // Dishunction checks
+    // Disjunction checks
 
     assertEqual(
         _wrapIsActionableElement(_mockElement("BUTTON", {
