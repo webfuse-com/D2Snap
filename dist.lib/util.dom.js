@@ -1,13 +1,28 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 async function ensureDOM(domOrString) {
+  if (Buffer.isBuffer(domOrString)) {
+    domOrString = domOrString.toString("utf8");
+  }
   if (typeof domOrString !== "string") return domOrString;
   if (typeof window !== "undefined") {
     return new DOMParser().parseFromString(domOrString, "text/html");
   }
   try {
     const jsdom = await import("jsdom");
-    const dom = new jsdom.JSDOM(domOrString);
+    const virtualConsole = new jsdom.VirtualConsole();
+    virtualConsole.on("error", () => {
+    });
+    virtualConsole.on("warn", () => {
+    });
+    virtualConsole.on("info", () => {
+    });
+    virtualConsole.on("log", () => {
+    });
+    const dom = new jsdom.JSDOM(domOrString, {
+      runScripts: void 0,
+      virtualConsole
+    });
     return dom.window.document;
   } catch (err) {
     if (err?.code !== "ERR_MODULE_NOT_FOUND") throw err;

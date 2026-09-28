@@ -35,6 +35,17 @@ function validateUnitParameter(name: string, value: number) {
 }
 
 
+export function isActionableElement(
+	elementNode: Element,
+	actionableElementTagNames: Set<string>,
+	actionableRoleAttributeValues: Set<string>
+): boolean {
+	return (
+		actionableElementTagNames.has(elementNode.tagName.toUpperCase())
+		|| actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "")
+	);
+}
+
 export function d2Snap(
 	dom: DOM,
 	rE: number, rA: number, rT: number,
@@ -43,6 +54,12 @@ export function d2Snap(
 	validateUnitParameter("rE", rE);
 	validateUnitParameter("rA", rA);
 	validateUnitParameter("rT", rT);
+
+	const document = resolveDocument(dom);
+	if(!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
+
+	const rootElement: Element = resolveRoot(dom)
+	const originalSize = rootElement.innerHTML.length;
 
 	const optionsWithDefaults: D2SnapOptions = {
 		debug: false,
@@ -84,31 +101,24 @@ export function d2Snap(
 		(optionsWithDefaults.elementClasses?.actionables ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
+	const actionableRoleAttributeValues: Set<string> = new Set(
+		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
+	);
 	const textElementTagNames: Set<string> = new Set(
 		(optionsWithDefaults.elementClasses?.text ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
-	const actionableRoleAttributeValues: Set<string> = new Set(
-		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
-	);
 
-	const hasMDRetainTagName = (elementNode: Element): boolean => {
-		return actionableElementTagNames.has(elementNode.tagName.toUpperCase());
-	};
-	const hasActionableRole = (elementNode: Element): boolean => {
-		return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
-	};
-	const isActionableElement = (elementNode: Element): boolean => {
-		return actionableElementTagNames
-			.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
+	const _isActionableElement = (elementNode: Element) => {
+		return isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues);
 	};
 
-	const turndown: Turndown = new Turndown([ hasMDRetainTagName, hasActionableRole ]);
+	const turndown: Turndown = new Turndown([ _isActionableElement ]);
 
 	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
 		const considerContainerElement = (elementNode: Element) => {
 			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
-			if(isActionableElement(elementNode)) return false;
+			if(_isActionableElement(elementNode)) return false;
 			if(isVoidElement(elementNode.tagName)) return false;
 
 			return true;
@@ -138,7 +148,7 @@ export function d2Snap(
 	function snapElementTextFormattingNode(document: Document, elementNode: HTMLElement) {
 		if(optionsWithDefaults.skip?.markdown) return;
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-		if(isActionableElement(elementNode)) return;
+		if(_isActionableElement(elementNode)) return;
 		if(!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
 
 		// Markdown
@@ -223,12 +233,6 @@ export function d2Snap(
 		}
 	}
 
-	const document = resolveDocument(dom);
-	if(!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
-
-	const rootElement: Element = resolveRoot(dom)
-	const originalSize = rootElement.innerHTML.length;
-
 	const t = optionsWithDefaults.debug
 		? performance.now.bind(performance)
 		: () => 0;
@@ -307,7 +311,7 @@ export function d2Snap(
 	// Dissolve toplevel tags for rE = 1 (allows full linearization)
 	if(rE === 1.0) {
 		[ ...virtualDom.querySelectorAll("*") ]
-			.filter((elementNode: Element) => !isActionableElement(elementNode))
+			.filter((elementNode: Element) => !_isActionableElement(elementNode))
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);
 			});
@@ -318,7 +322,7 @@ export function d2Snap(
 	postProcessDOM(virtualDom, {
 		filter: optionsWithDefaults.filter,
 		minify: optionsWithDefaults.minify
-	}, isActionableElement);
+	}, _isActionableElement);
 	timings.domPostProcessing = t() - t0;
 
 	const serialisation: {

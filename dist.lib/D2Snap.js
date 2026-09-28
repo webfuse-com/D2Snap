@@ -18,10 +18,17 @@ function validateUnitParameter(name, value) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
+function isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues) {
+  return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+}
 function d2Snap(dom, rE, rA, rT, options = {}) {
   validateUnitParameter("rE", rE);
   validateUnitParameter("rA", rA);
   validateUnitParameter("rT", rT);
+  const document = resolveDocument(dom);
+  if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
+  const rootElement = resolveRoot(dom);
+  const originalSize = rootElement.innerHTML.length;
   const optionsWithDefaults = {
     debug: false,
     filter: void 0,
@@ -53,26 +60,20 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const actionableElementTagNames = new Set(
     (optionsWithDefaults.elementClasses?.actionables ?? []).map((tagName) => tagName.toUpperCase())
   );
-  const textElementTagNames = new Set(
-    (optionsWithDefaults.elementClasses?.text ?? []).map((tagName) => tagName.toUpperCase())
-  );
   const actionableRoleAttributeValues = new Set(
     ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t2) => t2.toLowerCase())
   );
-  const hasMDRetainTagName = (elementNode) => {
-    return actionableElementTagNames.has(elementNode.tagName.toUpperCase());
+  const textElementTagNames = new Set(
+    (optionsWithDefaults.elementClasses?.text ?? []).map((tagName) => tagName.toUpperCase())
+  );
+  const _isActionableElement = (elementNode) => {
+    return isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues);
   };
-  const hasActionableRole = (elementNode) => {
-    return actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
-  };
-  const isActionableElement = (elementNode) => {
-    return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || hasActionableRole(elementNode);
-  };
-  const turndown = new Turndown([hasMDRetainTagName, hasActionableRole]);
+  const turndown = new Turndown([_isActionableElement]);
   function snapElementContainerNode(elementNode, rE2) {
     const considerContainerElement = (elementNode2) => {
       if (elementNode2.nodeType !== NodeType.ELEMENT_NODE) return false;
-      if (isActionableElement(elementNode2)) return false;
+      if (_isActionableElement(elementNode2)) return false;
       if (isVoidElement(elementNode2.tagName)) return false;
       return true;
     };
@@ -91,7 +92,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   function snapElementTextFormattingNode(document2, elementNode) {
     if (optionsWithDefaults.skip?.markdown) return;
     if (elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
-    if (isActionableElement(elementNode)) return;
+    if (_isActionableElement(elementNode)) return;
     if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
@@ -138,10 +139,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       elementNode.removeAttribute(attr.name);
     }
   }
-  const document = resolveDocument(dom);
-  if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
-  const rootElement = resolveRoot(dom);
-  const originalSize = rootElement.innerHTML.length;
   const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
   let t0;
   const timings = {};
@@ -196,7 +193,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   );
   timings.attributes = t() - t0;
   if (rE === 1) {
-    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !isActionableElement(elementNode)).forEach((element) => {
+    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !_isActionableElement(elementNode)).forEach((element) => {
       element.replaceWith(...element.childNodes);
     });
   }
@@ -204,7 +201,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   postProcessDOM(virtualDom, {
     filter: optionsWithDefaults.filter,
     minify: optionsWithDefaults.minify
-  }, isActionableElement);
+  }, _isActionableElement);
   timings.domPostProcessing = t() - t0;
   const serialisation = {};
   const getHTML = (property) => {
@@ -246,5 +243,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   };
 }
 export {
-  d2Snap
+  d2Snap,
+  isActionableElement
 };

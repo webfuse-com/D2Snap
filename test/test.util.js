@@ -4,9 +4,11 @@ import { readFile as readFileFs, writeFile } from "fs/promises";
 
 const FILES_DIRECTORY_NAME = "_files";
 
+export const FILES_DIRECTORY_PATH = join(import.meta.dirname, FILES_DIRECTORY_NAME);
+
 
 function filePath(fileName) {
-    return join(import.meta.dirname, FILES_DIRECTORY_NAME, `${fileName}.html`);
+    return join(FILES_DIRECTORY_PATH, `${fileName}.html`);
 }
 
 
@@ -30,14 +32,4 @@ export function flattenDOMSnapshot(snapshot) {
         .replace(/>\s+</g, "><")
         .replace(/>\s+/g, ">")
         .replace(/\s+</g, "<");
-}
-
-export function qualityRatioToDownsamplingRatio(quality) {
-    const r = 1 - quality;
-
-    return {
-        rE: r,
-        rA: r,
-        rT: r
-    };
 }
