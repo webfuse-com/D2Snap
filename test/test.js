@@ -4,8 +4,12 @@ import { deepEqual as assertEqual, ok, throws } from "assert";
 
 
 const TEST_FILE_NAME_SUFFIX = ".test.js";
-const TEST_SUITE_NAME = process.argv.slice(2)[0];
-const TEST_CASE_NAME = process.argv.slice(2)[1];
+const ARGS = process.argv.slice(2);
+const TEST_SUITE_NAME = ARGS[0];
+const TEST_CASE_NAME = (() => {
+    const name = ARGS[1];
+    return (name && !name.startsWith("-")) ? name : null;
+})();
 
 if(!TEST_SUITE_NAME) throw new Error("Missing test suite name (arg pos 0)");
 
@@ -39,32 +43,36 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
         console.log(`\x1b[2mACTUAL${relationHint}:\x1b[0m`, printValue(actual ?? err.actual));
 
         exitCode = 2;
+
+        return false;
     }
+
+    return true;
 }
 
 
 global.assertTrue = function(a, message) {
-    wrapAssertion(() => ok(a, message));
+    return wrapAssertion(() => ok(a, message));
 }
 
 global.assertEqual = function(a, b, message) {
-    wrapAssertion(() => assertEqual(a, b, message));
+    return wrapAssertion(() => assertEqual(a, b, message));
 }
 
 global.assertLess = function(a, b, message) {
-    wrapAssertion(() => ok(a < b, message), a, b, "<");
+    return wrapAssertion(() => ok(a < b, message), a, b, "<");
 }
 
 global.assertMore = function(a, b, message) {
-    wrapAssertion(() => ok(a > b, message), a, b, ">");
+    return wrapAssertion(() => ok(a > b, message), a, b, ">");
 }
 
 global.assertIn = function(a, b, message) {
-    wrapAssertion(() => ok(b.includes(a), message), a, b, "in");
+    return wrapAssertion(() => ok(b.includes(a), message), a, b, "in");
 }
 
 global.assertNotIn = function(a, b, message) {
-    wrapAssertion(() => ok(!b.includes(a), message), a, b, "not in");
+    return wrapAssertion(() => ok(!b.includes(a), message), a, b, "not in");
 }
 
 global.assertAlmostEqual = function(a, b, precision, message) {
@@ -73,11 +81,11 @@ global.assertAlmostEqual = function(a, b, precision, message) {
     const roundA = roundPrecision(a);
     const roundB = roundPrecision(b);
 
-    wrapAssertion(() => assertEqual(roundA, roundB, message), roundA, roundB, "~");
+    return wrapAssertion(() => assertEqual(roundA, roundB, message), roundA, roundB, "~");
 }
 
 global.assertThrows = function(fn, message) {
-    wrapAssertion(() => throws(fn, null, message), fn);
+    return wrapAssertion(() => throws(fn, null, message), fn);
 }
 
 
