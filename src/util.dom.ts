@@ -2,7 +2,11 @@ import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
-export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
+export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM> {
+	if(Buffer.isBuffer(domOrString)) {
+		domOrString = domOrString.toString("utf8");
+	}
+
 	if(typeof (domOrString) !== "string") return domOrString;
 
 	if(typeof window !== "undefined") {
@@ -13,7 +17,17 @@ export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
 	try {
 		const jsdom = await import("jsdom");
 
-		const dom = new jsdom.JSDOM(domOrString);
+		const virtualConsole = new jsdom.VirtualConsole();
+
+		virtualConsole.on("error", () => {});
+		virtualConsole.on("warn", () => {});
+		virtualConsole.on("info", () => {});
+		virtualConsole.on("log", () => {});
+
+		const dom = new jsdom.JSDOM(domOrString, {
+			runScripts: undefined,
+			virtualConsole
+		});
 
 		return (dom.window as unknown as { document: Document }).document;
 	} catch (err) {
