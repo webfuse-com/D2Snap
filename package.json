@@ -21,6 +21,7 @@
     "test:unit": "npm run test:_suite -- unit",
     "test:end-to-end": "npm run test:_suite -- end-to-end",
     "test:regression": "npm run test:_suite -- regression",
+    "test:regression:preservation": "npm run test:regression -- _D2Snap.preservation --fail-stop",
     "test": "npm run test:unit && npm run test:end-to-end && npm run test:regression",
     "snapshots:create": "node ./snapshots/create.js",
     "eval:success:gui": "PYTHONPATH=eval/eval_shared:eval/eval_success python -m subjects.gui",
