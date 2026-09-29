@@ -96,7 +96,7 @@ export function d2Snap(
 			...DEFAULT_ATTRIBUTE_SCORES,
 
 
-			...(options.attributeScores ?? {}),	// deprecated
+			...(options.attributeScoring ?? {}),	// deprecated
 			...(options.attributeScores ?? {})
 		},
 		elementClasses: {

@@ -19,8 +19,6 @@ let exitCode = 0;
 // Test framework
 
 function wrapAssertion(cb, actual = null, expected = null, relationHint = null) {
-    relationHint = relationHint ? ` ${relationHint}` : "";
-
     const printValue = (value, max = 250) => {
         if(typeof(value) !== "string") return value;
 
@@ -38,9 +36,9 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
             process.exit(1);
         }
 
-        console.error(`\x1b[31mAssertion Error${err.message ? ` '${err.message}'` : ""}\x1b[0m`);
-        console.log(`\x1b[2mEXPECTED${relationHint}:\x1b[0m`, printValue(expected ?? err.expected));
-        console.log(`\x1b[2mACTUAL${relationHint}:\x1b[0m`, printValue(actual ?? err.actual));
+        console.error(`\x1b[31mAssertion Error${err.message ? ` '${err.message}\x1b[31m'` : ""}\x1b[0m`);
+        console.log(`\x1b[2mEXPECTED${relationHint ? ` (${relationHint})` : ""}:\x1b[0m`, printValue(expected ?? err.expected));
+        console.log(`\x1b[2mACTUAL:\x1b[0m`, printValue(actual ?? err.actual));
 
         exitCode = 2;
 

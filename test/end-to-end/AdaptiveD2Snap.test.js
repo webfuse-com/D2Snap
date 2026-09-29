@@ -19,7 +19,7 @@ await test("Validate raw DOM snapshot (>= 25K tokens)", async () => {
 await test("Take adaptive DOM snapshot (max 5K tokens)", async () => {
     const snapshot = await adaptiveD2Snap(WEBFUSE_HTML, 5000, 5, {
         debug: true,
-        attributeScoring: {
+        attributeScores: {
             class: 0
         },
         uniqueIDs: true

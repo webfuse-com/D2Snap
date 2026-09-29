@@ -54,7 +54,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     ...options,
     attributeScores: {
       ...DEFAULT_ATTRIBUTE_SCORES,
-      ...options.attributeScores ?? {},
+      ...options.attributeScoring ?? {},
       // deprecated
       ...options.attributeScores ?? {}
     },

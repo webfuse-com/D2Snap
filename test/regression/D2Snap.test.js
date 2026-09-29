@@ -23,40 +23,6 @@ function qualityRatioToDownsamplingRatio(quality) {
 
 
 // ---------------------------------------------------------------------------
-// End-to-end regression guard on the full, real-world news homepage (cnn.com; >2MB).
-// ---------------------------------------------------------------------------
-for(const quality of [ 0, 0.3, 0.6, 0.9, 1 ]) {
-    const cnnHTML = await readTestFile("_regression/edition.cnn.com");  // huge file
-
-    await test(`Snapshot huge page without crash or collapse (q=${quality})`, async () => {
-        const { rE, rA, rT } = qualityRatioToDownsamplingRatio(quality);
-
-        const start = Date.now();
-        const snapshot = await d2Snap(cnnHTML, rE, rA, rT, {
-            debug: true
-        });
-        const elapsedMs = Date.now() - start;
-
-        await writeActual(`_regression/edition.cnn.com.q=${quality}`, snapshot.html);
-
-        assertLess(elapsedMs, 10000, `Snapshot took ${elapsedMs}ms — re-traversal blow-up regression?`);
-        assertIn(
-            "The Assignment with Audie Cornish",
-            snapshot.html,
-            "Actionable content was lost"
-        );
-
-        if(quality > 0) {
-            assertMore(
-                snapshot.html.length,
-                2**15,
-                `Snapshot collapsed to ${snapshot.html.length} bytes (< ~32K B) — content was destroyed`
-            );
-        }
-    });
-}
-
-// ---------------------------------------------------------------------------
 // Scheme-tag regex guard: namespace-qualified custom elements (FB:LIKE style)
 // must NOT be unwrapped by unwrapColonTaggedElements. The COLON_SCHEME_TAG_REGEX
 // negative lookahead only skips matches where a valid XML NCName follows the
@@ -190,3 +156,37 @@ await test("Markdown autolink URL does not become a bogus container element", as
     assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");
     assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
 });
+
+// ---------------------------------------------------------------------------
+// End-to-end regression guard on the full, real-world news homepage (cnn.com; >2MB).
+// ---------------------------------------------------------------------------
+for(const quality of [ 0, 0.3, 0.6, 0.9, 1 ]) {
+    const cnnHTML = await readTestFile("_regression/edition.cnn.com");  // huge file
+
+    await test(`Snapshot huge page without crash or collapse (q=${quality})`, async () => {
+        const { rE, rA, rT } = qualityRatioToDownsamplingRatio(quality);
+
+        const start = Date.now();
+        const snapshot = await d2Snap(cnnHTML, rE, rA, rT, {
+            debug: true
+        });
+        const elapsedMs = Date.now() - start;
+
+        await writeActual(`_regression/edition.cnn.com.q=${quality}`, snapshot.html);
+
+        assertLess(elapsedMs, 10000, `Snapshot took ${elapsedMs}ms — re-traversal blow-up regression?`);
+        assertIn(
+            "The Assignment with Audie Cornish",
+            snapshot.html,
+            "Actionable content was lost"
+        );
+
+        if(quality > 0) {
+            assertMore(
+                snapshot.html.length,
+                2**15,
+                `Snapshot collapsed to ${snapshot.html.length} bytes (< ~32K B) — content was destroyed`
+            );
+        }
+    });
+}

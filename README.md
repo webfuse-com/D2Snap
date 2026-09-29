@@ -181,7 +181,7 @@ npm run test:<SUITE> -- [<TEST-NAME=*> # e.g., D2Snap.options.filter] [<FLAG>*]
 | :- | :- |
 | `unit` | |
 | `end-to-end` | |
-| `regression` | `--fail-stop` |
+| `regression` | `--next-failure` |
 
 #### Evaluate
 

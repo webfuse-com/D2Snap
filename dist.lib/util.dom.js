@@ -19,29 +19,19 @@ async function ensureDOM(domOrString) {
     });
     virtualConsole.on("log", () => {
     });
-    const dom = new jsdom.JSDOM(domOrString, {
+    const html = String(domOrString).trim();
+    const dom = new jsdom.JSDOM(html, {
       runScripts: void 0,
       virtualConsole
-    });
-    return dom.window.document;
+    }).window.document;
+    return dom;
   } catch (err) {
     if (err?.code !== "ERR_MODULE_NOT_FOUND") throw err;
     throw new ReferenceError("Install 'jsdom' to use D2Snap with a non-browser runtime");
   }
 }
 function resolveDocument(dom) {
-  let doc;
-  try {
-    const doc2 = (window ?? {}).document;
-    if (doc2) return doc2;
-  } catch {
-  }
-  doc = dom;
-  while (doc) {
-    if ("createTreeWalker" in doc) return doc;
-    doc = doc?.parentNode;
-  }
-  return null;
+  return dom.nodeType === 9 ? dom : dom.ownerDocument;
 }
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;

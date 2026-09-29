@@ -24,12 +24,16 @@ export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM
 		virtualConsole.on("info", () => {});
 		virtualConsole.on("log", () => {});
 
-		const dom = new jsdom.JSDOM(domOrString, {
+		const html = String(domOrString).trim();
+
+		const dom: DOM = new jsdom.JSDOM(html, {
 			runScripts: undefined,
 			virtualConsole
-		});
+		})
+			.window
+			.document;
 
-		return (dom.window as unknown as { document: Document }).document;
+		return dom;
 	} catch (err) {
 		if((err as { code: string; })?.code !== "ERR_MODULE_NOT_FOUND") throw err;
 
@@ -38,20 +42,9 @@ export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM
 }
 
 export function resolveDocument(dom: DOM): Document | null {
-	let doc: Node | Document | null;
-	try {
-		const doc: Node | Document | null = (window ?? {}).document;
-		if (doc) return doc as Document;
-	} catch { /**/ }
-
-	doc = dom;
-	while(doc) {
-		if ("createTreeWalker" in doc) return doc;
-
-		doc = doc?.parentNode;
-	}
-
-	return null;
+	return dom.nodeType === 9
+		? dom as Document
+		: dom.ownerDocument;
 }
 
 export function resolveRoot(node: DOM): Element {
