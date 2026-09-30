@@ -1,26 +1,16 @@
-import { NodeFilter, NodeType } from "./types.js";
+import { D2SnapOptions, NodeFilter, NodeType } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
 
 
 interface DOMPreProcessingOptions {
-	filter: Partial<{
-		dataURLs: boolean;
-		tagNames: string[];
-	}>;
-	labelToText: Partial<{
-		iconFonts: boolean,
-		tagNames: string[];
-	}>;
+	filter: Pick<D2SnapOptions["filter"], "attributes" | "elements" | "dataURLs">;
 	uniqueIDs: boolean;
 }
 
 interface DOMPostProcessingOptions {
-	filter: Partial<{
-		emptyElements: boolean;
-	}>;
+	filter: Pick<D2SnapOptions["filter"], "emptyElements">;
 	minify: boolean;
 }
 
@@ -33,64 +23,20 @@ const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
 
 
-function tagNamesToNormalizedSet(tagNames: string[]): Set<string> {
+function normalizeCaseInsensitive(str: string): string {
+	return str.toUpperCase();
+}
+
+function normalizeCaseInsensitiveArrayToSet(tagNames: string[]): Set<string> {
 	return new Set(
 		tagNames
-			.map((tagName: string) => tagName.toUpperCase())
+			.map((tagName: string) => normalizeCaseInsensitive(tagName))
 	);
 }
 
-function liftImageDescription(document: Document, elementNode: Element) {
-	// Find an accessibility label, preferring attributes over child elements.
-	// Attribute order is taken from the UI feature heuristics (default: aria-label, title, alt).
-	let label: string | null = null;
-	for (const attrName of ["aria-label", "title", "alt"]) {
-		const value: string | null = elementNode.getAttribute(attrName);
-		const trimmed: string = (value ?? "").trim();
-		if (trimmed) { label = trimmed; break; }
-	}
-	if (!label) {
-		for (const child of Array.from(elementNode.children)) {
-			if (!["title", "desc"].includes(child.tagName)) continue;
-			const trimmed: string = (child.textContent ?? "").trim();
-			if (trimmed) { label = trimmed; break; }
-		}
-	}
-
-	if (label !== null) {
-		// Replace with a plain text node carrying the label. It lands under the
-		// element's former parent, so an actionable parent keeps it (icon buttons:
-		// <button><svg aria-label="X"/></button> -> <button>X</button>).
-		elementNode.replaceWith(document.createTextNode(label));
-	} else {
-		// No label found anywhere — element is pure decoration. Drop it.
-		elementNode.remove();
-	}
-}
-
-
-export function preProcessDOM(domRoot: Element, document: Document, options: Partial<DOMPreProcessingOptions>): void {
-	const optionsWithDefaults: DOMPreProcessingOptions = {
-		uniqueIDs: false,
-
-		...options,
-
-		filter: {
-			dataURLs: true,
-			tagNames: DEFAULT_FILTER_TAG_NAMES,
-
-			...(options.filter ?? {})
-		},
-		labelToText: {
-			iconFonts: true,
-			tagNames: DEFAULT_LABEL_TO_TEXT_TAG_NAMES,
-
-			...(options.labelToText ?? {})
-		},
-	};
-
-	const filterTagNames: Set<string> = tagNamesToNormalizedSet(optionsWithDefaults.filter?.tagNames ?? []);
-	const labelToTextTagNames: Set<string> = tagNamesToNormalizedSet(optionsWithDefaults.labelToText?.tagNames ?? []);
+export function preProcessDOM(domRoot: Element, options: DOMPreProcessingOptions): void {
+	const filterElementsTagNames: Set<string> = normalizeCaseInsensitiveArrayToSet(options.filter?.elements ?? []);
+	const filterAttributesNames: Set<string> = normalizeCaseInsensitiveArrayToSet(options.filter?.attributes ?? []);
 
 	let i: number = 0;
 
@@ -108,19 +54,25 @@ export function preProcessDOM(domRoot: Element, document: Document, options: Par
 
 			const elementNode = node as Element;
 
-			if (filterTagNames.has(elementNode.tagName.toUpperCase())) {
+			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
 				elementNode.remove();
 
 				return;
 			}
 
-			if (optionsWithDefaults.uniqueIDs) {
+			for(const attr of [ ...elementNode.attributes ]) {
+				if(filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
+					elementNode.removeAttribute(attr.name);
+				}
+			}
+
+			if (options.uniqueIDs) {
 				elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
 
 				i++;
 			}
 
-			if (optionsWithDefaults.filter?.dataURLs ?? []) {
+			if (options.filter?.dataURLs ?? []) {
 				for (const attr of Array.from(elementNode.attributes)) {
 					if (
 						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
@@ -130,29 +82,13 @@ export function preProcessDOM(domRoot: Element, document: Document, options: Par
 					elementNode.removeAttribute(attr.name);
 				}
 			}
-
-			if (labelToTextTagNames.has(elementNode.tagName.toUpperCase())) {
-				// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
-				liftImageDescription(document, elementNode);
-			}
 		}
 	);
 }
 
-export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcessingOptions>, isActionableElement: (elementNode: Element) => boolean): void {
-	const optionsWithDefaults: DOMPostProcessingOptions = {
-		filter: {
-			emptyElements: true,
-
-			...(options.filter ?? {})
-		},
-		minify: true,
-
-		...options
-	};
-
+export function postProcessDOM(domRoot: Element, options: DOMPostProcessingOptions, isActionableElement: (elementNode: Element) => boolean): void {
 	// Remove elements that became empty
-	if (optionsWithDefaults.filter?.emptyElements ?? []) {
+	if (options.filter?.emptyElements ?? []) {
 		let hasRemovedElement: boolean;
 
 		do {
@@ -176,7 +112,7 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 	}
 
 	// Minify
-	if (optionsWithDefaults.minify) {
+	if (options.minify) {
 		minifyDOM(domRoot);
 	}
 }

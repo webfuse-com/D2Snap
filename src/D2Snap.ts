@@ -10,12 +10,14 @@ import {
 	type TextNode
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
 import { DEFAULT_ATTRIBUTE_SCORES } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import { DEFAULT_FILTER_ATTRIBUTE_NAMES, DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES } from "./var.DEFAULTS_ATTRIBUTES.js";
+import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
+import { deepMerge } from "./util.obj.js";
 
 
 const WHITESPACE_REGEX: RegExp = /^\s$/;
@@ -81,37 +83,34 @@ export function d2Snap(
 
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
-
-	const optionsWithDefaults: D2SnapOptions = {
-		debug: false,
-		filter: undefined,
-    	labelToText: undefined,
-		minify: true,
-		textRankOptions: undefined,
-		uniqueIDs: false,
-
-		...options,
-
-		attributeScores: {
-			...DEFAULT_ATTRIBUTE_SCORES,
-
-
-			...(options.attributeScoring ?? {}),	// deprecated
-			...(options.attributeScores ?? {})
+	const optionsWithDefaults: D2SnapOptions = deepMerge({
+		attributeScores: DEFAULT_ATTRIBUTE_SCORES,
+		classification: {
+			actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+			textElements: DEFAULT_CLASS_TEXT_TAG_NAMES,
+			textLabelAttributes: [ "title" ]
 		},
-		elementClasses: {
-			actionables: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
-			text: DEFAULT_CLASS_TEXT_TAG_NAMES,
-
-			...(options.elementClasses ?? {})
+		debug: false,
+		filter: {
+			attributes: DEFAULT_FILTER_ATTRIBUTE_NAMES,
+			dataURLs: true,
+			elements: DEFAULT_FILTER_TAG_NAMES,
+			emptyElements: true
+		},
+		minify: true,
+		normalize: {
+			imgIconfonts: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+			labelAttributes: [],
+			svgToImg: true
 		},
 		skip: {
 			markdown: false,
-			textRank: false,
-
-			...(options.skip ?? {})
-		}
-	};
+			textRank: false
+		},
+		uniqueIDs: false
+	}, options);
+	// Aliases
+	optionsWithDefaults.attributeScoring = optionsWithDefaults.attributeScores;
 
 	const attributeScores: Map<string, number> = new Map(
 		Object.entries(optionsWithDefaults.attributeScores)
@@ -119,11 +118,11 @@ export function d2Snap(
 	);
 
 	const actionableElementTagNames: Set<string> = new Set(
-		(optionsWithDefaults.elementClasses?.actionables ?? [])
+		(optionsWithDefaults.classification?.actionableElements ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
 	const textElementTagNames: Set<string> = new Set(
-		(optionsWithDefaults.elementClasses?.text ?? [])
+		(optionsWithDefaults.classification?.textElements ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
 
@@ -254,9 +253,8 @@ export function d2Snap(
 
 	// Pre-process
 	t0 = t();
-	preProcessDOM(virtualDom, document, {
+	preProcessDOM(virtualDom, {
 		filter: optionsWithDefaults.filter,
-		labelToText: optionsWithDefaults.labelToText,
 		uniqueIDs: optionsWithDefaults.uniqueIDs
 	});
 	timings.preProcessing = t() - t0;

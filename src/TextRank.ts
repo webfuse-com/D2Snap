@@ -4,6 +4,7 @@
 
 
 import { type TextRankOptions } from "./types.js";
+import { deepMerge } from "./util.obj.js";
 
 
 interface TextRankSentence {
@@ -29,13 +30,12 @@ export function tokenizeSentences(text: string): string[] {
 export function textRank(sentences: string[], options: Partial<TextRankOptions> = {}): TextRankSentence[] {
 	if (!sentences.length) return [];
 
-	const optionsWithDefaults: TextRankOptions = {
+	const optionsWithDefaults: TextRankOptions = deepMerge({
 		damping: 0.75,
 		maxIterations: 20,
 		minSimilarity: 0.1,
-		tolerance: 1e-4,
-		...options
-	};
+		tolerance: 1e-4
+	}, options);
 
 	const sentenceCount: number = sentences.length;
 

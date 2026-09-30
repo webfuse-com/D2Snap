@@ -42,27 +42,26 @@ export interface TextRankOptions {
 export interface D2SnapOptions {
     attributeScores: AttributeScoring;
     attributeScoring?: AttributeScoring;    // deprecated (alias)
+    classification: {
+        actionableElements: string[];
+        textElements: string[];
+        textLabelAttributes: string[];
+    };
     debug: boolean;
-    elementClasses: Partial<{
-        actionables: string[];
-        text: string[];
-    }> | undefined;
-    filter: Partial<{
+    filter: {
+        attributes: string[];
         dataURLs: boolean;
+        elements: string[];
         emptyElements: boolean;
-        tagNames: string[];
-    }> | undefined;
-    labelToText: Partial<{
-        iconFonts: boolean;
-        tagNames: string[];
-    }> | undefined;
-    minify: boolean;
-    skip: Partial<{
+    };
+    skip: {
         markdown: boolean;
         textRank: boolean;
-    }> | undefined;
-    textRankOptions: Partial<TextRankOptions> | undefined;
+    };
+    minify: boolean;
     uniqueIDs: boolean;
+
+    textRankOptions?: TextRankOptions;
 };
 
 export interface D2SnapResult {
