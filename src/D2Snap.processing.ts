@@ -6,6 +6,7 @@ import { formatHTML, isVoidElement } from "./util.html.js";
 
 interface DOMPreProcessingOptions {
 	filter: Pick<D2SnapOptions["filter"], "attributes" | "elements" | "dataURLs">;
+	normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
 	uniqueIDs: boolean;
 }
 

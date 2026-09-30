@@ -54,6 +54,11 @@ export interface D2SnapOptions {
         elements: string[];
         emptyElements: boolean;
     };
+    normalize: {
+        iconfontsFromNames: string[];
+        labelsFromAttributes: string[];
+        svgToImg: boolean;
+    };
     skip: {
         markdown: boolean;
         textRank: boolean;
