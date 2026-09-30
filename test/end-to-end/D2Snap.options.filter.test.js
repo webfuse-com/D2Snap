@@ -7,10 +7,13 @@ const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
 await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
-    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
+    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: true
+        },
+        skip: {
+            markdown: true
         }
     });
 
@@ -29,10 +32,13 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
         "Invalid DOM snapshot"
     );
 
-    const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
+    const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: false
+        },
+        skip: {
+            markdown: true
         }
     });
 

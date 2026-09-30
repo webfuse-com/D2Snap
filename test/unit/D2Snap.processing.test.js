@@ -7,6 +7,21 @@ import { preProcessDOM, postProcessDOM, postProcessHTML } from "../../dist.lib/D
 
 const PIZZA_HTML = await readTestFile("pizza/pizza");
 
+const NORMALIZING_PRE_PROCESSING_OPTIONS = {
+    filter: {
+        dataURLs: false,
+        attributes: [],
+        elements: [],
+        emptyElements: false
+    },
+    normalize: {
+        iconfontsFromNames: [ "fa", "icon" ],
+        labelsFromAttributes: [ "aria-labelledby", "aria-label", "title" ],
+        svgToImg: true
+    },
+    uniqueIDs: false
+};
+
 
 await test("Pre-process DOM for snapshot", async () => {
     const dom = new JSDOM(PIZZA_HTML).window;
@@ -17,7 +32,8 @@ await test("Pre-process DOM for snapshot", async () => {
     await preProcessDOM(domRoot, dom.document, {
         filter: {
             dataURLs: false,
-            tagNames: []
+            attributes: [],
+            elements: []
         },
         uniqueIDs: false
     });
@@ -38,7 +54,8 @@ await test("Pre-process DOM for snapshot", async () => {
     await preProcessDOM(domRoot, dom.document, {
         filter: {
             dataURLs: true,
-            tagNames: [ "main", "TEMPLATE", "noSCRIPT" ]
+            attributes: [ "aria-disabled" ],
+            elements: [ "main", "TEMPLATE", "noSCRIPT" ]
         },
         uniqueIDs: true
     });
@@ -58,10 +75,11 @@ await test("Pre-process DOM for snapshot", async () => {
     // In-place
     await preProcessDOM(domRoot, dom.document, {
         filter: {
-            dataURLs: false,
-            tagNames: []
+            dataURLs: true,
+            attributes: [ "aria-disabled" ],
+            elements: [ "main", "TEMPLATE", "noSCRIPT" ]
         },
-        uniqueIDs: false
+        uniqueIDs: true
     });
 
     const htmlIdempotency = domRoot.outerHTML;
@@ -176,3 +194,45 @@ await test("Post-process HTML snapshot", async () => {
         "Invalid post-processed HTML"
     );
 });
+
+
+for(const fixture of [
+    "hamburger.no-text",
+    "hamburger.img.no-alt",
+    "hamburger.img.svg",
+    "hamburger.img.iconfont"
+]) {
+    await test(`Pre-process DOM normalization (${fixture})`, async () => {
+        const dom = new JSDOM(await readTestFile(`hamburger/${fixture}`)).window;
+        const domRoot = dom.document.body;
+
+        // Processing
+        // In-place
+        await preProcessDOM(domRoot, dom.document, NORMALIZING_PRE_PROCESSING_OPTIONS);
+
+        const html = domRoot.outerHTML;
+
+        await writeActual(`hamburger/${fixture}.processed.dom.pre.normalized`, html);
+        const expected = await readExpected(`hamburger/${fixture}.processed.dom.pre.normalized`);
+
+        assertEqual(
+            flattenDOMSnapshot(html),
+            flattenDOMSnapshot(expected),
+            `Invalid normalized pre-processed DOM (${fixture})`
+        );
+
+        // Same-processing options (expect idempotency)
+        // In-place
+        await preProcessDOM(domRoot, dom.document, NORMALIZING_PRE_PROCESSING_OPTIONS);
+
+        const htmlIdempotency = domRoot.outerHTML;
+
+        await writeActual(`hamburger/${fixture}.processed.dom.pre.normalized.idempotency`, htmlIdempotency);
+
+        assertEqual(
+            flattenDOMSnapshot(htmlIdempotency),
+            flattenDOMSnapshot(expected),
+            `Invalid normalized pre-processed DOM (idempotency, ${fixture})`
+        );
+    });
+}

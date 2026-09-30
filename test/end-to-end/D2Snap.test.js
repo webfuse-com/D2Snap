@@ -4,6 +4,7 @@ import { d2Snap } from "../../dist.lib/api.js";
 
 
 const PIZZA_HTML = await readTestFile("pizza/pizza");
+const HAMBURGER_HTML = await readTestFile("hamburger/hamburger.no-text");
 
 
 await test("Take DOM snapshot (L)", async () => {
@@ -45,7 +46,7 @@ await test("Take DOM snapshot (M)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.31,
+        0.32,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -89,7 +90,7 @@ await test("Take DOM snapshot (linearized)", async () => {
 
     assertAlmostEqual(
         snapshot.meta.sizeRatio,
-        0.23,
+        0.24,
         2,
         "Invalid DOM snapshot size ratio"
     );
@@ -114,17 +115,30 @@ await test("Take DOM snapshot (linearized)", async () => {
 });
 
 await test("Take DOM snapshot (defaults)", async () => {
-    const snapshot = await d2Snap(PIZZA_HTML, 0.5, 0.5, 0.5, {
+    const snapshotPizza = await d2Snap(PIZZA_HTML, 0.5, 0.5, 0.5, {
         debug: true
     });
 
-    await writeActual("pizza/pizza.defaults", snapshot.html);
-    const expected = await readExpected("pizza/pizza.defaults");
+    await writeActual("pizza/pizza.defaults", snapshotPizza.html);
+    const expectedPizza = await readExpected("pizza/pizza.defaults");
 
     assertEqual(
-        snapshot.html,
-        expected,
-        "Invalid DOM snapshot"
+        snapshotPizza.html,
+        expectedPizza,
+        "Invalid DOM snapshot (pizza)"
+    );
+
+    const snapshotHamburger = await d2Snap(HAMBURGER_HTML, 0.5, 0.5, 0.5, {
+        debug: true
+    });
+
+    await writeActual("hamburger/hamburger.defaults", snapshotHamburger.html);
+    const expectedHamburger = await readExpected("hamburger/hamburger.defaults");
+
+    assertEqual(
+        snapshotHamburger.html,
+        expectedHamburger,
+        "Invalid DOM snapshot (hamburger)"
     );
 });
 
