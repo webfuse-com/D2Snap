@@ -1,3 +1,4 @@
+import { deepMerge } from "./util.obj.js";
 function initArray(n) {
   return Array.from({ length: n }, () => null);
 }
@@ -6,13 +7,12 @@ function tokenizeSentences(text) {
 }
 function textRank(sentences, options = {}) {
   if (!sentences.length) return [];
-  const optionsWithDefaults = {
+  const optionsWithDefaults = deepMerge({
     damping: 0.75,
     maxIterations: 20,
     minSimilarity: 0.1,
-    tolerance: 1e-4,
-    ...options
-  };
+    tolerance: 1e-4
+  }, options);
   const sentenceCount = sentences.length;
   const termFrequencyPerSentence = initArray(sentenceCount);
   const sentenceVectorNorms = new Float64Array(sentenceCount);

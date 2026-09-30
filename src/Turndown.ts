@@ -34,6 +34,19 @@ export class Turndown {
 					return false;
 				},
 				replacement: (_content: string, node: Node) => (node as Element).outerHTML
+			})
+			.addRule("imageWithoutSrc", {
+				filter: (node: HTMLElement) => {
+					return (
+						node.nodeName === "IMG"
+						&& !(node.getAttribute("src") ?? "").trim()
+					);
+				},
+				replacement: (_content: string, node: HTMLElement) => {
+					const alt: string = (node.getAttribute("alt") ?? "").trim();
+
+					return alt ? `![${alt}]()` : "";
+				}
 			});
 
 		this.service.use(gfm);

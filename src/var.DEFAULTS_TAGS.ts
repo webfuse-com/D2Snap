@@ -71,8 +71,3 @@ export const DEFAULT_FILTER_TAG_NAMES: string[] = [
 	"TEMPLATE",
 	"USE"
 ];
-
-export const DEFAULT_LABEL_TO_TEXT_TAG_NAMES: string[] = [
-	"IMG",
-	"SVG"
-];

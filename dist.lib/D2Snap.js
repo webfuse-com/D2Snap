@@ -5,12 +5,24 @@ import {
   NodeType
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
+import {
+  DEFAULT_ATTRIBUTE_SCORES
+} from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import {
+  DEFAULT_FILTER_ATTRIBUTE_NAMES,
+  DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+  DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES
+} from "./var.DEFAULTS_ATTRIBUTES.js";
+import {
+  DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+  DEFAULT_CLASS_TEXT_TAG_NAMES,
+  DEFAULT_FILTER_TAG_NAMES
+} from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORES } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
+import { deepMerge } from "./util.obj.js";
 const WHITESPACE_REGEX = /^\s$/;
 const COLON_SCHEME_TAG_REGEX = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
 const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = new Set(
@@ -44,39 +56,41 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   if (!document) throw new ReferenceError("Could not resolve a valid document object from DOM");
   const rootElement = resolveRoot(dom);
   const originalSize = rootElement.innerHTML.length;
-  const optionsWithDefaults = {
-    debug: false,
-    filter: void 0,
-    labelToText: void 0,
-    minify: true,
-    textRankOptions: void 0,
-    uniqueIDs: false,
-    ...options,
-    attributeScores: {
-      ...DEFAULT_ATTRIBUTE_SCORES,
-      ...options.attributeScoring ?? {},
-      // deprecated
-      ...options.attributeScores ?? {}
+  const optionsWithDefaults = deepMerge({
+    attributeScores: DEFAULT_ATTRIBUTE_SCORES,
+    classification: {
+      actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+      textElements: DEFAULT_CLASS_TEXT_TAG_NAMES,
+      textLabelAttributes: ["title"]
     },
-    elementClasses: {
-      actionables: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
-      text: DEFAULT_CLASS_TEXT_TAG_NAMES,
-      ...options.elementClasses ?? {}
+    debug: false,
+    filter: {
+      attributes: DEFAULT_FILTER_ATTRIBUTE_NAMES,
+      dataURLs: true,
+      elements: DEFAULT_FILTER_TAG_NAMES,
+      emptyElements: true
+    },
+    minify: true,
+    normalize: {
+      iconfontsFromNames: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+      labelsFromAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
+      svgToImg: true
     },
     skip: {
       markdown: false,
-      textRank: false,
-      ...options.skip ?? {}
-    }
-  };
+      textRank: false
+    },
+    uniqueIDs: false
+  }, options);
+  optionsWithDefaults.attributeScoring = optionsWithDefaults.attributeScores;
   const attributeScores = new Map(
     Object.entries(optionsWithDefaults.attributeScores).map((entry) => [entry[0].toLowerCase(), entry[1]])
   );
   const actionableElementTagNames = new Set(
-    (optionsWithDefaults.elementClasses?.actionables ?? []).map((tagName) => tagName.toUpperCase())
+    (optionsWithDefaults.classification?.actionableElements ?? []).map((tagName) => tagName.toUpperCase())
   );
   const textElementTagNames = new Set(
-    (optionsWithDefaults.elementClasses?.text ?? []).map((tagName) => tagName.toUpperCase())
+    (optionsWithDefaults.classification?.textElements ?? []).map((tagName) => tagName.toUpperCase())
   );
   const _isActionableElement = (elementNode) => {
     return isActionableElement(elementNode, actionableElementTagNames);
@@ -153,10 +167,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   t0 = t();
   preProcessDOM(virtualDom, document, {
     filter: optionsWithDefaults.filter,
-    labelToText: optionsWithDefaults.labelToText,
+    normalize: optionsWithDefaults.normalize,
     uniqueIDs: optionsWithDefaults.uniqueIDs
   });
   timings.preProcessing = t() - t0;
+  t0 = t();
   let domTreeHeight = 0;
   traverseDom(
     virtualDom,

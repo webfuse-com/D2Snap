@@ -10,10 +10,20 @@ import {
 	type TextNode
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
+import {
+	DEFAULT_ATTRIBUTE_SCORES
+} from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import {
+	DEFAULT_FILTER_ATTRIBUTE_NAMES,
+	DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+	DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES
+} from "./var.DEFAULTS_ATTRIBUTES.js";
+import {
+	DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+	DEFAULT_CLASS_TEXT_TAG_NAMES,
+	DEFAULT_FILTER_TAG_NAMES
+} from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORES } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
-import { DEFAULT_FILTER_ATTRIBUTE_NAMES, DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES } from "./var.DEFAULTS_ATTRIBUTES.js";
-import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
@@ -83,7 +93,7 @@ export function d2Snap(
 
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
-	const optionsWithDefaults: D2SnapOptions = deepMerge({
+	const optionsWithDefaults: D2SnapOptions = deepMerge<D2SnapOptions, Partial<D2SnapOptions>>({
 		attributeScores: DEFAULT_ATTRIBUTE_SCORES,
 		classification: {
 			actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
@@ -99,8 +109,8 @@ export function d2Snap(
 		},
 		minify: true,
 		normalize: {
-			imgIconfonts: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
-			labelAttributes: [],
+			iconfontsFromNames: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+			labelsFromAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
 			svgToImg: true
 		},
 		skip: {
@@ -177,7 +187,7 @@ export function d2Snap(
 		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
 
 		elementNode
-			  .replaceWith(...[document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ")]);
+			  .replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
 
 		// Strip same-tag replacements before returning for re-traversal:
 		// Turndown passes some textFormatting elements through verbatim
@@ -253,13 +263,15 @@ export function d2Snap(
 
 	// Pre-process
 	t0 = t();
-	preProcessDOM(virtualDom, {
+	preProcessDOM(virtualDom, document, {
 		filter: optionsWithDefaults.filter,
+		normalize: optionsWithDefaults.normalize,
 		uniqueIDs: optionsWithDefaults.uniqueIDs
 	});
 	timings.preProcessing = t() - t0;
 
 	// Write depth per node
+	t0 = t();
 	let domTreeHeight: number = 0;
 	traverseDom<Node>(
 		virtualDom,

@@ -20,6 +20,14 @@ class Turndown {
         return false;
       },
       replacement: (_content, node) => node.outerHTML
+    }).addRule("imageWithoutSrc", {
+      filter: (node) => {
+        return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
+      },
+      replacement: (_content, node) => {
+        const alt = (node.getAttribute("alt") ?? "").trim();
+        return alt ? `![${alt}]()` : "";
+      }
     });
     this.service.use(gfm);
   }

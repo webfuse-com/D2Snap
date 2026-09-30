@@ -5,7 +5,7 @@ import { formatHTML, isVoidElement } from "./util.html.js";
 
 
 interface DOMPreProcessingOptions {
-	filter: Pick<D2SnapOptions["filter"], "attributes" | "elements" | "dataURLs">;
+	filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
 	normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
 	uniqueIDs: boolean;
 }
@@ -22,22 +22,68 @@ interface HTMLPostProcessingOptions {
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
+const UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER: string = "-";
 
 
 function normalizeCaseInsensitive(str: string): string {
 	return str.toUpperCase();
 }
 
-function normalizeCaseInsensitiveArrayToSet(tagNames: string[]): Set<string> {
-	return new Set(
-		tagNames
-			.map((tagName: string) => normalizeCaseInsensitive(tagName))
-	);
+function normalizeCaseInsensitiveArray(tagNames: string[]): string[] {
+	return tagNames
+		.map((tagName: string) => normalizeCaseInsensitive(tagName));
 }
 
-export function preProcessDOM(domRoot: Element, options: DOMPreProcessingOptions): void {
-	const filterElementsTagNames: Set<string> = normalizeCaseInsensitiveArrayToSet(options.filter?.elements ?? []);
-	const filterAttributesNames: Set<string> = normalizeCaseInsensitiveArrayToSet(options.filter?.attributes ?? []);
+function elementHasTagName(elementNode: Element, tagName: string): boolean {
+	return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
+}
+
+function elementHasNoTextContent(elementNode: Element): boolean {
+	return !(elementNode.textContent ?? "").trim()
+		&& !elementNode.querySelector("img[alt]:not([alt=''])");
+}
+
+function getElementLabelAttribute(elementNode: Element, labelAttributeNames: string[]): string | null {
+	for(const labelAttributeName of labelAttributeNames) {
+		const labelAttributeValue: string = (elementNode.getAttribute(labelAttributeName) ?? "").trim();
+
+		if(!labelAttributeValue) continue;
+
+		if(labelAttributeName.toLowerCase() !== "aria-labelledby") return labelAttributeValue;
+
+		const referencedText: string = labelAttributeValue
+			.split(/\s+/)
+			.map((id: string) => (elementNode.ownerDocument.getElementById(id)?.textContent ?? "").trim())
+			.filter(Boolean)
+			.join(" ");
+
+		if(referencedText) return referencedText;
+	}
+
+	return null;
+}
+
+function replaceElementByImage(elementNode: Element, document: Document, alt: string = ""): HTMLImageElement {
+	const imgSubstituteElementNode: HTMLImageElement = document.createElement("img");
+
+	alt
+		&& imgSubstituteElementNode.setAttribute("alt", alt);
+
+	elementNode.replaceWith(imgSubstituteElementNode);
+
+	return imgSubstituteElementNode;
+}
+
+
+export function preProcessDOM(
+	domRoot: Element,
+	document: Document,
+	options: DOMPreProcessingOptions
+): void {
+	const filterElementsTagNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
+	const filterAttributesNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
+	const iconfontsFromNames: string[] = options.normalize?.iconfontsFromNames ?? [];
+	const labelsFromAttributes: string[] = options.normalize?.labelsFromAttributes ?? [];
 
 	let i: number = 0;
 
@@ -45,15 +91,70 @@ export function preProcessDOM(domRoot: Element, options: DOMPreProcessingOptions
 		domRoot,
 		NodeFilter.SHOW_ALL,
 		(node: Node) => {
-			if (node.nodeType === NodeType.COMMENT_NODE) {
+			// Filter
+
+			if(node.nodeType === NodeType.COMMENT_NODE) {
 				node.parentNode?.removeChild(node);
 
 				return;
 			}
 
-			if (node.nodeType !== NodeType.ELEMENT_NODE) return;
+			if(node.nodeType !== NodeType.ELEMENT_NODE) return;
 
 			const elementNode = node as Element;
+
+			// Normalize (optionals)
+
+			// Meta-image to image.
+			if(elementHasTagName(elementNode, "SVG")) {
+				if(options.normalize?.svgToImg) {
+					const title: string = (elementNode.querySelector("title")?.textContent ?? "").trim();
+					const labelAttributeValue: string | null = title
+						|| getElementLabelAttribute(elementNode, labelsFromAttributes);
+
+					if(labelAttributeValue) {
+						return [ replaceElementByImage(elementNode, document, labelAttributeValue) ];
+					}
+				}
+			} else if(iconfontsFromNames.length) {
+				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
+					let iconfontsInClass: string | null = null;
+					for(const className of [ ...elementNode.classList ].reverse()) {
+						const parts: string[] = className.split(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+
+						if(parts.length < 2 || !iconfontsFromNames.includes(parts[0])) continue;
+
+						iconfontsInClass = parts.slice(1).join(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+
+						break;
+					}
+
+					if(iconfontsInClass) {
+						const alt: string = getElementLabelAttribute(elementNode, labelsFromAttributes) ?? iconfontsInClass;
+
+						return [ replaceElementByImage(elementNode, document, alt) ];
+					}
+				}
+			}
+
+			// Text-label attributes to text (non-void elements) or 'alt' (image elements).
+			if(labelsFromAttributes.length) {
+				const labelAttributeValue: string | null = getElementLabelAttribute(elementNode, labelsFromAttributes);
+				if(labelAttributeValue) {
+					if(elementHasTagName(elementNode, "IMG")) {
+						// Image
+						const altAttributeValue: string = (elementNode.getAttribute("alt") ?? "").trim();
+						!altAttributeValue
+							&& elementNode.setAttribute("alt", labelAttributeValue as string);
+					} else if(!isVoidElement(elementNode.tagName)) {
+						// Text
+						elementHasNoTextContent(elementNode)
+							&& elementNode.prepend(labelAttributeValue as string);
+					}
+				}
+			}
+
+			// Filter (optionals)
 
 			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
 				elementNode.remove();
@@ -67,17 +168,17 @@ export function preProcessDOM(domRoot: Element, options: DOMPreProcessingOptions
 				}
 			}
 
-			if (options.uniqueIDs) {
+			if(options.uniqueIDs) {
 				elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
 
 				i++;
 			}
 
-			if (options.filter?.dataURLs ?? []) {
-				for (const attr of Array.from(elementNode.attributes)) {
-					if (
+			if(options.filter?.dataURLs) {
+				for(const attr of Array.from(elementNode.attributes)) {
+					if(
 						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
-						|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
+							|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
 					) continue;
 
 					elementNode.removeAttribute(attr.name);
@@ -87,9 +188,13 @@ export function preProcessDOM(domRoot: Element, options: DOMPreProcessingOptions
 	);
 }
 
-export function postProcessDOM(domRoot: Element, options: DOMPostProcessingOptions, isActionableElement: (elementNode: Element) => boolean): void {
+export function postProcessDOM(
+	domRoot: Element,
+	options: DOMPostProcessingOptions,
+	isActionableElement: (elementNode: Element) => boolean
+): void {
 	// Remove elements that became empty
-	if (options.filter?.emptyElements ?? []) {
+	if (options.filter?.emptyElements) {
 		let hasRemovedElement: boolean;
 
 		do {
@@ -113,7 +218,7 @@ export function postProcessDOM(domRoot: Element, options: DOMPostProcessingOptio
 	}
 
 	// Minify
-	if (options.minify) {
+	if(options.minify) {
 		minifyDOM(domRoot);
 	}
 }

@@ -69,6 +69,8 @@ export function traverseDom<T>(
 	while(stack.length) {
 		const node: Node = stack.pop()!;
 
+		if(!root.contains(node)) continue;
+
 		const children: Node[] = [ ...node.childNodes ];
 		const childIndex = stack.length;
 		const childCount = children.length;

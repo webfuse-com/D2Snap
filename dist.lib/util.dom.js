@@ -46,6 +46,7 @@ function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
   }
   while (stack.length) {
     const node = stack.pop();
+    if (!root.contains(node)) continue;
     const children = [...node.childNodes];
     const childIndex = stack.length;
     const childCount = children.length;
