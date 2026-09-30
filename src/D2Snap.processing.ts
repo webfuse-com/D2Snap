@@ -43,17 +43,34 @@ function elementHasNoTextContent(elementNode: Element): boolean {
 		&& !elementNode.querySelector("img[alt]:not([alt=''])");
 }
 
-function getElementLabelAttribute(elementNode: Element, labelAttributeNames: string[]): string | null {
+function resolveIdReferenceText(elementNode: Element, document: Document, id: string): string {
+	const selector: string = `[id="${id.replace(/["\\]/g, "\\$&")}"]`;
+	const scopes: ParentNode[] = [ elementNode.getRootNode() as ParentNode, document ];
+
+	for(const scope of scopes) {
+		for(const candidate of scope.querySelectorAll?.(selector) ?? []) {
+			const text: string = (candidate.textContent ?? "").trim();
+
+			if(text) return text;
+		}
+	}
+
+	return "";
+}
+
+function getElementLabelAttribute(elementNode: Element, document: Document, labelAttributeNames: string[]): string | null {
 	for(const labelAttributeName of labelAttributeNames) {
 		const labelAttributeValue: string = (elementNode.getAttribute(labelAttributeName) ?? "").trim();
 
 		if(!labelAttributeValue) continue;
 
-		if(labelAttributeName.toLowerCase() !== "aria-labelledby") return labelAttributeValue;
+		if(normalizeCaseInsensitive(labelAttributeName) !== normalizeCaseInsensitive("aria-labelledby")) {
+			return labelAttributeValue;
+		}
 
 		const referencedText: string = labelAttributeValue
 			.split(/\s+/)
-			.map((id: string) => (elementNode.ownerDocument.getElementById(id)?.textContent ?? "").trim())
+			.map((id: string) => resolveIdReferenceText(elementNode, document, id))
 			.filter(Boolean)
 			.join(" ");
 
@@ -110,7 +127,7 @@ export function preProcessDOM(
 				if(options.normalize?.svgToImg) {
 					const title: string = (elementNode.querySelector("title")?.textContent ?? "").trim();
 					const labelAttributeValue: string | null = title
-						|| getElementLabelAttribute(elementNode, labelsFromAttributes);
+						|| getElementLabelAttribute(elementNode, document, labelsFromAttributes);
 
 					if(labelAttributeValue) {
 						return [ replaceElementByImage(elementNode, document, labelAttributeValue) ];
@@ -130,7 +147,7 @@ export function preProcessDOM(
 					}
 
 					if(iconfontsInClass) {
-						const alt: string = getElementLabelAttribute(elementNode, labelsFromAttributes) ?? iconfontsInClass;
+						const alt: string = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
 
 						return [ replaceElementByImage(elementNode, document, alt) ];
 					}
@@ -139,7 +156,7 @@ export function preProcessDOM(
 
 			// Text-label attributes to text (non-void elements) or 'alt' (image elements).
 			if(labelsFromAttributes.length) {
-				const labelAttributeValue: string | null = getElementLabelAttribute(elementNode, labelsFromAttributes);
+				const labelAttributeValue: string | null = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
 				if(labelAttributeValue) {
 					if(elementHasTagName(elementNode, "IMG")) {
 						// Image

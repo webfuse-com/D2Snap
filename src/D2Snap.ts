@@ -180,7 +180,7 @@ export function d2Snap(
 
 		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
-		const markdownNodesFragment = resolveDocument(dom)!
+		const markdownNodesFragment = document
 			.createRange()
 			.createContextualFragment(markdown);
 

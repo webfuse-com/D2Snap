@@ -157,6 +157,29 @@ await test("Markdown autolink URL does not become a bogus container element", as
     assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
 });
 
+await test("Keep aria-labelledby descriptor of empty actionable element", async () => {
+    const html = `<html><body>
+        <div class="ot-accordion-layout">
+            <button aria-expanded="false" aria-controls="ot-desc-id-5" aria-labelledby="ot-header-id-5"></button>
+            <div class="ot-acc-hdr">
+                <h4 class="ot-cat-header" id="ot-header-id-5">Social Media Cookies</h4>
+            </div>
+            <p id="ot-desc-id-5">Social Media cookies are set by a range of social media services.</p>
+        </div>
+    </body></html>`;
+
+    for(const r of [ 0.1, 0.5, 0.9, 1.0 ]) {
+        const snapshot = await d2Snap(html, r, r, r, { debug: true });
+        const buttonText = (snapshot.dom.querySelector("button")?.textContent ?? "").trim();
+
+        assertEqual(
+            buttonText,
+            "Social Media Cookies",
+            `Actionable element lost its aria-labelledby descriptor at r=${r}`
+        );
+    }
+});
+
 // ---------------------------------------------------------------------------
 // End-to-end regression guard on the full, real-world news homepage (cnn.com; >2MB).
 // ---------------------------------------------------------------------------

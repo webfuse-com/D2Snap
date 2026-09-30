@@ -109,21 +109,32 @@ D2Snap.adaptiveD2Snap(
 ``` ts
 type DOM = Document | Element | string;
 type Options = {
-  debug?: boolean;            // false
-  minify?: boolean;           // true
-  outerHTML?: boolean;        // false
-  uniqueIDs?: boolean;        // false
-  attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
-    [ name: string ]: number;
+  attributeScores: AttributeScoring;
+  classification: {
+    actionableElements: string[];
+    textElements: string[];
+    textLabelAttributes: string[];
   };
-  labelToText?: {
-    iconFonts?: boolean;       // false
-    tagNames?: string[];       // [ "IMG", "SVG" ]
-  }>;
-  skip?: {
-    markdown?: boolean;       // false
-    skipTextRank?: boolean;   // false
+  debug: boolean;
+  filter: {
+    attributes: string[];
+    dataURLs: boolean;
+    elements: string[];
+    emptyElements: boolean;
   };
+  normalize: {
+    iconfontsFromNames: string[];
+    labelsFromAttributes: string[];
+    svgToImg: boolean;
+  };
+  skip: {
+    markdown: boolean;
+    textRank: boolean;
+  };
+  minify: boolean;
+  uniqueIDs: boolean;
+
+  textRankOptions?: TextRankOptions;
 };
 ```
 
@@ -177,11 +188,12 @@ npm run test
 npm run test:<SUITE> -- [<TEST-NAME=*> # e.g., D2Snap.options.filter] [<FLAG>*]
 ```
 
-| Suite | Flags |
-| :- | :- |
-| `unit` | |
+| Suite | Flags | Note |
+| :- | :- | :- |
+| `unit` | | |
 | `end-to-end` | |
-| `regression` | `--next-failure` |
+| `regression` | | |
+| `regression:syntax` | `--next-failure` | _Over 90 real-world web pages_ |
 
 #### Evaluate
 
