@@ -121,7 +121,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if (_isActionableElement(elementNode)) return;
     if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
-    const markdownNodesFragment = resolveDocument(dom).createRange().createContextualFragment(markdown);
+    const markdownNodesFragment = document2.createRange().createContextualFragment(markdown);
     const replacingNodes = [...markdownNodesFragment.childNodes];
     elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
     const sourceTagName = elementNode.tagName.toLowerCase();

@@ -1,0 +1,17 @@
+import { D2SnapOptions } from "./types.js";
+interface DOMPreProcessingOptions {
+    filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
+    normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
+    uniqueIDs: boolean;
+}
+interface DOMPostProcessingOptions {
+    filter: Pick<D2SnapOptions["filter"], "emptyElements">;
+    minify: boolean;
+}
+interface HTMLPostProcessingOptions {
+    debug: boolean;
+}
+export declare function preProcessDOM(domRoot: Element, document: Document, options: DOMPreProcessingOptions): void;
+export declare function postProcessDOM(domRoot: Element, options: DOMPostProcessingOptions, isActionableElement: (elementNode: Element) => boolean): void;
+export declare function postProcessHTML(html: string, options: Partial<HTMLPostProcessingOptions>): string;
+export {};

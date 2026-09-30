@@ -162,11 +162,11 @@ export function preProcessDOM(
 						// Image
 						const altAttributeValue: string = (elementNode.getAttribute("alt") ?? "").trim();
 						!altAttributeValue
-							&& elementNode.setAttribute("alt", labelAttributeValue as string);
+							&& elementNode.setAttribute("alt", labelAttributeValue);
 					} else if(!isVoidElement(elementNode.tagName)) {
 						// Text
 						elementHasNoTextContent(elementNode)
-							&& elementNode.prepend(labelAttributeValue as string);
+							&& elementNode.prepend(labelAttributeValue);
 					}
 				}
 			}

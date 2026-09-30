@@ -1,9 +1,11 @@
 import { deepMerge } from "./util.obj.js";
+const SENTENCE_DELIMITER_REGEX = /(?<=\p{Sentence_Terminal})\s|\n|\r/gu;
+const TOKEN_PATTERN_REGEX = /[\p{L}\p{N}]+/gu;
 function initArray(n) {
   return Array.from({ length: n }, () => null);
 }
 function tokenizeSentences(text) {
-  return text.split(/(?<=\p{Sentence_Terminal})\s|\n|\r/gu).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
+  return text.split(SENTENCE_DELIMITER_REGEX).map((rawSentence) => rawSentence.trim()).filter((sentence) => !!sentence);
 }
 function textRank(sentences, options = {}) {
   if (!sentences.length) return [];
@@ -16,12 +18,11 @@ function textRank(sentences, options = {}) {
   const sentenceCount = sentences.length;
   const termFrequencyPerSentence = initArray(sentenceCount);
   const sentenceVectorNorms = new Float64Array(sentenceCount);
-  const tokenPattern = /[a-z0-9]+/g;
   for (let i = 0; i < sentenceCount; i++) {
     const termFrequencies = /* @__PURE__ */ new Map();
     const lowercaseSentence = sentences[i].toLowerCase();
     let tokenMatch;
-    while ((tokenMatch = tokenPattern.exec(lowercaseSentence)) !== null) {
+    while ((tokenMatch = TOKEN_PATTERN_REGEX.exec(lowercaseSentence)) !== null) {
       const token = tokenMatch[0];
       const previousCount = termFrequencies.get(token) ?? 0;
       termFrequencies.set(token, previousCount + 1);

@@ -36,9 +36,11 @@ function wrapAssertion(cb, actual = null, expected = null, relationHint = null) 
             process.exit(1);
         }
 
+        relationHint = relationHint ? ` (${relationHint})` : "";
+
         console.error(`\x1b[31mAssertion Error${err.message ? ` '${err.message}\x1b[31m'` : ""}\x1b[0m`);
-        console.log(`\x1b[2mEXPECTED${relationHint ? ` (${relationHint})` : ""}:\x1b[0m`, printValue(expected ?? err.expected));
-        console.log(`\x1b[2mACTUAL:  \x1b[0m`, printValue(actual ?? err.actual));
+        console.log(`\x1b[2mEXPECTED${relationHint}:\x1b[0m`, printValue(expected ?? err.expected));
+        console.log(`\x1b[2mACTUAL:  ${" ".repeat(relationHint)}\x1b[0m`, printValue(actual ?? err.actual));
 
         exitCode = 2;
 

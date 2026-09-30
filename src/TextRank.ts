@@ -14,6 +14,10 @@ interface TextRankSentence {
 }
 
 
+const SENTENCE_DELIMITER_REGEX: RegExp = /(?<=\p{Sentence_Terminal})\s|\n|\r/gu;
+const TOKEN_PATTERN_REGEX: RegExp = /[\p{L}\p{N}]+/gu;
+
+
 function initArray<T>(n: number): (T | null)[] {
 	return Array.from({ length: n }, () => null);
 }
@@ -21,11 +25,10 @@ function initArray<T>(n: number): (T | null)[] {
 
 export function tokenizeSentences(text: string): string[] {
 	return text
-		.split(/(?<=\p{Sentence_Terminal})\s|\n|\r/gu)
+		.split(SENTENCE_DELIMITER_REGEX)
         .map((rawSentence: string) => rawSentence.trim())
         .filter((sentence: string) => !!sentence);
 }
-
 
 export function textRank(sentences: string[], options: Partial<TextRankOptions> = {}): TextRankSentence[] {
 	if (!sentences.length) return [];
@@ -41,14 +44,13 @@ export function textRank(sentences: string[], options: Partial<TextRankOptions> 
 
 	const termFrequencyPerSentence = initArray<Map<string, number>>(sentenceCount);
 	const sentenceVectorNorms: Float64Array = new Float64Array(sentenceCount);
-	const tokenPattern: RegExp = /[a-z0-9]+/g;
 
 	for(let i = 0; i < sentenceCount; i++) {
 		const termFrequencies: Map<string, number> = new Map<string, number>();
 		const lowercaseSentence: string = sentences[i].toLowerCase();
 
 		let tokenMatch: RegExpExecArray | null;
-		while((tokenMatch = tokenPattern.exec(lowercaseSentence)) !== null) {
+		while((tokenMatch = TOKEN_PATTERN_REGEX.exec(lowercaseSentence)) !== null) {
 			const token: string = tokenMatch[0];
 			const previousCount: number = termFrequencies.get(token) ?? 0;
 			termFrequencies.set(token, previousCount + 1);

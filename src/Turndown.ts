@@ -6,6 +6,9 @@ import TurndownService from "turndown";
 import { gfm } from "@truto/turndown-plugin-gfm"
 
 
+const BRACKET_REGEX: RegExp = /[[\]\\]/g;
+
+
 const _escape = TurndownService.prototype.escape.bind(null);
 TurndownService.prototype.escape = s => _escape(s).replace(/</g, '&lt;');
 
@@ -43,7 +46,7 @@ export class Turndown {
 					);
 				},
 				replacement: (_content: string, node: HTMLElement) => {
-					const alt: string = (node.getAttribute("alt") ?? "").trim();
+					const alt: string = (node.getAttribute("alt") ?? "").trim().replace(BRACKET_REGEX, "\\$&");
 
 					return alt ? `![${alt}]()` : "";
 				}

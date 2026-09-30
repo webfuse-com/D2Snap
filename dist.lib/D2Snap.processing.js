@@ -17,12 +17,25 @@ function elementHasTagName(elementNode, tagName) {
 function elementHasNoTextContent(elementNode) {
   return !(elementNode.textContent ?? "").trim() && !elementNode.querySelector("img[alt]:not([alt=''])");
 }
-function getElementLabelAttribute(elementNode, labelAttributeNames) {
+function resolveIdReferenceText(elementNode, document, id) {
+  const selector = `[id="${id.replace(/["\\]/g, "\\$&")}"]`;
+  const scopes = [elementNode.getRootNode(), document];
+  for (const scope of scopes) {
+    for (const candidate of scope.querySelectorAll?.(selector) ?? []) {
+      const text = (candidate.textContent ?? "").trim();
+      if (text) return text;
+    }
+  }
+  return "";
+}
+function getElementLabelAttribute(elementNode, document, labelAttributeNames) {
   for (const labelAttributeName of labelAttributeNames) {
     const labelAttributeValue = (elementNode.getAttribute(labelAttributeName) ?? "").trim();
     if (!labelAttributeValue) continue;
-    if (labelAttributeName.toLowerCase() !== "aria-labelledby") return labelAttributeValue;
-    const referencedText = labelAttributeValue.split(/\s+/).map((id) => (elementNode.ownerDocument.getElementById(id)?.textContent ?? "").trim()).filter(Boolean).join(" ");
+    if (normalizeCaseInsensitive(labelAttributeName) !== normalizeCaseInsensitive("aria-labelledby")) {
+      return labelAttributeValue;
+    }
+    const referencedText = labelAttributeValue.split(/\s+/).map((id) => resolveIdReferenceText(elementNode, document, id)).filter(Boolean).join(" ");
     if (referencedText) return referencedText;
   }
   return null;
@@ -52,7 +65,7 @@ function preProcessDOM(domRoot, document, options) {
       if (elementHasTagName(elementNode, "SVG")) {
         if (options.normalize?.svgToImg) {
           const title = (elementNode.querySelector("title")?.textContent ?? "").trim();
-          const labelAttributeValue = title || getElementLabelAttribute(elementNode, labelsFromAttributes);
+          const labelAttributeValue = title || getElementLabelAttribute(elementNode, document, labelsFromAttributes);
           if (labelAttributeValue) {
             return [replaceElementByImage(elementNode, document, labelAttributeValue)];
           }
@@ -67,13 +80,13 @@ function preProcessDOM(domRoot, document, options) {
             break;
           }
           if (iconfontsInClass) {
-            const alt = getElementLabelAttribute(elementNode, labelsFromAttributes) ?? iconfontsInClass;
+            const alt = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
             return [replaceElementByImage(elementNode, document, alt)];
           }
         }
       }
       if (labelsFromAttributes.length) {
-        const labelAttributeValue = getElementLabelAttribute(elementNode, labelsFromAttributes);
+        const labelAttributeValue = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
         if (labelAttributeValue) {
           if (elementHasTagName(elementNode, "IMG")) {
             const altAttributeValue = (elementNode.getAttribute("alt") ?? "").trim();
