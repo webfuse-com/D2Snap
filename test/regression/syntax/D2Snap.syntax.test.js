@@ -1,8 +1,5 @@
 import { join } from "path";
 import { readdir, readFile } from "fs/promises";
-import { createHash } from "crypto";
-
-import { JSDOM, VirtualConsole } from "jsdom";
 
 import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "../../test.util.js";
 
@@ -14,7 +11,6 @@ import { d2Snap } from "../../../dist.lib/api.js";
 
 const STOP_ON_FAILURE = process.argv.slice(2).includes("--next-failure");
 const FILES_DIRECTORY_PATH = join(TEST_FILES_DIRECTORY_PATH, "_regression");
-const MAX_FAILURES = 50;
 const DOWNSAMPLING_RATIOS = {
     rE: 0.1,
     rA: 0.1,
@@ -40,12 +36,6 @@ function printFormatHTML(html, maxLength = 500) {
         formatHTML(html)
             .slice(0, maxLength)
     }...`;
-}
-
-function hashHTML(html) {
-    return createHash("sha1")
-        .update(html)
-        .digest("hex");
 }
 
 async function traverseDOM(domRoot, nodeFn) {
@@ -139,8 +129,6 @@ await (async () => {
 
     if(!testCaseDirents.length) throw new RangeError("No test cases found");
 
-    const failedInputHashes = new Set();
-
     try {
         for(const dirent of testCaseDirents) {
             let hasFileError = false;
@@ -162,49 +150,30 @@ await (async () => {
             await writeActual(`_regression/${dirent.name.replace(/\.html$/i, "")}`, downsamplingResult.html);
 
             await traverseDOM(
-                new JSDOM(rawHTML, { virtualConsole: new VirtualConsole() })
-                    .window
-                    .document
-                    .body,
-                async inputElementNode => {
-                    const subtreeDownsamplingResult = await d2Snap(inputElementNode.outerHTML, ...DOWNSAMPLING_ARGS);
+                downsamplingResult.dom,
+                async (elementNode, attrNodes, textNodes) => {
+                    const getOuterHTMLOnly = elementNode => elementNode.cloneNode(false).outerHTML;
 
-                    if(!subtreeDownsamplingResult.dom.firstElementChild) return;
+                    const getErrorContextStr = (outerHTMLOnly = true) => {
+                        const errStr = printFormatHTML(outerHTMLOnly ? getOuterHTMLOnly(elementNode) : elementNode.outerHTML);
+                        return [
+                            `\x1b[2m${errStr}`,
+                            `\x1b[30m${"-".repeat(
+                                errStr
+                                    .split(/\n/g)
+                                    .reduce((p, c) => Math.max(p, c.length), 0)
+                            )}\x1b[0m`
+                        ].join("\n");
+                    };
 
-                    await traverseDOM(
-                        subtreeDownsamplingResult.dom,
-                        async (elementNode, attrNodes, textNodes) => {
-                            const inputHash = hashHTML(elementNode.outerHTML);
-                            if(failedInputHashes.has(inputHash)) return;
+                    record(checkElementNode(elementNode, getErrorContextStr(false)));
 
-                            const recordInput = passed => {
-                                passed || failedInputHashes.add(inputHash);
-
-                                if(failedInputHashes.size >= MAX_FAILURES) throw new MaxSignalError();
-
-                                record(passed);
-                            };
-
-                            const getOuterHTMLOnly = elementNode => elementNode.cloneNode(false).outerHTML;
-
-                            const getErrorContextStr = (outerHTMLOnly = true) => [
-                                "\x1b[2mHTML IN:",
-                                printFormatHTML(outerHTMLOnly ? getOuterHTMLOnly(inputElementNode) : inputElementNode.outerHTML),
-                                "HTML OUT:",
-                                printFormatHTML(outerHTMLOnly ? getOuterHTMLOnly(elementNode) : elementNode.outerHTML),
-                                `${"-".repeat(10)}\x1b[0m`
-                            ].join("\n");
-
-                            recordInput(checkElementNode(elementNode, getErrorContextStr(false)));
-
-                            for(const attrNode of attrNodes) {
-                                recordInput(checkAttributeNode(attrNode, getErrorContextStr(true)));
-                            }
-                            for(const textNode of textNodes) {
-                                recordInput(checkTextNode(textNode, getErrorContextStr(true)));
-                            }
-                        }
-                    );
+                    for(const attrNode of attrNodes) {
+                        record(checkAttributeNode(attrNode, getErrorContextStr(true)));
+                    }
+                    for(const textNode of textNodes) {
+                        record(checkTextNode(textNode, getErrorContextStr(true)));
+                    }
                 }
             );
 

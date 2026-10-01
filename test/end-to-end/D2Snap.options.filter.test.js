@@ -53,6 +53,7 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
         debug: true,
         filter: {
+            dataURLs: true,
             emptyElements: true
         }
     });

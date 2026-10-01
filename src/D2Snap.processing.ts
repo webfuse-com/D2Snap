@@ -43,6 +43,10 @@ function elementHasNoTextContent(elementNode: Element): boolean {
 		&& !elementNode.querySelector("img[alt]:not([alt=''])");
 }
 
+function resolveAttributeAsString(elementNode: Element, attributeName: string): string {
+	return (elementNode.getAttribute(attributeName) ?? "").trim();
+}
+
 function resolveIdReferenceText(elementNode: Element, document: Document, id: string): string {
 	const selector: string = `[id="${id.replace(/["\\]/g, "\\$&")}"]`;
 	const scopes: ParentNode[] = [ elementNode.getRootNode() as ParentNode, document ];
@@ -60,7 +64,7 @@ function resolveIdReferenceText(elementNode: Element, document: Document, id: st
 
 function getElementLabelAttribute(elementNode: Element, document: Document, labelAttributeNames: string[]): string | null {
 	for(const labelAttributeName of labelAttributeNames) {
-		const labelAttributeValue: string = (elementNode.getAttribute(labelAttributeName) ?? "").trim();
+		const labelAttributeValue: string = resolveAttributeAsString(elementNode, labelAttributeName);
 
 		if(!labelAttributeValue) continue;
 
@@ -160,7 +164,7 @@ export function preProcessDOM(
 				if(labelAttributeValue) {
 					if(elementHasTagName(elementNode, "IMG")) {
 						// Image
-						const altAttributeValue: string = (elementNode.getAttribute("alt") ?? "").trim();
+						const altAttributeValue: string = resolveAttributeAsString(elementNode, "alt");
 						!altAttributeValue
 							&& elementNode.setAttribute("alt", labelAttributeValue);
 					} else if(!isVoidElement(elementNode.tagName)) {
@@ -177,6 +181,17 @@ export function preProcessDOM(
 				elementNode.remove();
 
 				return;
+			}
+
+			if(options.filter?.emptyElements) {
+				if(elementHasTagName(elementNode, "IMG")) {
+					if(
+						!resolveAttributeAsString(elementNode, "src")
+						&& !resolveAttributeAsString(elementNode, "alt")
+					 ) {
+						elementNode.remove();
+					}
+				}
 			}
 
 			for(const attr of [ ...elementNode.attributes ]) {

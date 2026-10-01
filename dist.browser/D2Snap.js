@@ -1765,6 +1765,9 @@
   function elementHasNoTextContent(elementNode) {
     return !(elementNode.textContent ?? "").trim() && !elementNode.querySelector("img[alt]:not([alt=''])");
   }
+  function resolveAttributeAsString(elementNode, attributeName) {
+    return (elementNode.getAttribute(attributeName) ?? "").trim();
+  }
   function resolveIdReferenceText(elementNode, document2, id) {
     const selector = `[id="${id.replace(/["\\]/g, "\\$&")}"]`;
     const scopes = [elementNode.getRootNode(), document2];
@@ -1778,7 +1781,7 @@
   }
   function getElementLabelAttribute(elementNode, document2, labelAttributeNames) {
     for (const labelAttributeName of labelAttributeNames) {
-      const labelAttributeValue = (elementNode.getAttribute(labelAttributeName) ?? "").trim();
+      const labelAttributeValue = resolveAttributeAsString(elementNode, labelAttributeName);
       if (!labelAttributeValue) continue;
       if (normalizeCaseInsensitive(labelAttributeName) !== normalizeCaseInsensitive("aria-labelledby")) {
         return labelAttributeValue;
@@ -1837,7 +1840,7 @@
           const labelAttributeValue = getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
           if (labelAttributeValue) {
             if (elementHasTagName(elementNode, "IMG")) {
-              const altAttributeValue = (elementNode.getAttribute("alt") ?? "").trim();
+              const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
               !altAttributeValue && elementNode.setAttribute("alt", labelAttributeValue);
             } else if (!isVoidElement(elementNode.tagName)) {
               elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
@@ -1847,6 +1850,13 @@
         if (filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
           elementNode.remove();
           return;
+        }
+        if (options.filter?.emptyElements) {
+          if (elementHasTagName(elementNode, "IMG")) {
+            if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
+              elementNode.remove();
+            }
+          }
         }
         for (const attr of [...elementNode.attributes]) {
           if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
