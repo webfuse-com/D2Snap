@@ -4,6 +4,8 @@ import { readdir, readFile } from "fs/promises";
 import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "../../test.util.js";
 
 // Work with all defaults.
+import { DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "../../../dist.lib/var.DEFAULTS_TAGS.js";
+import { DEFAULT_FILTER_ATTRIBUTE_NAMES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTES.js";
 import { formatHTML, isVoidElement } from "../../../dist.lib/util.html.js";
 import { getAttributeScore, isActionableElement } from "../../../dist.lib/D2Snap.js";
 import { d2Snap } from "../../../dist.lib/api.js";
@@ -27,6 +29,12 @@ const DOWNSAMPLING_ARGS = [
         }
     }
 ];
+
+
+const FILTERED_TAG_NAMES = new Set(DEFAULT_FILTER_TAG_NAMES.map(t => t.toUpperCase()));
+const FILTERED_ATTRIBUTE_NAMES = new Set(DEFAULT_FILTER_ATTRIBUTE_NAMES.map(a => a.toLowerCase()));
+const TEXT_FORMATTING_TAG_NAMES = new Set(DEFAULT_CLASS_TEXT_TAG_NAMES.map(t => t.toUpperCase()));
+const TEXT_FORMATTING_PASSTHROUGH_TAG_NAMES = new Set([ "TABLE" ]);
 
 
 function printFormatHTML(html, maxLength = 500) {
@@ -78,33 +86,103 @@ async function traverseDOM(domRoot, nodeFn) {
 
 // CHECK FUNCTIONS
 
-function checkElementNode(element, errorContextStr) {
-    if(isActionableElement(element) && !isVoidElement(element.tagName)) {
-        // Assert preserved actionable element is not without description.
-        return assertMore(
-            element.textContent.trim().length,
-            0,
-            [
-                "Actionable element has empty text (expect descriptor)",
-                errorContextStr
-            ].join("\n")
-        );
-    }
+const contextMessage = (message, errorContextStr) => [ message, errorContextStr ].join("\n");
 
-    return true;
+function checkElementNode_noFilter(element, errorContextStr) {
+    // Assert element was not supposed to be filtered.
+    return assertTrue(
+        !FILTERED_TAG_NAMES.has(element.tagName.toUpperCase()),
+        contextMessage(`Filtered element (${element.tagName.toUpperCase()}) is removed`, errorContextStr)
+    );
 }
 
-function checkAttributeNode(attr, errorContextStr) {
+function checkElementNode_SVGNormalized(element, errorContextStr) {
+    // Assert SVG was noramlized to IMG.
+    return assertTrue(
+        element.tagName.toUpperCase() !== "SVG",
+        contextMessage("SVG element is normalized to <img>", errorContextStr)
+    );
+}
+
+function checkElementNode_hasText(element, errorContextStr) {
+    // Assert actionable element has text (if recoverable).
+    if(!isActionableElement(element) || isVoidElement(element.tagName)) {
+        return true;
+    }
+
+    const hasText = !!element.textContent.trim().length;
+    const elementHasDescriptor = (
+        element.hasAttribute("aria-labelledby")
+        || element.hasAttribute("aria-label")
+        || element.hasAttribute("text")
+    );
+
+    return assertTrue(
+        hasText || elementHasDescriptor,
+        contextMessage("Actionable element has text descriptor", errorContextStr)
+    );
+}
+
+function checkElementNode_textWasFormatted(element, errorContextStr) {
+    // Assert element was not supposed to be text formatted via MD.
+    const tagName = element.tagName.toUpperCase();
+
+    if(!TEXT_FORMATTING_TAG_NAMES.has(tagName)) return true;
+    if(TEXT_FORMATTING_PASSTHROUGH_TAG_NAMES.has(tagName)) return true;
+
+    for(let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+        if(isActionableElement(ancestor)) return true;
+
+        if(ancestor !== element && TEXT_FORMATTING_PASSTHROUGH_TAG_NAMES.has(ancestor.tagName.toUpperCase())) return true;
+    }
+
+    return assertTrue(
+        false,
+        contextMessage(`Text formatting element (${element.tagName.toUpperCase()}) is converted to markdown`, errorContextStr)
+    );
+}
+
+function checkElementNode(element, errorContextStr) {
+    return (
+        checkElementNode_noFilter(element, errorContextStr)
+        && checkElementNode_SVGNormalized(element, errorContextStr)
+        && checkElementNode_hasText(element, errorContextStr)
+        && checkElementNode_textWasFormatted(element, errorContextStr)
+    );
+}
+
+function checkAttribute_noFilter(attr, errorContextStr) {
+    // Assert attribute was not supposed to be filtered.
+    return assertTrue(
+        !FILTERED_ATTRIBUTE_NAMES.has(attr.name.toLowerCase()),
+        contextMessage(`Filtered attribute (${attr.name}) is removed`, errorContextStr)
+    );
+}
+
+function checkAttribute_scoresAboveThreshold(attr, errorContextStr) {
     // Assert preserved attribute score is not below threshold.
     const attributeScore = getAttributeScore(attr.name);
 
     return assertMore(
         attributeScore,
         DOWNSAMPLING_RATIOS.rA - Number.EPSILON,
-        [
-            `Attribute (${attr.name}) has score below threshold (${DOWNSAMPLING_RATIOS.rA})`,
-            errorContextStr
-        ].join("\n")
+        contextMessage(`Attribute (${attr.name}) has score less or equal to threshold (${DOWNSAMPLING_RATIOS.rA})`, errorContextStr)
+    );
+}
+
+function checkAttribute_valueIsNoDataURL(attr, errorContextStr) {
+    // Assert attribute value is no data URL (filtered by default).
+    return assertTrue(
+        !/^\s*data:/i.test(attr.value),
+        contextMessage(`Attribute (${attr.name}) value is no data URL`, errorContextStr)
+    );
+}
+
+function checkAttributeNode(attr, errorContextStr) {
+    return (
+        checkAttribute_noFilter(attr, errorContextStr)
+        && checkAttribute_scoresAboveThreshold(attr, errorContextStr)
+        && checkAttribute_valueIsNoDataURL(attr, errorContextStr)
     );
 }
 
