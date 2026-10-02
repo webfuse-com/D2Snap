@@ -26,7 +26,7 @@ class Turndown {
         return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
       },
       replacement: (_content, node) => {
-        const alt = (node.getAttribute("alt") ?? "").trim().replace(BRACKET_REGEX, "\\$&");
+        const alt = (node.getAttribute("alt") ?? "").trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(BRACKET_REGEX, "\\$&");
         return alt ? `![${alt}]()` : "";
       }
     });

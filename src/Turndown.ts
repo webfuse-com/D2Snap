@@ -46,7 +46,10 @@ export class Turndown {
 					);
 				},
 				replacement: (_content: string, node: HTMLElement) => {
-					const alt: string = (node.getAttribute("alt") ?? "").trim().replace(BRACKET_REGEX, "\\$&");
+					const alt: string = (node.getAttribute("alt") ?? "").trim()
+						.replace(/&/g, "&amp;")
+						.replace(/</g, "&lt;")
+						.replace(BRACKET_REGEX, "\\$&");
 
 					return alt ? `![${alt}]()` : "";
 				}

@@ -75,12 +75,6 @@ A true favourite!
 
 ### Integration
 
-#### Browser
-
-``` html
-<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
-```
-
 #### Module
 
 ``` console
@@ -94,6 +88,12 @@ npm install webfuse-com/D2Snap
 
 ``` js
 import * as D2Snap from "@webfuse-com/d2snap";
+```
+
+#### Browser
+
+``` html
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
 ```
 
 ##

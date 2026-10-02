@@ -83,11 +83,17 @@ function getElementLabelAttribute(elementNode: Element, document: Document, labe
 	return null;
 }
 
-function replaceElementByImage(elementNode: Element, document: Document, alt: string = ""): HTMLImageElement {
+function createImage(document: Document, alt: string = ""): HTMLImageElement {
 	const imgSubstituteElementNode: HTMLImageElement = document.createElement("img");
 
 	alt
 		&& imgSubstituteElementNode.setAttribute("alt", alt);
+
+	return imgSubstituteElementNode;
+}
+
+function replaceElementByImage(elementNode: Element, document: Document, alt: string = "") {
+	const imgSubstituteElementNode: HTMLImageElement = createImage(document, alt);
 
 	elementNode.replaceWith(imgSubstituteElementNode);
 
@@ -98,7 +104,8 @@ function replaceElementByImage(elementNode: Element, document: Document, alt: st
 export function preProcessDOM(
 	domRoot: Element,
 	document: Document,
-	options: DOMPreProcessingOptions
+	options: DOMPreProcessingOptions,
+	isActionableElement: (elementNode: Element) => boolean
 ): void {
 	const filterElementsTagNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
 	const filterAttributesNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
@@ -171,6 +178,7 @@ export function preProcessDOM(
 			} else if(iconfontsFromNames.length) {
 				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
 					let iconfontsInClass: string | null = null;
+
 					for(const className of [ ...elementNode.classList ].reverse()) {
 						const iconfontName: string | undefined = iconfontsFromNames
 							.find((name: string) => {
@@ -188,7 +196,11 @@ export function preProcessDOM(
 					if(iconfontsInClass) {
 						const alt: string = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
 
-						return [ replaceElementByImage(elementNode, document, alt) ];
+						if(!isActionableElement(elementNode)) {
+							return [ replaceElementByImage(elementNode, document, alt) ];
+						} else {
+							elementNode.prepend(createImage(document, alt));
+						}
 					}
 				}
 			}
@@ -237,7 +249,8 @@ export function postProcessDOM(
 					elementNode.remove();
 
 					hasRemovedElement = true;
-				}
+				},
+				true
 			);
 		} while (hasRemovedElement);
 	}

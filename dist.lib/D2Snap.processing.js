@@ -42,13 +42,17 @@ function getElementLabelAttribute(elementNode, document, labelAttributeNames) {
   }
   return null;
 }
-function replaceElementByImage(elementNode, document, alt = "") {
+function createImage(document, alt = "") {
   const imgSubstituteElementNode = document.createElement("img");
   alt && imgSubstituteElementNode.setAttribute("alt", alt);
+  return imgSubstituteElementNode;
+}
+function replaceElementByImage(elementNode, document, alt = "") {
+  const imgSubstituteElementNode = createImage(document, alt);
   elementNode.replaceWith(imgSubstituteElementNode);
   return imgSubstituteElementNode;
 }
-function preProcessDOM(domRoot, document, options) {
+function preProcessDOM(domRoot, document, options, isActionableElement) {
   const filterElementsTagNames = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
   const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
   const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
@@ -104,7 +108,11 @@ function preProcessDOM(domRoot, document, options) {
           }
           if (iconfontsInClass) {
             const alt = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
-            return [replaceElementByImage(elementNode, document, alt)];
+            if (!isActionableElement(elementNode)) {
+              return [replaceElementByImage(elementNode, document, alt)];
+            } else {
+              elementNode.prepend(createImage(document, alt));
+            }
           }
         }
       }
@@ -136,7 +144,8 @@ function postProcessDOM(domRoot, options, isActionableElement) {
           if (elementNode.children.length || elementNode.textContent.trim().length) return;
           elementNode.remove();
           hasRemovedElement = true;
-        }
+        },
+        true
       );
     } while (hasRemovedElement);
   }

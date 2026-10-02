@@ -33,8 +33,13 @@ const DOWNSAMPLING_ARGS = [
     DOWNSAMPLING_RATIOS.rT,
     {
         debug: true,
+        attributeScores: {
+            "aria-labelledby": 1.0,
+            "aria-label": 1.0,
+            "text": 1.0,
+        },
         normalize: {
-            iconfontsFromNames: [ "fa", "icon", "ti" ],
+            iconfontsFromNames: [ "fa", "icon", "ti" ]
         }
     }
 ];

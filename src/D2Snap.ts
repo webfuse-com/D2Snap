@@ -310,7 +310,7 @@ export function d2Snap(
 	preProcessDOM(virtualDOM, inertDoc, {
 		filter: optionsWithDefaults.filter,
 		normalize: optionsWithDefaults.normalize
-	});
+	}, _isActionableElement);
 	timings.preProcessing = t() - t0;
 
 	// Write depth and role per node

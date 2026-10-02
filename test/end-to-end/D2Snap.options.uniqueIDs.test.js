@@ -12,7 +12,7 @@ await test("Take DOM snapshot (options.uniqueIDs)", async () => {
     const dom = new JSDOM(PIZZA_HTML).window;
     const domRoot = dom.document.body;
 
-    const snapshotFalse = await d2Snap(PIZZA_HTML, 0.75, 0.75, 0.75, {
+    const snapshotFalse = await d2Snap(domRoot, 0.75, 0.75, 0.75, {
         debug: true,
         uniqueIDs: false
     });

@@ -36,12 +36,12 @@ function resolveDocument(dom) {
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;
 }
-function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
+function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb, excludeRoot = false) {
   const showElement = (filter & NodeFilter.SHOW_ELEMENT) !== 0;
   const showText = (filter & NodeFilter.SHOW_TEXT) !== 0;
   const showComment = (filter & NodeFilter.SHOW_COMMENT) !== 0;
   const stack = [];
-  if (filter === NodeFilter.SHOW_ALL || filter === NodeFilter.SHOW_ELEMENT) {
+  if (!excludeRoot && (filter === NodeFilter.SHOW_ALL || filter === NodeFilter.SHOW_ELEMENT)) {
     stack.push(root);
   } else {
     for (let i = root.childNodes.length - 1; i >= 0; i--) {

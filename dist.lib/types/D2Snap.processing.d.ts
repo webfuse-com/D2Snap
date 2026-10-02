@@ -10,7 +10,7 @@ interface DOMPostProcessingOptions {
 interface HTMLPostProcessingOptions {
     debug: boolean;
 }
-export declare function preProcessDOM(domRoot: Element, document: Document, options: DOMPreProcessingOptions): void;
+export declare function preProcessDOM(domRoot: Element, document: Document, options: DOMPreProcessingOptions, isActionableElement: (elementNode: Element) => boolean): void;
 export declare function postProcessDOM(domRoot: Element, options: DOMPostProcessingOptions, isActionableElement: (elementNode: Element) => boolean): void;
 export declare function postProcessHTML(html: string, options: Partial<HTMLPostProcessingOptions>): string;
 export {};

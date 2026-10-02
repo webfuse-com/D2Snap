@@ -3,6 +3,7 @@ import { JSDOM } from "jsdom";
 import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
 
 import { preProcessDOM, postProcessDOM, postProcessHTML } from "../../dist.lib/D2Snap.processing.js";
+import { isActionableElement } from "../../dist.lib/D2Snap.js";
 
 
 const PIZZA_HTML = await readTestFile("pizza/pizza");
@@ -33,7 +34,8 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: false,
             attributes: [],
             elements: []
-        }
+        },
+        isActionableElement
     });
 
     const htmlIdentity = domRoot.outerHTML;
@@ -54,7 +56,8 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: true,
             attributes: [ "aria-disabled" ],
             elements: [ "main", "TEMPLATE", "noSCRIPT" ]
-        }
+        },
+        isActionableElement
     });
 
     const html = domRoot.outerHTML;
@@ -75,7 +78,8 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: true,
             attributes: [ "aria-disabled" ],
             elements: [ "main", "TEMPLATE", "noSCRIPT" ]
-        }
+        },
+        isActionableElement
     });
 
     const htmlIdempotency = domRoot.outerHTML;
@@ -204,7 +208,12 @@ for(const fixture of [
 
         // Processing
         // In-place
-        await preProcessDOM(domRoot, dom.document, NORMALIZING_PRE_PROCESSING_OPTIONS);
+        await preProcessDOM(
+            domRoot,
+            dom.document,
+            NORMALIZING_PRE_PROCESSING_OPTIONS,
+            isActionableElement
+        );
 
         const html = domRoot.outerHTML;
 
@@ -219,7 +228,12 @@ for(const fixture of [
 
         // Same-processing options (expect idempotency)
         // In-place
-        await preProcessDOM(domRoot, dom.document, NORMALIZING_PRE_PROCESSING_OPTIONS);
+        await preProcessDOM(
+            domRoot,
+            dom.document,
+            NORMALIZING_PRE_PROCESSING_OPTIONS,
+            isActionableElement
+        );
 
         const htmlIdempotency = domRoot.outerHTML;
 

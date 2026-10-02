@@ -198,7 +198,7 @@ export function transformWithTextRank(
 	text: string,
 	ratio: number = 0.5,
 	simple: boolean = false,
-	noEmpty: boolean = false,
+	noEmpty: boolean = false,	// TODO: Add to D2Snap API?
 	textRankOptions: Partial<TextRankOptions> = {}
 ): string {
 	const sentences: string[] = tokenizeSentences(text);

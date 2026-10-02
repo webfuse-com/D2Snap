@@ -4,7 +4,7 @@
 
 ## How It Works – In a Nutshell
 
-D2Snap reduces an input DOM and by "averaging" features that render in the UI. The reduction is controlled by a defined ratio (e.g., `0.5`):
+D2Snap reduces an input DOM by "averaging" features that render in the UI. The reduction is controlled by a defined ratio (e.g., `0.5`):
 
 - **Element** nodes are folded into each other. The DOM height is set to reduce by ratio (with `0.5`: half the original height).
 - **Text** contents are truncated at the least relevant sentences; relevance is translated by _TextRank_ centrality. Each text is set to reduce by ratio at the sentence level (with `0.5`: half of the sentences)
@@ -13,12 +13,6 @@ D2Snap reduces an input DOM and by "averaging" features that render in the UI. T
 The API adds additional absilute measures to reduce the DOM, e.g., by removing noise.
 
 ## Installation
-
-#### Browser
-
-``` html
-<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
-```
 
 #### Module
 
@@ -33,6 +27,12 @@ npm install webfuse-com/D2Snap
 
 ``` js
 import * as D2Snap from "@webfuse-com/d2snap";
+```
+
+#### Browser
+
+``` html
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
 ```
 
 ## Downsampling Functions

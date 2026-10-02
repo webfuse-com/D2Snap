@@ -312,12 +312,12 @@
   function resolveRoot(node) {
     return node?.body ?? node?.documentElement ?? node;
   }
-  function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb) {
+  function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb, excludeRoot = false) {
     const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
     const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
     const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
     const stack = [];
-    if (filter === 4294967295 /* SHOW_ALL */ || filter === 1 /* SHOW_ELEMENT */) {
+    if (!excludeRoot && (filter === 4294967295 /* SHOW_ALL */ || filter === 1 /* SHOW_ELEMENT */)) {
       stack.push(root2);
     } else {
       for (let i = root2.childNodes.length - 1; i >= 0; i--) {
@@ -1558,7 +1558,7 @@
           return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
         },
         replacement: (_content, node) => {
-          const alt = (node.getAttribute("alt") ?? "").trim().replace(BRACKET_REGEX, "\\$&");
+          const alt = (node.getAttribute("alt") ?? "").trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(BRACKET_REGEX, "\\$&");
           return alt ? `![${alt}]()` : "";
         }
       });
@@ -1797,13 +1797,17 @@
     }
     return null;
   }
-  function replaceElementByImage(elementNode, document2, alt = "") {
+  function createImage(document2, alt = "") {
     const imgSubstituteElementNode = document2.createElement("img");
     alt && imgSubstituteElementNode.setAttribute("alt", alt);
+    return imgSubstituteElementNode;
+  }
+  function replaceElementByImage(elementNode, document2, alt = "") {
+    const imgSubstituteElementNode = createImage(document2, alt);
     elementNode.replaceWith(imgSubstituteElementNode);
     return imgSubstituteElementNode;
   }
-  function preProcessDOM(domRoot, document2, options) {
+  function preProcessDOM(domRoot, document2, options, isActionableElement2) {
     const filterElementsTagNames = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
     const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
     const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
@@ -1859,7 +1863,11 @@
             }
             if (iconfontsInClass) {
               const alt = getElementLabelAttribute(elementNode, document2, labelsFromAttributes) ?? iconfontsInClass;
-              return [replaceElementByImage(elementNode, document2, alt)];
+              if (!isActionableElement2(elementNode)) {
+                return [replaceElementByImage(elementNode, document2, alt)];
+              } else {
+                elementNode.prepend(createImage(document2, alt));
+              }
             }
           }
         }
@@ -1891,7 +1899,8 @@
             if (elementNode.children.length || elementNode.textContent.trim().length) return;
             elementNode.remove();
             hasRemovedElement = true;
-          }
+          },
+          true
         );
       } while (hasRemovedElement);
     }
@@ -2089,7 +2098,7 @@
     preProcessDOM(virtualDOM, inertDoc, {
       filter: optionsWithDefaults.filter,
       normalize: optionsWithDefaults.normalize
-    });
+    }, _isActionableElement);
     timings.preProcessing = t() - t0;
     t0 = t();
     traverseDom(

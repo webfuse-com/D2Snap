@@ -46,7 +46,7 @@ await test("Take DOM snapshot (idiomatic, no normalization necessary)", async ()
     );
 });
 
-await test("Take DOM snapshot (options.filter.normalize; no-text)", async () => {
+await test("Take DOM snapshot (options.normalize; no-text)", async () => {
     const hamburgerHTML = await readTestFile("hamburger/hamburger.no-text");
 
     const snapshotUnnormalized = await d2Snap(hamburgerHTML, 1.0, 1.0, 1.0, NO_NORMALIZING_DOWNSAMPLING_OPTIONS_ARG);
@@ -72,7 +72,7 @@ await test("Take DOM snapshot (options.filter.normalize; no-text)", async () => 
     );
 });
 
-await test("Take DOM snapshot (options.filter.normalize; img.no-alt)", async () => {
+await test("Take DOM snapshot (options.normalize; img.no-alt)", async () => {
     const hamburgerHTML = await readTestFile("hamburger/hamburger.img.no-alt");
 
     const snapshotUnnormalized = await d2Snap(hamburgerHTML, 1.0, 1.0, 1.0, NO_NORMALIZING_DOWNSAMPLING_OPTIONS_ARG);
@@ -98,7 +98,7 @@ await test("Take DOM snapshot (options.filter.normalize; img.no-alt)", async () 
     );
 });
 
-await test("Take DOM snapshot (options.filter.normalize; img.svg)", async () => {
+await test("Take DOM snapshot (options.normalize; img.svg)", async () => {
     const hamburgerHTML = await readTestFile("hamburger/hamburger.img.svg");
 
     const snapshotUnnormalized = await d2Snap(hamburgerHTML, 1.0, 1.0, 1.0, NO_NORMALIZING_DOWNSAMPLING_OPTIONS_ARG);
@@ -124,7 +124,7 @@ await test("Take DOM snapshot (options.filter.normalize; img.svg)", async () => 
     );
 });
 
-await test("Take DOM snapshot (options.filter.normalize; img.iconfont)", async () => {
+await test("Take DOM snapshot (options.normalize; img.iconfont)", async () => {
     const hamburgerHTML = await readTestFile("hamburger/hamburger.img.iconfont");
 
     const snapshotUnnormalized = await d2Snap(hamburgerHTML, 1.0, 1.0, 1.0, NO_NORMALIZING_DOWNSAMPLING_OPTIONS_ARG);

@@ -200,7 +200,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   preProcessDOM(virtualDOM, inertDoc, {
     filter: optionsWithDefaults.filter,
     normalize: optionsWithDefaults.normalize
-  });
+  }, _isActionableElement);
   timings.preProcessing = t() - t0;
   t0 = t();
   traverseDom(

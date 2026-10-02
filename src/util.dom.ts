@@ -54,7 +54,8 @@ export function resolveRoot(node: DOM): Element {
 export function traverseDom<T>(
 	root: Element,
 	filter: number = NodeFilter.SHOW_ALL,
-	cb: (node: T) => Node[] | void
+	cb: (node: T) => Node[] | void,
+	excludeRoot: boolean = false
 ) {
 	const showElement: boolean = ((filter & NodeFilter.SHOW_ELEMENT) !== 0);
 	const showText: boolean = ((filter & NodeFilter.SHOW_TEXT) !== 0);
@@ -64,8 +65,10 @@ export function traverseDom<T>(
 	const stack: Node[] = [];
 
 	if(
-		filter === NodeFilter.SHOW_ALL
-		|| filter === NodeFilter.SHOW_ELEMENT
+		!excludeRoot && (
+			filter === NodeFilter.SHOW_ALL
+			|| filter === NodeFilter.SHOW_ELEMENT
+		)
 	) {
 		stack.push(root);
 	} else {

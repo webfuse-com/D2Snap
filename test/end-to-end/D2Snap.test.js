@@ -142,6 +142,21 @@ await test("Take DOM snapshot (defaults)", async () => {
     );
 });
 
+await test("Take DOM snapshot (empty)", async () => {
+    const snapshot = await d2Snap("", 0.5, 0.5, 0.5, {
+        debug: true
+    });
+
+    await writeActual("pizza.empty", snapshot.html);
+    const expected = await readExpected("pizza/pizza.empty");
+
+    assertEqual(
+        snapshot.html,
+        expected,
+        "Invalid DOM snapshot"
+    );
+});
+
 await test("DOM snapshot output type", async () => {
     const snapshot = await d2Snap(PIZZA_HTML, 0.3, 0.6, 0.9);
 
