@@ -19,43 +19,38 @@ async function ensureDOM(domOrString) {
     });
     virtualConsole.on("log", () => {
     });
-    const dom = new jsdom.JSDOM(domOrString, {
+    const html = String(domOrString).trim();
+    const dom = new jsdom.JSDOM(html, {
       runScripts: void 0,
       virtualConsole
-    });
-    return dom.window.document;
+    }).window.document;
+    return dom;
   } catch (err) {
     if (err?.code !== "ERR_MODULE_NOT_FOUND") throw err;
     throw new ReferenceError("Install 'jsdom' to use D2Snap with a non-browser runtime");
   }
 }
 function resolveDocument(dom) {
-  let doc;
-  try {
-    const doc2 = (window ?? {}).document;
-    if (doc2) return doc2;
-  } catch {
-  }
-  doc = dom;
-  while (doc) {
-    if ("createTreeWalker" in doc) return doc;
-    doc = doc?.parentNode;
-  }
-  return null;
+  return dom.nodeType === 9 ? dom : dom.ownerDocument;
 }
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;
 }
-function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
+function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb, excludeRoot = false) {
   const showElement = (filter & NodeFilter.SHOW_ELEMENT) !== 0;
   const showText = (filter & NodeFilter.SHOW_TEXT) !== 0;
   const showComment = (filter & NodeFilter.SHOW_COMMENT) !== 0;
   const stack = [];
-  for (let i = root.childNodes.length - 1; i >= 0; i--) {
-    stack.push(root.childNodes[i]);
+  if (!excludeRoot && (filter === NodeFilter.SHOW_ALL || filter === NodeFilter.SHOW_ELEMENT)) {
+    stack.push(root);
+  } else {
+    for (let i = root.childNodes.length - 1; i >= 0; i--) {
+      stack.push(root.childNodes[i]);
+    }
   }
   while (stack.length) {
     const node = stack.pop();
+    if (!root.contains(node)) continue;
     const children = [...node.childNodes];
     const childIndex = stack.length;
     const childCount = children.length;

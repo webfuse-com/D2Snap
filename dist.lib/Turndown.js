@@ -1,5 +1,6 @@
 import TurndownService from "turndown";
 import { gfm } from "@truto/turndown-plugin-gfm";
+const BRACKET_REGEX = /[[\]\\]/g;
 const _escape = TurndownService.prototype.escape.bind(null);
 TurndownService.prototype.escape = (s) => _escape(s).replace(/</g, "&lt;");
 class Turndown {
@@ -20,6 +21,14 @@ class Turndown {
         return false;
       },
       replacement: (_content, node) => node.outerHTML
+    }).addRule("imageWithoutSrc", {
+      filter: (node) => {
+        return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
+      },
+      replacement: (_content, node) => {
+        const alt = (node.getAttribute("alt") ?? "").trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(BRACKET_REGEX, "\\$&");
+        return alt ? `![${alt}]()` : "";
+      }
     });
     this.service.use(gfm);
   }

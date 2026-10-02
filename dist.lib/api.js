@@ -7,7 +7,9 @@ async function d2Snap(domOrString, ...args) {
 async function adaptiveD2Snap(domOrString, ...args) {
   return _adaptiveD2Snap(_d2Snap, await ensureDOM(domOrString), ...args);
 }
+import { isActionableElement } from "./D2Snap.js";
 export {
   adaptiveD2Snap,
-  d2Snap
+  d2Snap,
+  isActionableElement
 };

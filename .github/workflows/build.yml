@@ -1,0 +1,28 @@
+name: Check Build Output
+
+on:
+  push:
+
+jobs:
+  check-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check dist directories
+        run: |
+          for dir in dist.lib dist.browser; do
+            if [ ! -d "$dir" ]; then
+              echo "Error: Distributable directory '$dir' does not exist"
+              exit 1
+            fi
+
+            if [ -z "$(find "$dir" -mindepth 1 -print -quit)" ]; then
+              echo "Error: Distributable directory '$dir' is empty"
+              exit 1
+            fi
+
+            echo "OK: Distributable directory '$dir' exists and is not empty"
+          done

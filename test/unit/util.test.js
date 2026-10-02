@@ -1,12 +1,62 @@
 import { JSDOM } from "jsdom";
 
-import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
+import { readTestFile, writeActual, readExpected } from "../test.util.js";
 
+import { deepMerge } from "../../dist.lib/util.obj.js";
 import { minifyDOM } from "../../dist.lib/util.dom.js";
 import { isVoidElement, isInlineElement, isRawTextElement, formatHTML } from "../../dist.lib/util.html.js";
 
 
 const PIZZA_HTML = await readTestFile("pizza/pizza");
+
+
+await test("Deep merge two objects", async () => {
+    assertEqual(
+        deepMerge({
+            a: 1,
+            b: 2,
+            c: {
+                a: 1,
+                b: 2,
+                c: {
+                    a: 1,
+                    b: 2
+                }
+            }
+        }, {
+            b: 3,
+            c: {
+                b: 3,
+                c: {
+                    b: 3
+                },
+                d: 4
+            },
+            d: {
+                a: 2
+            },
+            e: 5
+        }),
+        {
+            a: 1,
+            b: 3,
+            c: {
+                a: 1,
+                b: 3,
+                c: {
+                    a: 1,
+                    b: 3
+                },
+                d: 4
+            },
+            d: {
+                a: 2
+            },
+            e: 5
+        },
+        "Invalid deep-merged objects"
+    );
+});
 
 
 await test("Minify DOM reflected upon serialization", async () => {

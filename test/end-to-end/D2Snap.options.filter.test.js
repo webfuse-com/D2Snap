@@ -7,13 +7,13 @@ const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
 await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
-    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
+    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: true
         },
-		labelToText: {
-            tagNames: []
+        skip: {
+            markdown: true
         }
     });
 
@@ -32,13 +32,13 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
         "Invalid DOM snapshot"
     );
 
-    const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 1, 1, {
+    const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: false
         },
-		labelToText: {
-            tagNames: []
+        skip: {
+            markdown: true
         }
     });
 
@@ -53,6 +53,7 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
         debug: true,
         filter: {
+            dataURLs: true,
             emptyElements: true
         }
     });
@@ -111,16 +112,52 @@ await test("Take DOM snapshot (options.filter.emptyElements)", async () => {
     );
 });
 
-await test("Take DOM snapshot (options.filter.tagNames)", async () => {
-    const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
+await test("Take DOM snapshot (options.filter.attributes)", async () => {
+    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.9, 0, 1, {
         debug: true,
         filter: {
-            tagNames: [ "li", "SMALL", "StYlE", "BUTTON" ]
+            attributes: [ "class", "TABINDEX", "aria-LABEL" ]
         }
     });
 
-    await writeActual("pizza/pizza.options.filter.tagNames", snapshotFilter.html);
-    const expectedFalse = await readExpected("pizza/pizza.options.filter.tagNames");
+    await writeActual("pizza/pizza.options.filter.attributes", snapshotFilter.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.filter.attributes");
+
+    assertEqual(
+        flattenDOMSnapshot(snapshotFilter.html),
+        flattenDOMSnapshot(expectedFalse),
+        "Invalid DOM snapshot"
+    );
+
+    assertNotIn(
+        "class=\"",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop 'class')"
+    );
+
+    assertNotIn(
+        "tabindex=\"",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop 'tabindex')"
+    );
+
+    assertNotIn(
+        "aria-label=\"",
+        snapshotFilter.html,
+        "Invalid DOM snapshot (drop 'aria-label')"
+    );
+});
+
+await test("Take DOM snapshot (options.filter.elements)", async () => {
+    const snapshotFilter = await d2Snap(PIZZA_HTML, 0, 1, 1, {
+        debug: true,
+        filter: {
+            elements: [ "li", "SMALL", "StYlE", "BUTTON" ]
+        }
+    });
+
+    await writeActual("pizza/pizza.options.filter.elements", snapshotFilter.html);
+    const expectedFalse = await readExpected("pizza/pizza.options.filter.elements");
 
     assertEqual(
         flattenDOMSnapshot(snapshotFilter.html),

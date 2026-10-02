@@ -14,6 +14,11 @@ export enum NodeType {
 }
 
 
+export type DeepPartial<T> = {
+	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+
 export type TextNode = Node & {
     nodeType: number;
     textContent: string;
@@ -24,7 +29,7 @@ export type TextNode = Node & {
 export type DOM = Document | Element;
 
 
-export interface HTMLElementWithDepth extends HTMLElement {
+export interface ElementWithDepth extends HTMLElement {
     depth: number;
 };
 
@@ -42,27 +47,30 @@ export interface TextRankOptions {
 export interface D2SnapOptions {
     attributeScores: AttributeScoring;
     attributeScoring?: AttributeScoring;    // deprecated (alias)
+    classification: {
+        actionableElements: string[];
+        textElements: string[];
+    };
     debug: boolean;
-    elementClasses: Partial<{
-        actionables: string[];
-        text: string[];
-    }> | undefined;
-    filter: Partial<{
+    filter: {
+        attributes: string[];
         dataURLs: boolean;
+        elements: string[];
         emptyElements: boolean;
-        tagNames: string[];
-    }> | undefined;
-    labelToText: Partial<{
-        iconFonts: boolean;
-        tagNames: string[];
-    }> | undefined;
-    minify: boolean;
-    skip: Partial<{
+    };
+    normalize: {
+        iconfontsFromNames: string[];
+        labelsFromAttributes: string[];
+        svgToImg: boolean;
+    };
+    skip: {
         markdown: boolean;
         textRank: boolean;
-    }> | undefined;
-    textRankOptions: Partial<TextRankOptions> | undefined;
+    };
+    minify: boolean;
     uniqueIDs: boolean;
+
+    textRankOptions?: TextRankOptions;
 };
 
 export interface D2SnapResult {
@@ -75,6 +83,8 @@ export interface D2SnapResult {
         sizeRatio: number;
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
-        timings?: { [ key: string ]: number; };
+        timings?: {
+            [ step: string ]: number;
+        };
     }
 };

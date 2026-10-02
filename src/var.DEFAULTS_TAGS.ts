@@ -4,7 +4,7 @@ export const DEFAULT_CLASS_ACTIONABLE_TAG_NAMES: string[] = [
 	"DETAILS",
 	"FORM",
 	"INPUT",
-	"LABLE",
+	"LABEL",
 	"SELECT",
 	"OPTION",
 	"SUMMARY",
@@ -70,9 +70,4 @@ export const DEFAULT_FILTER_TAG_NAMES: string[] = [
 	"STYLE",
 	"TEMPLATE",
 	"USE"
-];
-
-export const DEFAULT_LABEL_TO_TEXT_TAG_NAMES: string[] = [
-	"IMG",
-	"SVG"
 ];
