@@ -38,7 +38,9 @@ await test("Get attribute scores", () => {
     const attributeScores = new Map(
         Object.entries({
             "test": 1,
+            "data-override-1": 0.3,
             "data-*": 0.7,
+            "data-override-2": 0.4,
             "aria-label": 0.4,
             "*": 0.2
         })
@@ -69,6 +71,16 @@ await test("Get attribute scores", () => {
         getAttributeScore("test-test", attributeScores),
         0.2,
         "Invalid retireved attribute score ('test-test'; default)"
+    );
+    assertEqual(
+        getAttributeScore("data-override-1", attributeScores),
+        0.3,
+        "Invalid retireved attribute score ('data-override-1')"
+    );
+    assertEqual(
+        getAttributeScore("data-override-2", attributeScores),
+        0.4,
+        "Invalid retireved attribute score ('data-override-1')"
     );
 });
 

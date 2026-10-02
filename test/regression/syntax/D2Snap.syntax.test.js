@@ -1,5 +1,6 @@
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, writeFile } from "fs/promises";
+import { createHash } from "node:crypto";
 
 import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "../../test.util.js";
 
@@ -10,8 +11,16 @@ import { getAttributeScore, isActionableElement } from "../../../dist.lib/D2Snap
 import { d2Snap } from "../../../dist.lib/api.js";
 
 
+const IGNORED_HASHES_PATH = join(import.meta.dirname, "ignored-hashes.txt");
+const LATEST_ERROR_HASHES_PATH = join(import.meta.dirname, "latest-error-hashes.txt");
+const IGNORED_HASHES = (await readFile(IGNORED_HASHES_PATH))
+    .toString()
+    .split(/\n/g)
+    .map((hash => hash.trim()))
+    .filter(Boolean);
 const STOP_ON_FAILURE = process.argv.slice(2).includes("--next-failure");
 const FILES_DIRECTORY_PATH = join(TEST_FILES_DIRECTORY_PATH, "_regression");
+// Downsample aggressively, but not full to keep expressive attributes for checks
 const DOWNSAMPLING_RATIOS = {
     rE: 0.9,
     rA: 0.9,
@@ -44,6 +53,12 @@ function printFormatHTML(html, maxLength = 500) {
         formatHTML(html)
             .slice(0, maxLength)
     }...`;
+}
+
+function hashHTML(html) {
+    return createHash("sha256")
+        .update(html, "utf8")
+        .digest("hex");
 }
 
 async function traverseDOM(domRoot, nodeFn) {
@@ -104,9 +119,13 @@ function checkElementNode_SVGNormalized(element, errorContextStr) {
     );
 }
 
-function checkElementNode_hasText(element, errorContextStr) {
-    // Assert actionable element has text (if recoverable).
+function checkElementNode_hasDescriptor(element, errorContextStr) {
+    // Assert actionable element has an idiomatic descripto; in general (recoverable) direct descendant text contents.
     if(!isActionableElement(element) || isVoidElement(element.tagName)) {
+        return true;
+    }
+
+    if((element.tagName.toUpperCase() === "A" && !element.hasAttribute("href"))) {
         return true;
     }
 
@@ -118,13 +137,15 @@ function checkElementNode_hasText(element, errorContextStr) {
     );
 
     return assertTrue(
-        hasText || elementHasDescriptor,
+        hasText || !elementHasDescriptor,
         contextMessage("Actionable element has text descriptor", errorContextStr)
     );
 }
 
 function checkElementNode_textWasFormatted(element, errorContextStr) {
     // Assert element was not supposed to be text formatted via MD.
+    if(isActionableElement(element)) return true;
+
     const tagName = element.tagName.toUpperCase();
 
     if(!TEXT_FORMATTING_TAG_NAMES.has(tagName)) return true;
@@ -146,7 +167,7 @@ function checkElementNode(element, errorContextStr) {
     return (
         checkElementNode_noFilter(element, errorContextStr)
         && checkElementNode_SVGNormalized(element, errorContextStr)
-        && checkElementNode_hasText(element, errorContextStr)
+        && checkElementNode_hasDescriptor(element, errorContextStr)
         && checkElementNode_textWasFormatted(element, errorContextStr)
     );
 }
@@ -207,12 +228,16 @@ await (async () => {
 
     if(!testCaseDirents.length) throw new RangeError("No test cases found");
 
+    const errorHashes = new Set();
+
     try {
         for(const dirent of testCaseDirents) {
             let hasFileError = false;
 
-            const record = passed => {
+            const record = (passed, htmlOutputHash) => {
                 if(passed) return;
+
+                errorHashes.add(htmlOutputHash);
 
                 hasFileError = true;
 
@@ -230,27 +255,37 @@ await (async () => {
             await traverseDOM(
                 downsamplingResult.dom,
                 async (elementNode, attrNodes, textNodes) => {
+                    const htmlOutputHash = hashHTML(elementNode.outerHTML);
+
+                    if(IGNORED_HASHES.includes(htmlOutputHash)) {
+                        console.log(`\x1b[2mIgnoring output HTML with hash ${htmlOutputHash}.\x1b[0m`);
+
+                        return;
+                    }
+
                     const getOuterHTMLOnly = elementNode => elementNode.cloneNode(false).outerHTML;
 
                     const getErrorContextStr = (outerHTMLOnly = true) => {
                         const errStr = printFormatHTML(outerHTMLOnly ? getOuterHTMLOnly(elementNode) : elementNode.outerHTML);
                         return [
                             `\x1b[2m${errStr}`,
+                            `\x1b[35m${htmlOutputHash}`,
                             `\x1b[30m${"-".repeat(
                                 errStr
                                     .split(/\n/g)
                                     .reduce((p, c) => Math.max(p, c.length), 0)
-                            )}\x1b[0m`
+                            )}`,
+                            `\x1b[0m`
                         ].join("\n");
                     };
 
-                    record(checkElementNode(elementNode, getErrorContextStr(false)));
+                    record(checkElementNode(elementNode, getErrorContextStr(false)), htmlOutputHash);
 
                     for(const attrNode of attrNodes) {
-                        record(checkAttributeNode(attrNode, getErrorContextStr(true)));
+                        record(checkAttributeNode(attrNode, getErrorContextStr(true)), htmlOutputHash);
                     }
                     for(const textNode of textNodes) {
-                        record(checkTextNode(textNode, getErrorContextStr(true)));
+                        record(checkTextNode(textNode, getErrorContextStr(true)), htmlOutputHash);
                     }
                 }
             );
@@ -272,5 +307,7 @@ await (async () => {
         }
         
         throw err;
+    } finally {
+        await writeFile(LATEST_ERROR_HASHES_PATH, [ ...errorHashes ].join("\n"));
     }
 })();

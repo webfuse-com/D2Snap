@@ -1,7 +1,7 @@
 <main aria-label="Order a pizza">
   <div data-topic="products">
     # Our Pizza
-    <div aria-current="" aria-description="Choose one product">
+    <div aria-current="" aria-description="Choose one product" role="menu">
       **Choose one** <br>
       <section>
         ## Margherita1 A <a href="/magherita.html#history">simple classic</a>: mozzarela, tomatoes and basil.
@@ -19,14 +19,14 @@
           </div>
         </button>
       </custom-section>
-      <section>
+      <section role="listbox">
         **homemade**
       </section>
       - Vegetarian
       <button>
         _i_
       </button>
-      <li>
+      <li role="button">
         **More info**
       </li>
       <input>
@@ -39,7 +39,7 @@
 </main>
 <div aria-disabled="">
   <div>
-    <div>
+    <div role="button">
       ![Info about our analytics](analytics.png)
     </div>
   </div>

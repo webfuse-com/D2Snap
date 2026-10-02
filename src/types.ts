@@ -29,7 +29,7 @@ export type TextNode = Node & {
 export type DOM = Document | Element;
 
 
-export interface HTMLElementWithDepth extends HTMLElement {
+export interface ElementWithDepth extends HTMLElement {
     depth: number;
 };
 

@@ -33,6 +33,14 @@ function validateUnitParameter(name, value) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
+function defineNonEnumerableProperty(obj, prop, value) {
+  Object.defineProperty(obj, prop, {
+    value,
+    writable: false,
+    configurable: true,
+    enumerable: false
+  });
+}
 function getAttributeScore(attrName, attributeScores = new Map(
   Object.entries(DEFAULT_ATTRIBUTE_SCORES).map((entry) => [entry[0].toLowerCase(), entry[1]])
 )) {
@@ -51,7 +59,9 @@ function getAttributeScore(attrName, attributeScores = new Map(
   return attributeScore;
 }
 function isActionableElement(elementNode, actionableElementTagNames = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES), actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES) {
-  return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "");
+  return actionableElementTagNames.has(elementNode.tagName.toUpperCase()) || actionableRoleAttributeValues.has(
+    elementNode.getAttribute("role")?.toLowerCase() ?? elementNode.role ?? ""
+  );
 }
 function d2Snap(dom, rE, rA, rT, options = {}) {
   validateUnitParameter("rE", rE);
@@ -196,9 +206,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDOM,
     NodeFilter.SHOW_ELEMENT,
-    (node) => {
-      const depth = (node?.parentNode?.depth ?? 0) + 1;
-      node.depth = depth;
+    (element) => {
+      const depth = (element?.parentNode?.depth ?? 0) + 1;
+      defineNonEnumerableProperty(element, "depth", depth);
+      const role = element.getAttribute("role");
+      role && defineNonEnumerableProperty(element, "role", role);
     }
   );
   timings.writeDepth = t() - t0;

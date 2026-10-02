@@ -7,7 +7,7 @@ import {
 	type D2SnapOptions,
 	type D2SnapResult,
 	type DOM,
-	type HTMLElementWithDepth,
+	type ElementWithDepth,
 	type TextNode
 } from "./types.js";
 import { CONFIG } from "./var.CONFIG.js";
@@ -49,6 +49,15 @@ function validateUnitParameter(name: string, value: number) {
 	}
 }
 
+function defineNonEnumerableProperty(obj: object, prop: string, value: unknown) {
+	Object.defineProperty(obj, prop, {
+		value,
+		writable: false,
+		configurable: true,
+		enumerable: false
+	});
+}
+
 
 export function getAttributeScore(attrName: string, attributeScores: Map<string, number> = new Map(
 	Object.entries(DEFAULT_ATTRIBUTE_SCORES)
@@ -84,7 +93,11 @@ export function isActionableElement(
 ): boolean {
 	return (
 		actionableElementTagNames.has(elementNode.tagName.toUpperCase())
-		|| actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "")
+		|| actionableRoleAttributeValues.has(
+			elementNode.getAttribute("role")?.toLowerCase()
+			?? elementNode.role
+			?? ""
+		)
 	);
 }
 
@@ -155,7 +168,7 @@ export function d2Snap(
 
 	const turndown: Turndown = new Turndown([ _isActionableElement ]);
 
-	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
+	function snapElementContainerNode(elementNode: ElementWithDepth, rE: number) {
 		const considerContainerElement = (elementNode: Element) => {
 			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
 			if(_isActionableElement(elementNode)) return false;
@@ -172,8 +185,8 @@ export function d2Snap(
 		const isMergeLevel = (elementNode.depth > 1) && (Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio));
 		if(!isMergeLevel) return;
 
-		const targetElement: HTMLElementWithDepth = elementNode.parentElement as HTMLElementWithDepth;
-		const sourceElement: HTMLElementWithDepth = elementNode;
+		const targetElement = elementNode.parentElement as ElementWithDepth;
+		const sourceElement: ElementWithDepth = elementNode;
 
 		while(sourceElement.childNodes.length) {
 			targetElement
@@ -300,15 +313,19 @@ export function d2Snap(
 	});
 	timings.preProcessing = t() - t0;
 
-	// Write depth per node
+	// Write depth and role per node
+	// TODO: Write hidden or remove in post-processing step
 	t0 = t();
-	traverseDom<Node>(
+	traverseDom<ElementWithDepth>(
 		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: Node) => {
-			const depth: number = ((node?.parentNode as HTMLElementWithDepth)?.depth ?? 0) + 1;
+		(element: ElementWithDepth) => {
+			const depth: number = ((element?.parentNode as ElementWithDepth)?.depth ?? 0) + 1;
+			defineNonEnumerableProperty(element, "depth", depth);
 
-			(node as HTMLElementWithDepth).depth = depth;
+			const role: string | null = element.getAttribute("role");
+			role
+				&& defineNonEnumerableProperty(element, "role", role);
 		}
 	);
 	timings.writeDepth = t() - t0;
@@ -333,10 +350,10 @@ export function d2Snap(
 
 	// Container element nodes
 	t0 = t();
-	traverseDom<HTMLElementWithDepth>(
+	traverseDom<ElementWithDepth>(
 		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE)
+		(node: ElementWithDepth) => snapElementContainerNode(node, rE)
 	);
 	timings.containers = t() - t0;
 
