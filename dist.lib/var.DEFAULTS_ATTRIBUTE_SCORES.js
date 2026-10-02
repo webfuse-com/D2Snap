@@ -2,12 +2,12 @@ const DEFAULT_ATTRIBUTE_SCORES = {
   // Maximum preservance:
   "data-uid": 1,
   "role": 1,
+  "alt": 1,
   // Affordance-frequency balanced (to render rA a latent ratio, otherwise threshold)
   "href": 0.91,
   "src": 0.83,
   "class": 0.77,
   "id": 0.68,
-  "alt": 0.46,
   "value": 0.43,
   "name": 0.4,
   "type": 0.38,

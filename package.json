@@ -24,7 +24,7 @@
     "test:regression:syntax": "npm run test:_suite -- regression/syntax",
     "test:regression:syntax:next-failure": "npm run test:regression:syntax -- --next-failure",
     "test": "npm run test:unit && npm run test:end-to-end && npm run test:regression",
-    "test:extended": "npm run test && npm run test:regression:syntax:next-failure",
+    "test:extended": "npm run test && npm run test:regression:syntax",
     "snapshots:create": "node ./snapshots/create.js",
     "eval:success:gui": "PYTHONPATH=eval/eval_shared:eval/eval_success python -m subjects.gui",
     "eval:success:gui:single": "npm run eval:success:gui -- --split 1 --verbose",

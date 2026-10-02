@@ -1,6 +1,7 @@
-import { D2SnapOptions, NodeFilter, NodeType } from "./types.js";
+import { type D2SnapOptions, NodeFilter, NodeType } from "./types.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
+import { NON_RENDERED_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 
 
 interface DOMPreProcessingOptions {
@@ -36,10 +37,27 @@ function elementHasTagName(elementNode: Element, tagName: string): boolean {
 	return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
 }
 
+function hasRenderedText(node: Node): boolean {
+	for(const child of node.childNodes) {
+		if(child.nodeType === NodeType.TEXT_NODE) {
+			if((child.nodeValue ?? "").trim()) return true;
+
+			continue;
+		}
+
+		if(child.nodeType !== NodeType.ELEMENT_NODE) continue;
+		if(NON_RENDERED_TAG_NAMES.has(normalizeCaseInsensitive((child as Element).tagName))) continue;
+
+		if(hasRenderedText(child)) return true;
+	}
+
+	return false;
+}
+
 function elementHasNoTextContent(elementNode: Element): boolean {
-	return !(elementNode.textContent ?? "").trim()
+	return !hasRenderedText(elementNode)
 		&& ![ ...elementNode.querySelectorAll("img[alt]") ]
- 			.some((image: Element) => !!resolveAttributeAsString(image, "alt"));
+			.some((image: Element) => !!resolveAttributeAsString(image, "alt"));
 }
 
 function resolveAttributeAsString(elementNode: Element, attributeName: string): string {
@@ -137,12 +155,14 @@ export function preProcessDOM(
 			}
 
 			if(options.filter?.emptyElements) {
-				if(elementHasTagName(elementNode, "IMG")) {
+				if(elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document, labelsFromAttributes)) {
 					if(
 						!resolveAttributeAsString(elementNode, "src")
 						&& !resolveAttributeAsString(elementNode, "alt")
 					 ) {
 						elementNode.remove();
+
+						return;
 					}
 				}
 			}

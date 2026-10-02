@@ -1,6 +1,7 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
+import { NON_RENDERED_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER = "-";
@@ -13,8 +14,20 @@ function normalizeCaseInsensitiveArray(tagNames) {
 function elementHasTagName(elementNode, tagName) {
   return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
 }
+function hasRenderedText(node) {
+  for (const child of node.childNodes) {
+    if (child.nodeType === NodeType.TEXT_NODE) {
+      if ((child.nodeValue ?? "").trim()) return true;
+      continue;
+    }
+    if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
+    if (NON_RENDERED_TAG_NAMES.has(normalizeCaseInsensitive(child.tagName))) continue;
+    if (hasRenderedText(child)) return true;
+  }
+  return false;
+}
 function elementHasNoTextContent(elementNode) {
-  return !(elementNode.textContent ?? "").trim() && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
+  return !hasRenderedText(elementNode) && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
 }
 function resolveAttributeAsString(elementNode, attributeName) {
   return (elementNode.getAttribute(attributeName) ?? "").trim();
@@ -72,9 +85,10 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
         return;
       }
       if (options.filter?.emptyElements) {
-        if (elementHasTagName(elementNode, "IMG")) {
+        if (elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document, labelsFromAttributes)) {
           if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
             elementNode.remove();
+            return;
           }
         }
       }

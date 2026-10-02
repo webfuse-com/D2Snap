@@ -344,7 +344,8 @@ export function d2Snap(
 	traverseDom<HTMLElement>(
 		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node)
+		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node),
+		true
 	);
 	timings.textFormatting = t() - t0;
 

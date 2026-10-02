@@ -109,7 +109,7 @@ D2Snap.d2Snap(
   dom: string;
   innerHTML: string;  // alias: html
   outerHTML: string;
-  meta: {};
+  meta: object;
 }>
 
 D2Snap.adaptiveD2Snap(
@@ -120,8 +120,8 @@ D2Snap.adaptiveD2Snap(
 ): Promise<{
   dom: string;
   html: string;
-  meta: {};
-  parameters: {};
+  meta: object;
+  parameters: object;
   adaptiveIterations: number;
 }>
 ```

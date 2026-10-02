@@ -78,10 +78,17 @@
     "BR"
   ]);
   var RAW_TEXT_TAG_NAMES = /* @__PURE__ */ new Set([
+    "NOSCRIPT",
     "SCRIPT",
     "STYLE",
     "TEXTAREA",
     "TITLE"
+  ]);
+  var NON_RENDERED_TAG_NAMES = /* @__PURE__ */ new Set([
+    "SCRIPT",
+    "STYLE",
+    "NOSCRIPT",
+    "TEMPLATE"
   ]);
 
   // src/util.html.ts
@@ -1581,12 +1588,12 @@
     // Maximum preservance:
     "data-uid": 1,
     "role": 1,
+    "alt": 1,
     // Affordance-frequency balanced (to render rA a latent ratio, otherwise threshold)
     "href": 0.91,
     "src": 0.83,
     "class": 0.77,
     "id": 0.68,
-    "alt": 0.46,
     "value": 0.43,
     "name": 0.4,
     "type": 0.38,
@@ -1768,8 +1775,20 @@
   function elementHasTagName(elementNode, tagName) {
     return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
   }
+  function hasRenderedText(node) {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3 /* TEXT_NODE */) {
+        if ((child.nodeValue ?? "").trim()) return true;
+        continue;
+      }
+      if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
+      if (NON_RENDERED_TAG_NAMES.has(normalizeCaseInsensitive(child.tagName))) continue;
+      if (hasRenderedText(child)) return true;
+    }
+    return false;
+  }
   function elementHasNoTextContent(elementNode) {
-    return !(elementNode.textContent ?? "").trim() && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
+    return !hasRenderedText(elementNode) && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
   }
   function resolveAttributeAsString(elementNode, attributeName) {
     return (elementNode.getAttribute(attributeName) ?? "").trim();
@@ -1827,9 +1846,10 @@
           return;
         }
         if (options.filter?.emptyElements) {
-          if (elementHasTagName(elementNode, "IMG")) {
+          if (elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document2, labelsFromAttributes)) {
             if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
               elementNode.remove();
+              return;
             }
           }
         }
@@ -2123,7 +2143,8 @@
     traverseDom(
       virtualDOM,
       1 /* SHOW_ELEMENT */,
-      (node) => snapElementTextFormattingNode(inertDoc, node)
+      (node) => snapElementTextFormattingNode(inertDoc, node),
+      true
     );
     timings.textFormatting = t() - t0;
     t0 = t();

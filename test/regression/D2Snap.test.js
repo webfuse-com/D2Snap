@@ -197,6 +197,22 @@ await test("Keep aria-labelledby descriptor of empty actionable element", async 
 });
 
 // ---------------------------------------------------------------------------
+// An image without 'alt' and 'src' attributes but a text-label must not be
+// filtered if text-label promotion is enabled.
+// ---------------------------------------------------------------------------
+await test("Markdown pass converts nested textFormatting inside kept actionable (<em> in <button>)", async () => {
+    const html = `<div><img title="Activate"><img name="Deactivate"></div>`;
+    const snapshot = await d2Snap(html, 0.9, 0.8, 0.7, {
+        debug: true,
+        normalize: {
+            labelsFromAttributes: [ "name" ],
+        }
+    });
+
+    assertIn("![Deactivate]()", snapshot.html, "Image was filtered from snapshot");
+});
+
+// ---------------------------------------------------------------------------
 // End-to-end regression guard on the full, real-world news homepage (cnn.com; >2MB).
 // ---------------------------------------------------------------------------
 for(const quality of [ 0, 0.3, 0.6, 0.9, 1 ]) {

@@ -225,7 +225,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDOM,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementTextFormattingNode(inertDoc, node)
+    (node) => snapElementTextFormattingNode(inertDoc, node),
+    true
   );
   timings.textFormatting = t() - t0;
   t0 = t();

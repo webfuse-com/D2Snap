@@ -1,11 +1,11 @@
 export declare const DEFAULT_ATTRIBUTE_SCORES: {
     "data-uid": number;
     role: number;
+    alt: number;
     href: number;
     src: number;
     class: number;
     id: number;
-    alt: number;
     value: number;
     name: number;
     type: number;

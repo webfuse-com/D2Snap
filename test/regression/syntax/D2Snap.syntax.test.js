@@ -4,8 +4,9 @@ import { createHash } from "node:crypto";
 
 import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "../../test.util.js";
 
-import { DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "../../../dist.lib/var.DEFAULTS_TAGS.js";
+import { DEFAULT_ATTRIBUTE_SCORES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { DEFAULT_FILTER_ATTRIBUTE_NAMES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTES.js";
+import { DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "../../../dist.lib/var.DEFAULTS_TAGS.js";
 import { formatHTML, isVoidElement } from "../../../dist.lib/util.html.js";
 import { getAttributeScore, isActionableElement } from "../../../dist.lib/D2Snap.js";
 import { d2Snap } from "../../../dist.lib/api.js";
@@ -27,17 +28,20 @@ const DOWNSAMPLING_RATIOS = {
     rT: 0.9
 };
 // Stay close to defaults.
+const DOWNSAMPLING_ATTRIBUTE_SCORES = {
+    ...DEFAULT_ATTRIBUTE_SCORES,
+
+    "aria-labelledby": 1.0,
+    "aria-label": 1.0,
+    "text": 1.0,
+};
 const DOWNSAMPLING_ARGS = [
     DOWNSAMPLING_RATIOS.rE,
     DOWNSAMPLING_RATIOS.rA,
     DOWNSAMPLING_RATIOS.rT,
     {
         debug: true,
-        attributeScores: {
-            "aria-labelledby": 1.0,
-            "aria-label": 1.0,
-            "text": 1.0,
-        },
+        attributeScores: DOWNSAMPLING_ATTRIBUTE_SCORES,
         normalize: {
             iconfontsFromNames: [ "fa", "icon", "ti" ]
         }
@@ -129,7 +133,9 @@ function checkElementNode_hasDescriptor(element, errorContextStr) {
     if(!isActionableElement(element) || isVoidElement(element.tagName)) {
         return true;
     }
-
+    if(([ ...element.children ].some(child => isActionableElement(child)))) {
+        return true;
+    }
     if((element.tagName.toUpperCase() === "A" && !element.hasAttribute("href"))) {
         return true;
     }
@@ -143,7 +149,7 @@ function checkElementNode_hasDescriptor(element, errorContextStr) {
 
     return assertTrue(
         hasText || !elementHasDescriptor,
-        contextMessage("Actionable element has text descriptor", errorContextStr)
+        contextMessage("Actionable element has proper descriptor", errorContextStr)
     );
 }
 
@@ -187,7 +193,10 @@ function checkAttribute_noFilter(attr, errorContextStr) {
 
 function checkAttribute_scoresAboveThreshold(attr, errorContextStr) {
     // Assert preserved attribute score is not below threshold.
-    const attributeScore = getAttributeScore(attr.name);
+    const attributeScore = getAttributeScore(attr.name, new Map(
+        Object.entries(DOWNSAMPLING_ATTRIBUTE_SCORES)
+            .map(entry => [ entry[0].toLowerCase(), entry[1] ])
+    ));
 
     return assertMore(
         attributeScore,
@@ -237,6 +246,7 @@ await (async () => {
 
     try {
         for(const dirent of testCaseDirents) {
+            let hasFileMessage = false;
             let hasFileError = false;
 
             const record = (passed, htmlOutputHash) => {
@@ -264,6 +274,8 @@ await (async () => {
 
                     if(IGNORED_HASHES.includes(htmlOutputHash)) {
                         console.log(`\x1b[2mIgnoring output HTML with hash ${htmlOutputHash}.\x1b[0m`);
+
+                        hasFileMessage = true;
 
                         return;
                     }
@@ -296,7 +308,7 @@ await (async () => {
             );
 
             if(!hasFileError) {
-                process.stdout.write("\x1b[1A\x1b[1m\x1b[32m✓\x1b[0m\n");
+                process.stdout.write(`${!hasFileMessage ? "\x1b[1A" : ""}\x1b[1m\x1b[32m✓\x1b[0m\n`);
             }
         }
     } catch(err) {

@@ -48,8 +48,16 @@ export const INLINE_TAG_NAMES: Set<string> = new Set([
 ]);
 
 export const RAW_TEXT_TAG_NAMES: Set<string> = new Set([
+	"NOSCRIPT",
 	"SCRIPT",
 	"STYLE",
 	"TEXTAREA",
 	"TITLE"
+]);
+
+export const NON_RENDERED_TAG_NAMES: Set<string> = new Set([
+	"SCRIPT",
+	"STYLE",
+	"NOSCRIPT",
+	"TEMPLATE"
 ]);
