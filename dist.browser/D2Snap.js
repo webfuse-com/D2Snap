@@ -1802,7 +1802,6 @@
     const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
     const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
     const labelsFromAttributes = options.normalize?.labelsFromAttributes ?? [];
-    let i = 0;
     traverseDom(
       domRoot,
       4294967295 /* SHOW_ALL */,
@@ -1862,10 +1861,6 @@
           if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
             elementNode.removeAttribute(attr.name);
           }
-        }
-        if (options.uniqueIDs) {
-          elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
-          i++;
         }
         if (options.filter?.dataURLs) {
           for (const attr of Array.from(elementNode.attributes)) {
@@ -2049,14 +2044,26 @@
     const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
     let t0;
     const timings = {};
+    if (optionsWithDefaults.uniqueIDs) {
+      let i = 0;
+      traverseDom(
+        rootElement,
+        1 /* SHOW_ELEMENT */,
+        (node) => {
+          const elementNode = node;
+          if (isInlineElement(elementNode.tagName) && isVoidElement(elementNode.tagName)) return;
+          elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
+          i++;
+        }
+      );
+    }
     t0 = t();
     const virtualDom = rootElement.cloneNode(true);
     timings.clone = t() - t0;
     t0 = t();
     preProcessDOM(virtualDom, document2, {
       filter: optionsWithDefaults.filter,
-      normalize: optionsWithDefaults.normalize,
-      uniqueIDs: optionsWithDefaults.uniqueIDs
+      normalize: optionsWithDefaults.normalize
     });
     timings.preProcessing = t() - t0;
     t0 = t();

@@ -3,7 +3,6 @@ import { readdir, readFile } from "fs/promises";
 
 import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "../../test.util.js";
 
-// Work with all defaults.
 import { DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "../../../dist.lib/var.DEFAULTS_TAGS.js";
 import { DEFAULT_FILTER_ATTRIBUTE_NAMES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTES.js";
 import { formatHTML, isVoidElement } from "../../../dist.lib/util.html.js";
@@ -18,6 +17,7 @@ const DOWNSAMPLING_RATIOS = {
     rA: 0.1,
     rT: 0.1
 };
+// Stay close to defaults.
 const DOWNSAMPLING_ARGS = [
     DOWNSAMPLING_RATIOS.rE,
     DOWNSAMPLING_RATIOS.rA,

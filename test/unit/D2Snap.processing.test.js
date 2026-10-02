@@ -18,8 +18,7 @@ const NORMALIZING_PRE_PROCESSING_OPTIONS = {
         iconfontsFromNames: [ "fa", "icon" ],
         labelsFromAttributes: [ "aria-labelledby", "aria-label", "title" ],
         svgToImg: true
-    },
-    uniqueIDs: false
+    }
 };
 
 
@@ -34,8 +33,7 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: false,
             attributes: [],
             elements: []
-        },
-        uniqueIDs: false
+        }
     });
 
     const htmlIdentity = domRoot.outerHTML;
@@ -56,8 +54,7 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: true,
             attributes: [ "aria-disabled" ],
             elements: [ "main", "TEMPLATE", "noSCRIPT" ]
-        },
-        uniqueIDs: true
+        }
     });
 
     const html = domRoot.outerHTML;
@@ -78,8 +75,7 @@ await test("Pre-process DOM for snapshot", async () => {
             dataURLs: true,
             attributes: [ "aria-disabled" ],
             elements: [ "main", "TEMPLATE", "noSCRIPT" ]
-        },
-        uniqueIDs: true
+        }
     });
 
     const htmlIdempotency = domRoot.outerHTML;

@@ -20,7 +20,7 @@ import {
 } from "./var.DEFAULTS_TAGS.js";
 import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
-import { isVoidElement } from "./util.html.js";
+import { isInlineElement, isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
 import { deepMerge } from "./util.obj.js";
 const WHITESPACE_REGEX = /^\s$/;
@@ -161,14 +161,26 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   const t = optionsWithDefaults.debug ? performance.now.bind(performance) : () => 0;
   let t0;
   const timings = {};
+  if (optionsWithDefaults.uniqueIDs) {
+    let i = 0;
+    traverseDom(
+      rootElement,
+      NodeFilter.SHOW_ELEMENT,
+      (node) => {
+        const elementNode = node;
+        if (isInlineElement(elementNode.tagName) && isVoidElement(elementNode.tagName)) return;
+        elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
+        i++;
+      }
+    );
+  }
   t0 = t();
   const virtualDom = rootElement.cloneNode(true);
   timings.clone = t() - t0;
   t0 = t();
   preProcessDOM(virtualDom, document, {
     filter: optionsWithDefaults.filter,
-    normalize: optionsWithDefaults.normalize,
-    uniqueIDs: optionsWithDefaults.uniqueIDs
+    normalize: optionsWithDefaults.normalize
   });
   timings.preProcessing = t() - t0;
   t0 = t();

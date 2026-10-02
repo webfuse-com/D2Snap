@@ -4,7 +4,7 @@ export const DEFAULT_CLASS_ACTIONABLE_TAG_NAMES: string[] = [
 	"DETAILS",
 	"FORM",
 	"INPUT",
-	"LABLE",
+	"LABEL",
 	"SELECT",
 	"OPTION",
 	"SUMMARY",

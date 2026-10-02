@@ -1,5 +1,4 @@
 import { NodeFilter, NodeType } from "./types.js";
-import { CONFIG } from "./var.CONFIG.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
@@ -54,7 +53,6 @@ function preProcessDOM(domRoot, document, options) {
   const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
   const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
   const labelsFromAttributes = options.normalize?.labelsFromAttributes ?? [];
-  let i = 0;
   traverseDom(
     domRoot,
     NodeFilter.SHOW_ALL,
@@ -114,10 +112,6 @@ function preProcessDOM(domRoot, document, options) {
         if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
           elementNode.removeAttribute(attr.name);
         }
-      }
-      if (options.uniqueIDs) {
-        elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
-        i++;
       }
       if (options.filter?.dataURLs) {
         for (const attr of Array.from(elementNode.attributes)) {

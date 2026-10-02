@@ -45,7 +45,6 @@ export interface D2SnapOptions {
     classification: {
         actionableElements: string[];
         textElements: string[];
-        textLabelAttributes: string[];
     };
     debug: boolean;
     filter: {
@@ -79,6 +78,8 @@ export interface D2SnapResult {
         sizeRatio: number;
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
-        timings?: { [ key: string ]: number; };
+        timings?: {
+            [ step: string ]: number;
+        };
     }
 };

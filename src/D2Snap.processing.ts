@@ -1,5 +1,4 @@
 import { D2SnapOptions, NodeFilter, NodeType } from "./types.js";
-import { CONFIG } from "./var.CONFIG.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isVoidElement } from "./util.html.js";
 
@@ -7,7 +6,6 @@ import { formatHTML, isVoidElement } from "./util.html.js";
 interface DOMPreProcessingOptions {
 	filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
 	normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
-	uniqueIDs: boolean;
 }
 
 interface DOMPostProcessingOptions {
@@ -106,8 +104,6 @@ export function preProcessDOM(
 	const iconfontsFromNames: string[] = options.normalize?.iconfontsFromNames ?? [];
 	const labelsFromAttributes: string[] = options.normalize?.labelsFromAttributes ?? [];
 
-	let i: number = 0;
-
 	traverseDom<HTMLElement>(
 		domRoot,
 		NodeFilter.SHOW_ALL,
@@ -198,12 +194,6 @@ export function preProcessDOM(
 				if(filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
 					elementNode.removeAttribute(attr.name);
 				}
-			}
-
-			if(options.uniqueIDs) {
-				elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
-
-				i++;
 			}
 
 			if(options.filter?.dataURLs) {
