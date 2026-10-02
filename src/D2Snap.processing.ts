@@ -38,7 +38,8 @@ function elementHasTagName(elementNode: Element, tagName: string): boolean {
 
 function elementHasNoTextContent(elementNode: Element): boolean {
 	return !(elementNode.textContent ?? "").trim()
-		&& !elementNode.querySelector("img[alt]:not([alt=''])");
+		&& ![ ...elementNode.querySelectorAll("img[alt]") ]
+ 			.some((image: Element) => !!resolveAttributeAsString(image, "alt"));
 }
 
 function resolveAttributeAsString(elementNode: Element, attributeName: string): string {
@@ -137,11 +138,15 @@ export function preProcessDOM(
 				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
 					let iconfontsInClass: string | null = null;
 					for(const className of [ ...elementNode.classList ].reverse()) {
-						const parts: string[] = className.split(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+						const iconfontName: string | undefined = iconfontsFromNames
+							.find((name: string) => {
+								return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`)
+							});
 
-						if(parts.length < 2 || !iconfontsFromNames.includes(parts[0])) continue;
+						if(!iconfontName) continue;
 
-						iconfontsInClass = parts.slice(1).join(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+						iconfontsInClass = className
+							.slice(iconfontName.length + UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER.length);
 
 						break;
 					}

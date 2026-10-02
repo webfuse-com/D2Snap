@@ -13,9 +13,9 @@ import { d2Snap } from "../../../dist.lib/api.js";
 const STOP_ON_FAILURE = process.argv.slice(2).includes("--next-failure");
 const FILES_DIRECTORY_PATH = join(TEST_FILES_DIRECTORY_PATH, "_regression");
 const DOWNSAMPLING_RATIOS = {
-    rE: 0.1,
-    rA: 0.1,
-    rT: 0.1
+    rE: 0.9,
+    rA: 0.9,
+    rT: 0.9
 };
 // Stay close to defaults.
 const DOWNSAMPLING_ARGS = [

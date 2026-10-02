@@ -66,7 +66,7 @@ await test("Get attribute scores", () => {
         "Invalid retireved attribute score ('data-test'; unspecified wildcard, default)"
     );
     assertEqual(
-        getAttributeScore("aria-test", attributeScores),
+        getAttributeScore("test-test", attributeScores),
         0.2,
         "Invalid retireved attribute score ('test-test'; default)"
     );

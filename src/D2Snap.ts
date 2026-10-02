@@ -3,6 +3,7 @@ import { Turndown } from "./Turndown.js";
 import {
 	NodeFilter,
 	NodeType,
+	type DeepPartial,
 	type D2SnapOptions,
 	type D2SnapResult,
 	type DOM,
@@ -53,7 +54,7 @@ export function getAttributeScore(attrName: string, attributeScores: Map<string,
 	Object.entries(DEFAULT_ATTRIBUTE_SCORES)
 		.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 )) {
-	let normalizedName: string = attrName;
+ 	let normalizedName: string = attrName.toLowerCase();
 
 	if(!attributeScores.has(normalizedName)) {
 		if(normalizedName.includes("-")) {
@@ -82,7 +83,7 @@ export function isActionableElement(
 export function d2Snap(
 	dom: DOM,
 	rE: number, rA: number, rT: number,
-	options: Partial<D2SnapOptions> = {}
+	options: DeepPartial<D2SnapOptions> = {}
 ): D2SnapResult {
 	validateUnitParameter("rE", rE);
 	validateUnitParameter("rA", rA);
@@ -93,7 +94,7 @@ export function d2Snap(
 
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
-	const optionsWithDefaults: D2SnapOptions = deepMerge<D2SnapOptions, Partial<D2SnapOptions>>({
+	const optionsWithDefaults: D2SnapOptions = deepMerge<D2SnapOptions, DeepPartial<D2SnapOptions>>({
 		attributeScores: DEFAULT_ATTRIBUTE_SCORES,
 		classification: {
 			actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,

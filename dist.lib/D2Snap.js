@@ -36,7 +36,7 @@ function validateUnitParameter(name, value) {
 function getAttributeScore(attrName, attributeScores = new Map(
   Object.entries(DEFAULT_ATTRIBUTE_SCORES).map((entry) => [entry[0].toLowerCase(), entry[1]])
 )) {
-  let normalizedName = attrName;
+  let normalizedName = attrName.toLowerCase();
   if (!attributeScores.has(normalizedName)) {
     if (normalizedName.includes("-")) {
       normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
@@ -60,8 +60,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     attributeScores: DEFAULT_ATTRIBUTE_SCORES,
     classification: {
       actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
-      textElements: DEFAULT_CLASS_TEXT_TAG_NAMES,
-      textLabelAttributes: ["title"]
+      textElements: DEFAULT_CLASS_TEXT_TAG_NAMES
     },
     debug: false,
     filter: {

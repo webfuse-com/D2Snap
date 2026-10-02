@@ -2,7 +2,12 @@
 // Copyright (c) Thassilo M. Schiepanski
 // -------------------------------------
 
-import { type DOM, type D2SnapOptions, type D2SnapResult } from "./types.js";
+import {
+	type DeepPartial,
+	type DOM,
+	type D2SnapOptions,
+	type D2SnapResult
+} from "./types.js";
 import { d2Snap } from "./D2Snap.js";
 
 
@@ -46,7 +51,7 @@ export function adaptiveD2Snap(
 	dom: DOM,
 	maxTokens: number = 2**15,	// 32768
 	maxIterations: number = 5,
-	options: Partial<D2SnapOptions> = {}
+	options: DeepPartial<D2SnapOptions> = {}
 ): D2SnapResult & {
     parameters: AdaptiveParameters;
     adaptiveIterations: number;

@@ -1,4 +1,4 @@
-import { type DOM, type D2SnapOptions, type D2SnapResult } from "./types.js";
+import { type DeepPartial, type DOM, type D2SnapOptions, type D2SnapResult } from "./types.js";
 import { d2Snap } from "./D2Snap.js";
 export interface AdaptiveParameters {
     rE: number;
@@ -6,7 +6,7 @@ export interface AdaptiveParameters {
     rT: number;
 }
 export declare function adaptiveD2Snap(d2SnapFn: typeof d2Snap, dom: DOM, maxTokens?: number, // 32768
-maxIterations?: number, options?: Partial<D2SnapOptions>): D2SnapResult & {
+maxIterations?: number, options?: DeepPartial<D2SnapOptions>): D2SnapResult & {
     parameters: AdaptiveParameters;
     adaptiveIterations: number;
 };

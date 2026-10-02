@@ -45,7 +45,7 @@ Downsample a DOM – given a DOM and specific downsampling ratios.
 function d2Snap(
   domOrHTML: Document | Element | string,
   rE: number, rA: number, rT: number,
-  options?: Partial<D2SnapOptions>
+  options?: D2SnapOptions
 ): Promise<D2SnapResult>
 ```
 
@@ -92,11 +92,11 @@ type D2SnapResult = {
 Adaptively downsample a DOM – given downsampling results constraints rather than specific ratios.
 
 ``` ts
-function d2Snap(
+function adaptiveD2Snap(
   domOrHTML: Document | Element | string,
   maxTokens: number = 2**15,  // 32768
   maxIterations: number = 5,
-  options?: Partial<D2SnapOptions>
+  options?: D2SnapOptions
 ): Promise<AdaptiveD2SnapResult>
 ```
 
@@ -129,37 +129,36 @@ type AdaptiveD2SnapResult = D2SnapResult & {
 
 ``` ts
 interface D2SnapOptions {
-  debug: boolean;
-  minify: boolean;
-  uniqueIDs: boolean;
-  attributeScores: {
+  debug?: boolean;
+  minify?: boolean;
+  uniqueIDs?: boolean;
+  attributeScores?: {
     [ name: string ]: number;
   };
-  classification: {
-    actionableElements: string[];
-    textElements: string[];
-    textLabelAttributes: string[];
+  classification?: {
+    actionableElements?: string[];
+    textElements?: string[];
   };
-  filter: {
-    attributes: string[];
-    elements: string[];
-    dataURLs: boolean;
-    emptyElements: boolean;
+  filter?: {
+    attributes?: string[];
+    elements?: string[];
+    dataURLs?: boolean;
+    emptyElements?: boolean;
   };
-  normalize: {
-    iconfontsFromNames: string[];
-    labelsFromAttributes: string[];
-    svgToImg: boolean;
+  normalize?: {
+    iconfontsFromNames?: string[];
+    labelsFromAttributes?: string[];
+    svgToImg?: boolean;
   };
-  skip: {
-    markdown: boolean;
-    textRank: boolean;
+  skip?: {
+    markdown?: boolean;
+    textRank?: boolean;
   };
-  textRankOptions: {
-    damping: number;
-    maxIterations: number;
-    minSimilarity: number;
-    tolerance: number;
+  textRankOptions?: {
+    damping?: number;
+    maxIterations?: number;
+    minSimilarity?: number;
+    tolerance?: number;
   };
 };
 ```
@@ -168,11 +167,11 @@ interface D2SnapOptions {
 | :-| :- |
 | `debug` | Toggle debug mode. Debug mode collects timings of individual downsampling steps, output HTML is formatted. |
 | `minify` | Toggle minification of the output DOM. |
-| `uniqueIDs` | Toggle whether to add unique IDs to the input and output DOM via `data-ui` attribute. If the input DOM is a live reference, elements from the downsampled DOM can be traced back to elements in the live DOM (e.g., for dispatching actions). |
+| `uniqueIDs` | Toggle whether to add unique IDs to the input and output DOM via `data-uid` attribute. If the input DOM is a live reference, elements from the downsampled DOM can be traced back to elements in the live DOM (e.g., for dispatching actions). |
 | `attributeScores` | Attribute scores for threshold-based removal. | [var.DEFAULTS_ATTRIBUTE_SCORES.ts](./src/var.DEFAULTS_ATTRIBUTE_SCORES.ts) |
-| `classification` | HTML syntax-to-concept classifications: `actionableElements` – what counts as an actionable, `textElements` – what should be translated to Markdown, `textLabelAttributes` – what attributes allow for recovering text labels (see below). |
+| `classification` | HTML syntax-to-concept classifications: `actionableElements` – what counts as an actionable, `textElements` – what should be translated to Markdown. |
 | `filter` | Filter elements from the output DOM by absolute measures: `attributes` – attributes by name, `elements` – elements by tag name, `dataURLs` – data URLs from attribute src values, `emptyElements` – elements with no contents (also images without `alt` and `src`). |
-| `normalize` | Normalise the DOM for more idiomatic results; anti-patterns are recovered: `iconfontsFromNames` – names of icon fonts used via `class` attribute, `labelsFromAttributes` – element text contents or image `alt` attribute values from text-label attributes, `svgToImg` – convert `SVG` to `IMG` elements for Markdown translation. |
+| `normalize` | Normalise the DOM for more idiomatic results; anti-patterns are recovered: `iconfontsFromNames` – names of icon fonts used via `class` attribute, `labelsFromAttributes` – element text contents or image `alt` attribute values from text-label attributes (e.g., `aria-label`; precedence order), `svgToImg` – convert `SVG` to `IMG` elements for Markdown translation. |
 | `skip` | Toggle absolute downsampling measures: `markdown` – whether to translate text formatting elements (`classification.textElements`) to Markdown, `textRank` – whether to rank text sentences by centrality before text-downsampling truncation. |
 | `textRankOptions` | Configure TextRank, which is embedded in the text downsampling procedure. |
 
@@ -224,7 +223,7 @@ interface D2SnapOptions {
     labelsFromAttributes: [
       "aria-labelledby", "aria-label", "title"
     ],
-    svgToImg: false
+    svgToImg: true
   },
   skip: {
     markdown: false,

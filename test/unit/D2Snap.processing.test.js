@@ -15,7 +15,7 @@ const NORMALIZING_PRE_PROCESSING_OPTIONS = {
         emptyElements: false
     },
     normalize: {
-        iconfontsFromNames: [ "fa", "icon" ],
+        iconfontsFromNames: [ "fa", "my-icons" ],
         labelsFromAttributes: [ "aria-labelledby", "aria-label", "title" ],
         svgToImg: true
     }

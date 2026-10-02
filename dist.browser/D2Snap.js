@@ -1664,7 +1664,7 @@
     "DETAILS",
     "FORM",
     "INPUT",
-    "LABLE",
+    "LABEL",
     "SELECT",
     "OPTION",
     "SUMMARY",
@@ -1763,7 +1763,7 @@
     return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
   }
   function elementHasNoTextContent(elementNode) {
-    return !(elementNode.textContent ?? "").trim() && !elementNode.querySelector("img[alt]:not([alt=''])");
+    return !(elementNode.textContent ?? "").trim() && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
   }
   function resolveAttributeAsString(elementNode, attributeName) {
     return (elementNode.getAttribute(attributeName) ?? "").trim();
@@ -1824,9 +1824,11 @@
           if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
             let iconfontsInClass = null;
             for (const className of [...elementNode.classList].reverse()) {
-              const parts = className.split(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
-              if (parts.length < 2 || !iconfontsFromNames.includes(parts[0])) continue;
-              iconfontsInClass = parts.slice(1).join(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+              const iconfontName = iconfontsFromNames.find((name) => {
+                return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`);
+              });
+              if (!iconfontName) continue;
+              iconfontsInClass = className.slice(iconfontName.length + UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER.length);
               break;
             }
             if (iconfontsInClass) {
@@ -1919,7 +1921,7 @@
   function getAttributeScore(attrName, attributeScores = new Map(
     Object.entries(DEFAULT_ATTRIBUTE_SCORES).map((entry) => [entry[0].toLowerCase(), entry[1]])
   )) {
-    let normalizedName = attrName;
+    let normalizedName = attrName.toLowerCase();
     if (!attributeScores.has(normalizedName)) {
       if (normalizedName.includes("-")) {
         normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
@@ -1943,8 +1945,7 @@
       attributeScores: DEFAULT_ATTRIBUTE_SCORES,
       classification: {
         actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
-        textElements: DEFAULT_CLASS_TEXT_TAG_NAMES,
-        textLabelAttributes: ["title"]
+        textElements: DEFAULT_CLASS_TEXT_TAG_NAMES
       },
       debug: false,
       filter: {

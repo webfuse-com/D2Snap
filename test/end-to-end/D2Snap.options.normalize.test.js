@@ -24,7 +24,7 @@ const NORMALIZING_DOWNSAMPLING_OPTIONS_ARG = {
     ..._DOWNSAMPLING_OPTIONS_ARG_BASE,
 
     normalize: {
-        iconfontsFromNames: [ "fa", "icon" ],
+        iconfontsFromNames: [ "fa", "my-icons" ],
         labelsFromAttributes: [ "ARIA-LABELLEDBY", "aria-label", "title" ],
         svgToImg: true
     }

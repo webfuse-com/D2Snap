@@ -14,7 +14,7 @@ function elementHasTagName(elementNode, tagName) {
   return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
 }
 function elementHasNoTextContent(elementNode) {
-  return !(elementNode.textContent ?? "").trim() && !elementNode.querySelector("img[alt]:not([alt=''])");
+  return !(elementNode.textContent ?? "").trim() && ![...elementNode.querySelectorAll("img[alt]")].some((image) => !!resolveAttributeAsString(image, "alt"));
 }
 function resolveAttributeAsString(elementNode, attributeName) {
   return (elementNode.getAttribute(attributeName) ?? "").trim();
@@ -75,9 +75,11 @@ function preProcessDOM(domRoot, document, options) {
         if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
           let iconfontsInClass = null;
           for (const className of [...elementNode.classList].reverse()) {
-            const parts = className.split(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
-            if (parts.length < 2 || !iconfontsFromNames.includes(parts[0])) continue;
-            iconfontsInClass = parts.slice(1).join(UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER);
+            const iconfontName = iconfontsFromNames.find((name) => {
+              return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`);
+            });
+            if (!iconfontName) continue;
+            iconfontsInClass = className.slice(iconfontName.length + UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER.length);
             break;
           }
           if (iconfontsInClass) {

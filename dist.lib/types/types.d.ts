@@ -11,6 +11,9 @@ export declare enum NodeType {
     TEXT_NODE = 3,
     COMMENT_NODE = 8
 }
+export type DeepPartial<T> = {
+    [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
 export type TextNode = Node & {
     nodeType: number;
     textContent: string;
@@ -35,7 +38,6 @@ export interface D2SnapOptions {
     classification: {
         actionableElements: string[];
         textElements: string[];
-        textLabelAttributes: string[];
     };
     debug: boolean;
     filter: {
@@ -69,7 +71,7 @@ export interface D2SnapResult {
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
         timings?: {
-            [key: string]: number;
+            [step: string]: number;
         };
     };
 }

@@ -14,6 +14,11 @@ export enum NodeType {
 }
 
 
+export type DeepPartial<T> = {
+	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+
 export type TextNode = Node & {
     nodeType: number;
     textContent: string;
