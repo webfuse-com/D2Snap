@@ -53,7 +53,7 @@ function d2Snap(
 
 | Parameter | Description | Range |
 | :-| :- | :- |
-| `domOrHTML` | Input DOM given as fully qualified document reference (tree), an element reference (subtree) or an equivalent HTML serialisation. | `Document`, `Element`, `string` |
+| `domOrHTML` | Input DOM given as fully qualified document reference (tree), an element reference (subtree) or an equivalent HTML serialisation. | Tree |
 | `rE` | Element downsampling ratio. Controls the preserved DOM height by ratio. | `[0, 1]` |
 | `rA` | Attribute downsampling ratio (threshold). Controls which attributes are preserved by score threshold (latent ratio if scores are affordance-frequency balanced). Attribute scores are predefined based on empirical adjustment, but can be overriden via `options`. | `[0, 1]` |
 | `rT` | Text downsampling ratio. Controls the preserved sentence-based text length per text node. | `[0, 1]` |
@@ -85,9 +85,51 @@ type D2SnapResult = {
 | `outerHTML` | The serialised downsampled DOM, including the root element. |
 | `meta` | Information about the downsampling results: `tokenEstimate` – estimated token count of the HTML-serialised output DOM (based on [https://platform.openai.com](https://platform.openai.com/tokenizer)), `originalSize` – byte size of the HTML-serialised input DOM, `sizeRatio` – size ratio of the HTML-serialised output DOM compared to the input DOM, `snapshotSize` – byte size of the HTML-serialised output DOM, `timings` (debug mode only) – durations of individual downsampling steps. |
 
-> The input DOM is always parsed into a fully qualified document, and the returned DOM (`dom`) is the `BODY` of such parsed DOMs.
+> The HTML-serialised input DOM is always parsed into a fully qualified document. For string or `Document` inputs, the returned `dom` is the cloned `BODY`.
 
 #### Examples
+
+``` ts
+await d2Snap(`
+  <section class="container" tabindex="3" required="true" type="example">
+    <div class="mx-auto" data-topic="products" required="false">
+      <h1>Our Pizza</h1>
+      <div>
+        <div class="shadow-lg">
+          <h2>Margherita</h2>
+          <p>
+          A simple classic: mozzarella, tomatoes and basil.
+          An everyday choice!
+          </p>
+          <button type="button">Add</button>
+        </div>
+        <div class="shadow-lg">
+          <h2>Capricciosa</h2>
+          <p>
+            A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
+            A true favourite!
+          </p>
+          <button type="button">Add</button>
+        </div>
+      </div>
+    </div>
+  </section>`,
+  0.9, 0.4, 0.7,
+  {
+    debug: true
+  }
+);
+```
+
+``` html
+# Our Pizza
+## Margherita
+A simple classic: mozzarella, tomatoes and basil.
+<button>Add</button>
+## Capricciosa
+A rich taste: mozzarella, ham, mushrooms, artichokes and olives.
+<button>Add</button>
+```
 
 ### `adaptiveD2Snap()`
 
@@ -235,7 +277,61 @@ interface D2SnapOptions {
 }
 ```
 
-Filtering removes features outright (e.g., all elements with a specific tag). Normalisation alters DOM features to streamline them for uniform downsampling results (e.g., single MD syntax for images): elements that are not idiomatically described are altered to be idiomatic: elements without text get the most expressive text-label attribute promoted to text; the alt attribute is analogous to its text for IMG elements (void) in that matter. SVGs and arbitrary, empty elements with a supported font `class` are converted to images
+Filtering removes features outright (e.g., all elements with a specific tag). Normalisation alters DOM features to streamline them for uniform downsampling results (e.g., single MD syntax for images): elements that are not idiomatically described are altered to be idiomatic: elements without text get the most expressive text-label attribute promoted to text; the alt attribute is analogous to its text for IMG elements (void) in that matter. Prevalent text-label attributes are `aria-label` and `title`. SVGs and arbitrary, empty elements with a supported font `class` are converted to images.
+
+#### Examples
+
+``` ts
+await d2Snap(`
+  <nav>
+    <div>
+      <h1>
+        <strong>Menu</strong>
+      </h1>
+    </div>
+    <!-- IDIOMATIC -->
+    <button class="button-primary" aria-label="Submit forms">Submit</button>
+    <button class="button-primary">
+      <p class="text-l text-bold" aria-label="Submit">
+        <span class="50da9f 1dd45e ab0be3">Submit</span>
+      </p>
+      <span title="Forms">Forms</span>
+    </button>
+    <!-- SVG ICON -->
+    <button class="button-primary">
+      <svg viewBox="0 0 24 24"><title>Submit</title><path d="m5 12h14m-6-6 6 6-6 6"/></svg>
+    </button>
+    <!-- IMAGE ICON FONT -->
+    <button class="button-primary">
+      <img src="/ico/03f8aa.svg" aria-label="Submit">
+    </button>
+    <!-- ICON FONT ICON -->
+    <button class="button-primary">
+      <i class="dd8190 fa fa-submit"></i>
+    </button>
+  </nav>`,
+  1, 1, 1,
+  {
+    filter: {
+      elements: [ "H1" ],
+      emptyElements: true
+    },
+    normalize: {
+        iconfontsFromNames: [ "fa" ],
+        labelsFromAttributes: [ "aria-label", "title" ],
+        svgToImg: true
+    }
+  }
+);
+```
+
+``` html
+<button>Submit</button>
+<button>Submit Forms</button>
+<button>![Submit]() </button>
+<button>![Submit](/ico/03f8aa.svg)</button>
+<button>![submit]() </button>
+```
 
 ## Using D2Snap-Downsampled DOM Snapshots with LLM-Based Web Agents
 

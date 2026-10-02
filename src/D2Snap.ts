@@ -44,7 +44,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set(
 );
 
 function validateUnitParameter(name: string, value: number) {
-	if(Number.isFinite(value) && value < 0 || value > 1) {
+	if(!Number.isFinite(value) || value < 0 || value > 1) {
 		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
 	}
 }
@@ -197,17 +197,6 @@ export function d2Snap(
 			.createRange()
 			.createContextualFragment(markdown);
 
-		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
-
-		elementNode
-			  .replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
-
-		// Strip same-tag replacements before returning for re-traversal:
-		// Turndown passes some textFormatting elements through verbatim
-		// (e.g. <table> without <thead>), and re-visiting them would feed
-		// the same input back to Turndown forever.
-		const sourceTagName: string = elementNode.tagName.toLowerCase();
-
 		// Drop bogus `<scheme:>` elements the HTML parser synthesises from
 		// markdown autolinks before they enter the tree (and become containers).
 		const unwrapColonTaggedElements = (parent: Node) => {
@@ -228,6 +217,17 @@ export function d2Snap(
 			}
 		};
 		unwrapColonTaggedElements(markdownNodesFragment);
+
+		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
+
+		elementNode
+			.replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
+
+		// Strip same-tag replacements before returning for re-traversal:
+		// Turndown passes some textFormatting elements through verbatim
+		// (e.g. <table> without <thead>), and re-visiting them would feed
+		// the same input back to Turndown forever.
+		const sourceTagName: string = elementNode.tagName.toLowerCase();
 
 		return replacingNodes
 			.filter(n => (
@@ -288,12 +288,13 @@ export function d2Snap(
 
 	// Clone
 	t0 = t();
-	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
+	const inertDoc: Document = document.implementation.createHTMLDocument("");
+	const virtualDOM = inertDoc.importNode(rootElement, true) as HTMLElement;
 	timings.clone = t() - t0;
 
 	// Pre-process
 	t0 = t();
-	preProcessDOM(virtualDom, document, {
+	preProcessDOM(virtualDOM, inertDoc, {
 		filter: optionsWithDefaults.filter,
 		normalize: optionsWithDefaults.normalize
 	});
@@ -302,7 +303,7 @@ export function d2Snap(
 	// Write depth per node
 	t0 = t();
 	traverseDom<Node>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
 		(node: Node) => {
 			const depth: number = ((node?.parentNode as HTMLElementWithDepth)?.depth ?? 0) + 1;
@@ -315,7 +316,7 @@ export function d2Snap(
 	// Text nodes
 	t0 = t();
 	traverseDom<TextNode>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_TEXT,
 		(node: TextNode) => snapTextNode(node, rT)
 	);
@@ -324,16 +325,16 @@ export function d2Snap(
 	// Text formatting element nodes
 	t0 = t();
 	traverseDom<HTMLElement>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementTextFormattingNode(document, node)
+		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node)
 	);
 	timings.textFormatting = t() - t0;
 
 	// Container element nodes
 	t0 = t();
 	traverseDom<HTMLElementWithDepth>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE)
 	);
@@ -342,7 +343,7 @@ export function d2Snap(
 	// Attribute nodes
 	t0 = t();
 	traverseDom<HTMLElement>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
 		(node: HTMLElement) => snapAttributeNode(node, rA)
 	);
@@ -353,7 +354,7 @@ export function d2Snap(
 
 	// Dissolve toplevel tags for rE = 1 (allows full linearization)
 	if(rE === 1.0) {
-		[ ...virtualDom.querySelectorAll("*") ]
+		[ ...virtualDOM.querySelectorAll("*") ]
 			.filter((elementNode: Element) => !_isActionableElement(elementNode))
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);
@@ -362,7 +363,7 @@ export function d2Snap(
 
 	// Post-process (DOM)
 	t0 = t();
-	postProcessDOM(virtualDom, {
+	postProcessDOM(virtualDOM, {
 		filter: optionsWithDefaults.filter,
 		minify: optionsWithDefaults.minify
 	}, _isActionableElement);
@@ -379,7 +380,7 @@ export function d2Snap(
 
 		// Serialize
 		t0 = t();
-		let html = virtualDom[property];
+		let html = virtualDOM[property];
 		timings.serialize = t() - t0;
 
 		// Post-process (HTML)
@@ -395,7 +396,7 @@ export function d2Snap(
 	};
 
 	return {
-		dom: virtualDom,
+		dom: virtualDOM,
 		get html() {
 			return getHTML("innerHTML");
 		},

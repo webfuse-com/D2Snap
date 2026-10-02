@@ -129,32 +129,48 @@ await test("Container merge never moves content into a void element", async () =
 // `<https:>`. Seen on the futurumshop page: `<https: fonl="" futurum="" ...>`.
 // ---------------------------------------------------------------------------
 await test("Markdown autolink URL does not become a bogus container element", async () => {
-    for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
-        const html = `<html><body><main><section><p>before</p><p>See &lt;${url}&gt; here</p></section><section><p>IMPORTANT trailing content one two three.</p></section></main></body></html>`;
-        const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-            debug: true,
-            attributeScores: {
-                "*": 1
-            }
-        });
+	const findColonTags = root => [ ...root.querySelectorAll("*") ]
+		.map(el => el.tagName)
+		.filter(tagName => tagName.includes(":"));
 
-        assertNotIn("<https:", snapshot.html, `URL <${url}> re-parsed into a bogus <https:> element`);
-        assertNotIn("<mailto:", snapshot.html, `URL <${url}> re-parsed into a bogus <mailto:> element`);
-        assertIn("IMPORTANT trailing content", snapshot.html, `Content swallowed by bogus element from <${url}>`);
-    }
+	for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
+		const html = `<html><body><main><p>See &lt;${url}&gt; here</p></main></body></html>`;
+		const snapshot = await d2Snap(html, 0, 0, 0, {
+			skip: {
+				textRank: true
+			}
+		});
 
-    // Unwrapping the bogus `<scheme:>` elements must NOT disturb a kept
-    // actionable (`<a …>`) sitting alongside the autolink in the same markdown.
-    const linkHTML = `<html><body><main><p>visit &lt;https://example.com follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
-    const linkSnapshot = await d2Snap(linkHTML, 0.9, 0.9, 0.9, {
-        debug: true,
-        attributeScores: {
-            href: 1
-        }
-    });
+		// Canary: the <p> must have gone through Turndown, otherwise nothing below is exercised
+		assertNotIn("<p", snapshot.html, `Markdown pass did not run for <${url}>`);
 
-    assertIn(`href="https://kept.example/x"`, linkSnapshot.html, "Kept anchor's href was corrupted by autolink stripping");
-    assertIn("KEPTLINK", linkSnapshot.html, "Kept anchor text was lost");
+		const colonTags = findColonTags(snapshot.dom);
+		if(colonTags.length) {
+			throw new Error(`URL <${url}> re-parsed into bogus element(s): ${colonTags.join(", ")}`);
+		}
+	}
+
+	// Unwrapping the bogus `<scheme:>` elements must NOT disturb a kept
+	// actionable (`<a …>`) nested inside it. The autolink must be closed,
+	// otherwise the parser eats the anchor as attributes and there is no anchor.
+	const linkHTML = `<html><body><main><p>visit &lt;https://example.com&gt; follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
+	const linkSnapshot = await d2Snap(linkHTML, 0, 0, 0, {
+		skip: {
+			textRank: true
+		}
+	});
+
+	assertNotIn("<p", linkSnapshot.html, "Markdown pass did not run for kept-anchor case");
+
+	const colonTags = findColonTags(linkSnapshot.dom);
+	if(colonTags.length) {
+		throw new Error(`Autolink re-parsed into bogus element(s): ${colonTags.join(", ")}`);
+	}
+
+	const anchor = linkSnapshot.dom.querySelector(`a[href="https://kept.example/x"]`);
+	if(!anchor || anchor.textContent !== "KEPTLINK") {
+		throw new Error("Kept anchor was lost or corrupted by autolink unwrapping");
+	}
 });
 
 await test("Keep aria-labelledby descriptor of empty actionable element", async () => {

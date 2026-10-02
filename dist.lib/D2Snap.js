@@ -29,7 +29,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = new Set(
   ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY.map((t) => t.toLowerCase())
 );
 function validateUnitParameter(name, value) {
-  if (Number.isFinite(value) && value < 0 || value > 1) {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
@@ -130,9 +130,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
     const markdown = turndown.translate(elementNode.outerHTML);
     const markdownNodesFragment = document2.createRange().createContextualFragment(markdown);
-    const replacingNodes = [...markdownNodesFragment.childNodes];
-    elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
-    const sourceTagName = elementNode.tagName.toLowerCase();
     const unwrapColonTaggedElements = (parent) => {
       for (const child of [...parent.childNodes]) {
         if (child.nodeType !== NodeType.ELEMENT_NODE) continue;
@@ -145,6 +142,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       }
     };
     unwrapColonTaggedElements(markdownNodesFragment);
+    const replacingNodes = [...markdownNodesFragment.childNodes];
+    elementNode.replaceWith(...[document2.createTextNode(" "), ...replacingNodes, document2.createTextNode(" ")]);
+    const sourceTagName = elementNode.tagName.toLowerCase();
     return replacingNodes.filter((n) => n.nodeType !== NodeType.ELEMENT_NODE || n.tagName.toLowerCase() !== sourceTagName);
   }
   function snapTextNode(textNode, rT2) {
@@ -183,17 +183,18 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     );
   }
   t0 = t();
-  const virtualDom = rootElement.cloneNode(true);
+  const inertDoc = document.implementation.createHTMLDocument("");
+  const virtualDOM = inertDoc.importNode(rootElement, true);
   timings.clone = t() - t0;
   t0 = t();
-  preProcessDOM(virtualDom, document, {
+  preProcessDOM(virtualDOM, inertDoc, {
     filter: optionsWithDefaults.filter,
     normalize: optionsWithDefaults.normalize
   });
   timings.preProcessing = t() - t0;
   t0 = t();
   traverseDom(
-    virtualDom,
+    virtualDOM,
     NodeFilter.SHOW_ELEMENT,
     (node) => {
       const depth = (node?.parentNode?.depth ?? 0) + 1;
@@ -203,39 +204,39 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   timings.writeDepth = t() - t0;
   t0 = t();
   traverseDom(
-    virtualDom,
+    virtualDOM,
     NodeFilter.SHOW_TEXT,
     (node) => snapTextNode(node, rT)
   );
   timings.textNodes = t() - t0;
   t0 = t();
   traverseDom(
-    virtualDom,
+    virtualDOM,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementTextFormattingNode(document, node)
+    (node) => snapElementTextFormattingNode(inertDoc, node)
   );
   timings.textFormatting = t() - t0;
   t0 = t();
   traverseDom(
-    virtualDom,
+    virtualDOM,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapElementContainerNode(node, rE)
   );
   timings.containers = t() - t0;
   t0 = t();
   traverseDom(
-    virtualDom,
+    virtualDOM,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapAttributeNode(node, rA)
   );
   timings.attributes = t() - t0;
   if (rE === 1) {
-    [...virtualDom.querySelectorAll("*")].filter((elementNode) => !_isActionableElement(elementNode)).forEach((element) => {
+    [...virtualDOM.querySelectorAll("*")].filter((elementNode) => !_isActionableElement(elementNode)).forEach((element) => {
       element.replaceWith(...element.childNodes);
     });
   }
   t0 = t();
-  postProcessDOM(virtualDom, {
+  postProcessDOM(virtualDOM, {
     filter: optionsWithDefaults.filter,
     minify: optionsWithDefaults.minify
   }, _isActionableElement);
@@ -246,7 +247,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       return serialisation[property];
     }
     t0 = t();
-    let html = virtualDom[property];
+    let html = virtualDOM[property];
     timings.serialize = t() - t0;
     t0 = t();
     html = postProcessHTML(html, {
@@ -257,7 +258,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     return html;
   };
   return {
-    dom: virtualDom,
+    dom: virtualDOM,
     get html() {
       return getHTML("innerHTML");
     },

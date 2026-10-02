@@ -316,9 +316,13 @@
     const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
     const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
     const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
-    const stack = [root2];
-    for (let i = root2.childNodes.length - 1; i >= 0; i--) {
-      stack.push(root2.childNodes[i]);
+    const stack = [];
+    if (filter === 4294967295 /* SHOW_ALL */ || filter === 1 /* SHOW_ELEMENT */) {
+      stack.push(root2);
+    } else {
+      for (let i = root2.childNodes.length - 1; i >= 0; i--) {
+        stack.push(root2.childNodes[i]);
+      }
     }
     while (stack.length) {
       const node = stack.pop();
@@ -1912,7 +1916,7 @@
     ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map((t) => t.toLowerCase())
   );
   function validateUnitParameter(name, value) {
-    if (value < 0 || value > 1) {
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
       throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
     }
   }
@@ -1930,7 +1934,7 @@
         }
       }
     }
-    const attributeScore = attributeScores.get(normalizedName.toLowerCase()) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
+    const attributeScore = attributeScores.get(normalizedName) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
     return attributeScore;
   }
   function isActionableElement(elementNode, actionableElementTagNames = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES), actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES2) {
@@ -1996,9 +2000,8 @@
       };
       if (!considerContainerElement(elementNode)) return;
       if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
-      const depth = elementNode.depth ?? 0;
       const ratio = Math.min(1, Math.max(0, rE2));
-      const isMergeLevel = depth > 1 && Math.floor(depth * ratio) > Math.floor((depth - 1) * ratio);
+      const isMergeLevel = elementNode.depth > 1 && Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio);
       if (!isMergeLevel) return;
       const targetElement = elementNode.parentElement;
       const sourceElement = elementNode;
@@ -2014,9 +2017,6 @@
       if (!textElementTagNames.has(elementNode.tagName.toUpperCase())) return;
       const markdown = turndown.translate(elementNode.outerHTML);
       const markdownNodesFragment = document3.createRange().createContextualFragment(markdown);
-      const replacingNodes = [...markdownNodesFragment.childNodes];
-      elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
-      const sourceTagName = elementNode.tagName.toLowerCase();
       const unwrapColonTaggedElements = (parent) => {
         for (const child of [...parent.childNodes]) {
           if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
@@ -2029,11 +2029,14 @@
         }
       };
       unwrapColonTaggedElements(markdownNodesFragment);
+      const replacingNodes = [...markdownNodesFragment.childNodes];
+      elementNode.replaceWith(...[document3.createTextNode(" "), ...replacingNodes, document3.createTextNode(" ")]);
+      const sourceTagName = elementNode.tagName.toLowerCase();
       return replacingNodes.filter((n) => n.nodeType !== 1 /* ELEMENT_NODE */ || n.tagName.toLowerCase() !== sourceTagName);
     }
     function snapTextNode(textNode, rT2) {
       if (textNode.nodeType !== 3 /* TEXT_NODE */) return;
-      const text = textNode?.innerText ?? textNode.textContent;
+      const text = textNode.textContent;
       if (!(text ?? "").trim().length) return;
       const leadingSpace = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
       const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
@@ -2067,71 +2070,71 @@
       );
     }
     t0 = t();
-    const virtualDom = rootElement.cloneNode(true);
+    const inertDoc = document2.implementation.createHTMLDocument("");
+    const virtualDOM = inertDoc.importNode(rootElement, true);
     timings.clone = t() - t0;
     t0 = t();
-    preProcessDOM(virtualDom, document2, {
+    preProcessDOM(virtualDOM, inertDoc, {
       filter: optionsWithDefaults.filter,
       normalize: optionsWithDefaults.normalize
     });
     timings.preProcessing = t() - t0;
     t0 = t();
-    let domTreeHeight = 0;
     traverseDom(
-      virtualDom,
+      virtualDOM,
       1 /* SHOW_ELEMENT */,
       (node) => {
-        const depth = (node.parentNode.depth ?? 0) + 1;
+        const depth = (node?.parentNode?.depth ?? 0) + 1;
         node.depth = depth;
-        domTreeHeight = Math.max(depth, domTreeHeight);
       }
     );
     timings.writeDepth = t() - t0;
     t0 = t();
     traverseDom(
-      virtualDom,
+      virtualDOM,
       4 /* SHOW_TEXT */,
       (node) => snapTextNode(node, rT)
     );
     timings.textNodes = t() - t0;
     t0 = t();
     traverseDom(
-      virtualDom,
+      virtualDOM,
       1 /* SHOW_ELEMENT */,
-      (node) => snapElementTextFormattingNode(document2, node)
+      (node) => snapElementTextFormattingNode(inertDoc, node)
     );
     timings.textFormatting = t() - t0;
     t0 = t();
     traverseDom(
-      virtualDom,
+      virtualDOM,
       1 /* SHOW_ELEMENT */,
       (node) => snapElementContainerNode(node, rE)
     );
     timings.containers = t() - t0;
     t0 = t();
     traverseDom(
-      virtualDom,
+      virtualDOM,
       1 /* SHOW_ELEMENT */,
       (node) => snapAttributeNode(node, rA)
-      // work on parent element
     );
     timings.attributes = t() - t0;
     if (rE === 1) {
-      [...virtualDom.querySelectorAll("*")].filter((elementNode) => !_isActionableElement(elementNode)).forEach((element) => {
+      [...virtualDOM.querySelectorAll("*")].filter((elementNode) => !_isActionableElement(elementNode)).forEach((element) => {
         element.replaceWith(...element.childNodes);
       });
     }
     t0 = t();
-    postProcessDOM(virtualDom, {
+    postProcessDOM(virtualDOM, {
       filter: optionsWithDefaults.filter,
       minify: optionsWithDefaults.minify
     }, _isActionableElement);
     timings.domPostProcessing = t() - t0;
     const serialisation = {};
     const getHTML = (property) => {
-      if (serialisation[property]) return serialisation[property];
+      if (serialisation[property] !== void 0) {
+        return serialisation[property];
+      }
       t0 = t();
-      let html = virtualDom[property];
+      let html = virtualDOM[property];
       timings.serialize = t() - t0;
       t0 = t();
       html = postProcessHTML(html, {
@@ -2142,7 +2145,7 @@
       return html;
     };
     return {
-      dom: virtualDom,
+      dom: virtualDOM,
       get html() {
         return getHTML("innerHTML");
       },
@@ -2160,7 +2163,9 @@
         get sizeRatio() {
           return getHTML("innerHTML").length / originalSize;
         },
-        tokenEstimate: Math.round(getHTML("innerHTML").length / 4),
+        get tokenEstimate() {
+          return Math.round(getHTML("innerHTML").length / 4);
+        },
         // according to https://platform.openai.com/tokenizer
         ...optionsWithDefaults.debug && { timings }
       }
