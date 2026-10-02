@@ -41,8 +41,12 @@ function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
   const showText = (filter & NodeFilter.SHOW_TEXT) !== 0;
   const showComment = (filter & NodeFilter.SHOW_COMMENT) !== 0;
   const stack = [];
-  for (let i = root.childNodes.length - 1; i >= 0; i--) {
-    stack.push(root.childNodes[i]);
+  if (filter === NodeFilter.SHOW_ALL || filter === NodeFilter.SHOW_ELEMENT) {
+    stack.push(root);
+  } else {
+    for (let i = root.childNodes.length - 1; i >= 0; i--) {
+      stack.push(root.childNodes[i]);
+    }
   }
   while (stack.length) {
     const node = stack.pop();

@@ -1,6 +1,6 @@
 import { join } from "path";
 import { readdir } from "fs/promises";
-import { deepEqual as assertEqual, ok, throws } from "assert";
+import { deepEqual, notDeepEqual, ok, throws } from "assert";
 
 
 const TEST_FILE_NAME_SUFFIX = ".test.js";
@@ -56,7 +56,11 @@ global.assertTrue = function(a, message) {
 }
 
 global.assertEqual = function(a, b, message) {
-    return wrapAssertion(() => assertEqual(a, b, message));
+    return wrapAssertion(() => deepEqual(a, b, message));
+}
+
+global.assertNotEqual = function(a, b, message) {
+    return wrapAssertion(() => notDeepEqual(a, b, message));
 }
 
 global.assertLess = function(a, b, message) {
@@ -81,7 +85,7 @@ global.assertAlmostEqual = function(a, b, precision, message) {
     const roundA = roundPrecision(a);
     const roundB = roundPrecision(b);
 
-    return wrapAssertion(() => assertEqual(roundA, roundB, message), roundA, roundB, "~");
+    return wrapAssertion(() => deepEqual(roundA, roundB, message), roundA, roundB, "~");
 }
 
 global.assertThrows = function(fn, message) {

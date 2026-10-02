@@ -83,7 +83,9 @@ type D2SnapResult = {
 | `dom` | The downsampled DOM, cloned from the input DOM; hydrated from serialised input. |
 | `innerHTML`, `html` | The serialised downsampled DOM, excluding the root element. |
 | `outerHTML` | The serialised downsampled DOM, including the root element. |
-| `meta` | Information about the downsampling results: `tokenEstimate` – estimated token count of the HTML-serialised output DOM (based on [https://help.openai.com](https://help.openai.com/en/articles/4936856-understanding-and-counting-tokens)), `originalSize` – byte size of the HTML-serialised input DOM, `sizeRatio` – size ratio of the HTML-serialised output DOM compared to the input DOM, `snapshotSize` – byte size of the HTML-serialised output DOM, `timings` (debug mode only) – durations of individual downsampling steps. |
+| `meta` | Information about the downsampling results: `tokenEstimate` – estimated token count of the HTML-serialised output DOM (based on [https://platform.openai.com](https://platform.openai.com/tokenizer)), `originalSize` – byte size of the HTML-serialised input DOM, `sizeRatio` – size ratio of the HTML-serialised output DOM compared to the input DOM, `snapshotSize` – byte size of the HTML-serialised output DOM, `timings` (debug mode only) – durations of individual downsampling steps. |
+
+> The input DOM is always parsed into a fully qualified document, and the returned DOM (`dom`) is the `BODY` of such parsed DOMs.
 
 #### Examples
 

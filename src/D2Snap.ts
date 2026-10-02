@@ -44,7 +44,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set(
 );
 
 function validateUnitParameter(name: string, value: number) {
-	if(value < 0 || value > 1) {
+	if(Number.isFinite(value) && value < 0 || value > 1) {
 		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
 	}
 }
@@ -54,15 +54,23 @@ export function getAttributeScore(attrName: string, attributeScores: Map<string,
 	Object.entries(DEFAULT_ATTRIBUTE_SCORES)
 		.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 )) {
- 	let normalizedName: string = attrName.toLowerCase();
+	let normalizedName: string = attrName.toLowerCase();
 
 	if(!attributeScores.has(normalizedName)) {
-		if(normalizedName.includes("-")) {
-			normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+		const nameParts = normalizedName.split("-");
+
+ 		for(let i = nameParts.length - 1; i > 0; i--) {
+			const wildcardName = `${nameParts.slice(0, i).join("-")}-*`;
+
+			if(attributeScores.has(wildcardName)) {
+				normalizedName = wildcardName;
+
+				break;
+			}
 		}
 	}
 
-	const attributeScore: number = attributeScores.get(normalizedName.toLowerCase())
+	const attributeScore: number = attributeScores.get(normalizedName)
 		?? attributeScores.get(CONFIG.attributeScoresFallbackKey)
 		?? CONFIG.attributeScoresDefaultFallbackValue;
 
@@ -120,7 +128,12 @@ export function d2Snap(
 		uniqueIDs: false
 	}, options);
 	// Aliases
-	optionsWithDefaults.attributeScoring = optionsWithDefaults.attributeScores;
+	optionsWithDefaults.attributeScores = {
+ 		...DEFAULT_ATTRIBUTE_SCORES,
+
+ 		...(options.attributeScoring ?? {}),
+ 		...(options.attributeScores ?? {})
+ 	};
 
 	const attributeScores: Map<string, number> = new Map(
 		Object.entries(optionsWithDefaults.attributeScores)
@@ -226,7 +239,7 @@ export function d2Snap(
 	function snapTextNode(textNode: TextNode, rT: number) {
 		if(textNode.nodeType !== NodeType.TEXT_NODE) return;
 
-		const text: string | null = (textNode?.innerText ?? textNode.textContent);
+		const text: string | null = textNode.textContent;
 		if(!(text ?? "").trim().length) return;
 
 		const leadingSpace: string = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
@@ -288,16 +301,13 @@ export function d2Snap(
 
 	// Write depth per node
 	t0 = t();
-	let domTreeHeight: number = 0;
 	traverseDom<Node>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
 		(node: Node) => {
-			const depth: number = ((node.parentNode as HTMLElementWithDepth).depth ?? 0) + 1;
+			const depth: number = ((node?.parentNode as HTMLElementWithDepth)?.depth ?? 0) + 1;
 
 			(node as HTMLElementWithDepth).depth = depth;
-
-			domTreeHeight = Math.max(depth, domTreeHeight);
 		}
 	);
 	timings.writeDepth = t() - t0;
@@ -316,7 +326,7 @@ export function d2Snap(
 	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementTextFormattingNode(document, node),
+		(node: HTMLElement) => snapElementTextFormattingNode(document, node)
 	);
 	timings.textFormatting = t() - t0;
 
@@ -325,7 +335,7 @@ export function d2Snap(
 	traverseDom<HTMLElementWithDepth>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE),
+		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE)
 	);
 	timings.containers = t() - t0;
 
@@ -334,7 +344,7 @@ export function d2Snap(
 	traverseDom<HTMLElement>(
 		virtualDom,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element
+		(node: HTMLElement) => snapAttributeNode(node, rA)
 	);
 	timings.attributes = t() - t0;
 
@@ -363,7 +373,9 @@ export function d2Snap(
 		outerHTML?: string;
 	} = {};
 	const getHTML = (property: "innerHTML" | "outerHTML"): string => {
-		if(serialisation[property]) return serialisation[property];
+		if(serialisation[property] !== undefined) {
+			return serialisation[property];
+		}
 
 		// Serialize
 		t0 = t();
@@ -401,7 +413,9 @@ export function d2Snap(
 			get sizeRatio() {
 				return getHTML("innerHTML").length / originalSize
 			},
-			tokenEstimate: Math.round(getHTML("innerHTML").length / 4),	// according to https://platform.openai.com/tokenizer
+			get tokenEstimate() {
+				return Math.round(getHTML("innerHTML").length / 4)
+			},	// according to https://platform.openai.com/tokenizer
 
 			...(optionsWithDefaults.debug && { timings })
 		}

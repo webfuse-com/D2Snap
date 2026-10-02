@@ -62,8 +62,16 @@ export function traverseDom<T>(
 
 	// Pre-order DFS
 	const stack: Node[] = [];
-	for(let i = root.childNodes.length - 1; i >= 0; i--) {
-		stack.push(root.childNodes[i]);
+
+	if(
+		filter === NodeFilter.SHOW_ALL
+		|| filter === NodeFilter.SHOW_ELEMENT
+	) {
+		stack.push(root);
+	} else {
+		for(let i = root.childNodes.length - 1; i >= 0; i--) {
+			stack.push(root.childNodes[i]);
+		}
 	}
 
 	while(stack.length) {

@@ -29,7 +29,7 @@ const ACTIONABLE_ROLE_ATTRIBUTE_VALUES = new Set(
   ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY.map((t) => t.toLowerCase())
 );
 function validateUnitParameter(name, value) {
-  if (value < 0 || value > 1) {
+  if (Number.isFinite(value) && value < 0 || value > 1) {
     throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
   }
 }
@@ -38,11 +38,16 @@ function getAttributeScore(attrName, attributeScores = new Map(
 )) {
   let normalizedName = attrName.toLowerCase();
   if (!attributeScores.has(normalizedName)) {
-    if (normalizedName.includes("-")) {
-      normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+    const nameParts = normalizedName.split("-");
+    for (let i = nameParts.length - 1; i > 0; i--) {
+      const wildcardName = `${nameParts.slice(0, i).join("-")}-*`;
+      if (attributeScores.has(wildcardName)) {
+        normalizedName = wildcardName;
+        break;
+      }
     }
   }
-  const attributeScore = attributeScores.get(normalizedName.toLowerCase()) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
+  const attributeScore = attributeScores.get(normalizedName) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
   return attributeScore;
 }
 function isActionableElement(elementNode, actionableElementTagNames = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES), actionableRoleAttributeValues = ACTIONABLE_ROLE_ATTRIBUTE_VALUES) {
@@ -81,7 +86,11 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     },
     uniqueIDs: false
   }, options);
-  optionsWithDefaults.attributeScoring = optionsWithDefaults.attributeScores;
+  optionsWithDefaults.attributeScores = {
+    ...DEFAULT_ATTRIBUTE_SCORES,
+    ...options.attributeScoring ?? {},
+    ...options.attributeScores ?? {}
+  };
   const attributeScores = new Map(
     Object.entries(optionsWithDefaults.attributeScores).map((entry) => [entry[0].toLowerCase(), entry[1]])
   );
@@ -140,7 +149,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   function snapTextNode(textNode, rT2) {
     if (textNode.nodeType !== NodeType.TEXT_NODE) return;
-    const text = textNode?.innerText ?? textNode.textContent;
+    const text = textNode.textContent;
     if (!(text ?? "").trim().length) return;
     const leadingSpace = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
     const trailingSpace = WHITESPACE_REGEX.test(text.charAt(text.length - 1)) ? " " : "";
@@ -183,14 +192,12 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   });
   timings.preProcessing = t() - t0;
   t0 = t();
-  let domTreeHeight = 0;
   traverseDom(
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => {
-      const depth = (node.parentNode.depth ?? 0) + 1;
+      const depth = (node?.parentNode?.depth ?? 0) + 1;
       node.depth = depth;
-      domTreeHeight = Math.max(depth, domTreeHeight);
     }
   );
   timings.writeDepth = t() - t0;
@@ -220,7 +227,6 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     virtualDom,
     NodeFilter.SHOW_ELEMENT,
     (node) => snapAttributeNode(node, rA)
-    // work on parent element
   );
   timings.attributes = t() - t0;
   if (rE === 1) {
@@ -236,7 +242,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   timings.domPostProcessing = t() - t0;
   const serialisation = {};
   const getHTML = (property) => {
-    if (serialisation[property]) return serialisation[property];
+    if (serialisation[property] !== void 0) {
+      return serialisation[property];
+    }
     t0 = t();
     let html = virtualDom[property];
     timings.serialize = t() - t0;
@@ -267,7 +275,9 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
       get sizeRatio() {
         return getHTML("innerHTML").length / originalSize;
       },
-      tokenEstimate: Math.round(getHTML("innerHTML").length / 4),
+      get tokenEstimate() {
+        return Math.round(getHTML("innerHTML").length / 4);
+      },
       // according to https://platform.openai.com/tokenizer
       ...optionsWithDefaults.debug && { timings }
     }

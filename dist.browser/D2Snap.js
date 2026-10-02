@@ -316,7 +316,7 @@
     const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
     const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
     const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
-    const stack = [];
+    const stack = [root2];
     for (let i = root2.childNodes.length - 1; i >= 0; i--) {
       stack.push(root2.childNodes[i]);
     }
@@ -1812,13 +1812,33 @@
         }
         if (node.nodeType !== 1 /* ELEMENT_NODE */) return;
         const elementNode = node;
+        if (filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
+          elementNode.remove();
+          return;
+        }
+        if (options.filter?.emptyElements) {
+          if (elementHasTagName(elementNode, "IMG")) {
+            if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
+              elementNode.remove();
+            }
+          }
+        }
+        for (const attr of [...elementNode.attributes]) {
+          if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
+            elementNode.removeAttribute(attr.name);
+          }
+        }
+        if (options.filter?.dataURLs) {
+          for (const attr of Array.from(elementNode.attributes)) {
+            if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
+            elementNode.removeAttribute(attr.name);
+          }
+        }
         if (elementHasTagName(elementNode, "SVG")) {
           if (options.normalize?.svgToImg) {
             const title = (elementNode.querySelector("title")?.textContent ?? "").trim();
             const labelAttributeValue = title || getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
-            if (labelAttributeValue) {
-              return [replaceElementByImage(elementNode, document2, labelAttributeValue)];
-            }
+            return [replaceElementByImage(elementNode, document2, labelAttributeValue ?? "")];
           }
         } else if (iconfontsFromNames.length) {
           if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
@@ -1846,28 +1866,6 @@
             } else if (!isVoidElement(elementNode.tagName)) {
               elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
             }
-          }
-        }
-        if (filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
-          elementNode.remove();
-          return;
-        }
-        if (options.filter?.emptyElements) {
-          if (elementHasTagName(elementNode, "IMG")) {
-            if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
-              elementNode.remove();
-            }
-          }
-        }
-        for (const attr of [...elementNode.attributes]) {
-          if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
-            elementNode.removeAttribute(attr.name);
-          }
-        }
-        if (options.filter?.dataURLs) {
-          for (const attr of Array.from(elementNode.attributes)) {
-            if (attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME || !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)) continue;
-            elementNode.removeAttribute(attr.name);
           }
         }
       }
@@ -1923,8 +1921,13 @@
   )) {
     let normalizedName = attrName.toLowerCase();
     if (!attributeScores.has(normalizedName)) {
-      if (normalizedName.includes("-")) {
-        normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
+      const nameParts = normalizedName.split("-");
+      for (let i = nameParts.length - 1; i > 0; i--) {
+        const wildcardName = `${nameParts.slice(0, i).join("-")}-*`;
+        if (attributeScores.has(wildcardName)) {
+          normalizedName = wildcardName;
+          break;
+        }
       }
     }
     const attributeScore = attributeScores.get(normalizedName.toLowerCase()) ?? attributeScores.get(CONFIG.attributeScoresFallbackKey) ?? CONFIG.attributeScoresDefaultFallbackValue;
@@ -1966,7 +1969,11 @@
       },
       uniqueIDs: false
     }, options);
-    optionsWithDefaults.attributeScoring = optionsWithDefaults.attributeScores;
+    optionsWithDefaults.attributeScores = {
+      ...DEFAULT_ATTRIBUTE_SCORES,
+      ...options.attributeScoring ?? {},
+      ...options.attributeScores ?? {}
+    };
     const attributeScores = new Map(
       Object.entries(optionsWithDefaults.attributeScores).map((entry) => [entry[0].toLowerCase(), entry[1]])
     );
@@ -1989,8 +1996,9 @@
       };
       if (!considerContainerElement(elementNode)) return;
       if (!elementNode.parentElement || !considerContainerElement(elementNode.parentElement)) return;
+      const depth = elementNode.depth ?? 0;
       const ratio = Math.min(1, Math.max(0, rE2));
-      const isMergeLevel = elementNode.depth > 1 && Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio);
+      const isMergeLevel = depth > 1 && Math.floor(depth * ratio) > Math.floor((depth - 1) * ratio);
       if (!isMergeLevel) return;
       const targetElement = elementNode.parentElement;
       const sourceElement = elementNode;

@@ -121,6 +121,42 @@ export function preProcessDOM(
 
 			const elementNode = node as Element;
 
+			// Filter (optionals)
+
+			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
+				elementNode.remove();
+
+				return;
+			}
+
+			if(options.filter?.emptyElements) {
+				if(elementHasTagName(elementNode, "IMG")) {
+					if(
+						!resolveAttributeAsString(elementNode, "src")
+						&& !resolveAttributeAsString(elementNode, "alt")
+					 ) {
+						elementNode.remove();
+					}
+				}
+			}
+
+			for(const attr of [ ...elementNode.attributes ]) {
+				if(filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
+					elementNode.removeAttribute(attr.name);
+				}
+			}
+
+			if(options.filter?.dataURLs) {
+				for(const attr of Array.from(elementNode.attributes)) {
+					if(
+						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
+							|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
+					) continue;
+
+					elementNode.removeAttribute(attr.name);
+				}
+			}
+
 			// Normalize (optionals)
 
 			// Meta-image to image.
@@ -130,9 +166,7 @@ export function preProcessDOM(
 					const labelAttributeValue: string | null = title
 						|| getElementLabelAttribute(elementNode, document, labelsFromAttributes);
 
-					if(labelAttributeValue) {
-						return [ replaceElementByImage(elementNode, document, labelAttributeValue) ];
-					}
+					return [ replaceElementByImage(elementNode, document, labelAttributeValue ?? "") ];
 				}
 			} else if(iconfontsFromNames.length) {
 				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
@@ -173,42 +207,6 @@ export function preProcessDOM(
 						elementHasNoTextContent(elementNode)
 							&& elementNode.prepend(labelAttributeValue);
 					}
-				}
-			}
-
-			// Filter (optionals)
-
-			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
-				elementNode.remove();
-
-				return;
-			}
-
-			if(options.filter?.emptyElements) {
-				if(elementHasTagName(elementNode, "IMG")) {
-					if(
-						!resolveAttributeAsString(elementNode, "src")
-						&& !resolveAttributeAsString(elementNode, "alt")
-					 ) {
-						elementNode.remove();
-					}
-				}
-			}
-
-			for(const attr of [ ...elementNode.attributes ]) {
-				if(filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
-					elementNode.removeAttribute(attr.name);
-				}
-			}
-
-			if(options.filter?.dataURLs) {
-				for(const attr of Array.from(elementNode.attributes)) {
-					if(
-						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
-							|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
-					) continue;
-
-					elementNode.removeAttribute(attr.name);
 				}
 			}
 		}
