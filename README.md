@@ -73,72 +73,7 @@ A true favourite!
 
 ##
 
-### Integrate
-
-``` ts
-D2Snap.d2Snap(
-  dom: DOM,
-  rE: number, rA: number, rT: number,
-  options?: Options
-): Promise<{
-  dom: string;
-  innerHTML: string;  // alias: html
-  outerHTML: string;
-  meta: {
-    tokenEstimate: number;
-    originalSize: number;
-    sizeRatio: number;
-    snapshotSize: number;
-  };
-}>
-
-D2Snap.adaptiveD2Snap(
-  dom: DOM,
-  maxTokens: number = 4096,
-  maxIterations: number = 5,
-  options?: Options
-): Promise<{
-  dom: string;
-  html: string;
-  meta: {};
-  parameters: {};
-  adaptiveIterations: number;
-}>
-```
-
-``` ts
-type DOM = Document | Element | string;
-type Options = {
-  attributeScores: AttributeScoring;
-  classification: {
-    actionableElements: string[];
-    textElements: string[];
-    textLabelAttributes: string[];
-  };
-  debug: boolean;
-  filter: {
-    attributes: string[];
-    dataURLs: boolean;
-    elements: string[];
-    emptyElements: boolean;
-  };
-  normalize: {
-    iconfontsFromNames: string[];
-    labelsFromAttributes: string[];
-    svgToImg: boolean;
-  };
-  skip: {
-    markdown: boolean;
-    textRank: boolean;
-  };
-  minify: boolean;
-  uniqueIDs: boolean;
-
-  textRankOptions?: TextRankOptions;
-};
-```
-
-> The attribute scoring lookup table supports wildcards for `aria` and `data` (`{aria-|data-}*`).
+### Integration
 
 #### Browser
 
@@ -160,6 +95,38 @@ npm install webfuse-com/D2Snap
 ``` js
 import * as D2Snap from "@webfuse-com/d2snap";
 ```
+
+##
+
+### Usage
+
+``` ts
+D2Snap.d2Snap(
+  dom: DOM,
+  rE: number, rA: number, rT: number,
+  options?: Options
+): Promise<{
+  dom: string;
+  innerHTML: string;  // alias: html
+  outerHTML: string;
+  meta: {};
+}>
+
+D2Snap.adaptiveD2Snap(
+  dom: DOM,
+  maxTokens: number = 4096,
+  maxIterations: number = 5,
+  options?: Options
+): Promise<{
+  dom: string;
+  html: string;
+  meta: {};
+  parameters: {};
+  adaptiveIterations: number;
+}>
+```
+
+> Read the full [API Documentation](./DOCS.md).
 
 ##
 
