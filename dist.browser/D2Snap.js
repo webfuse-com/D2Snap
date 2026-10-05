@@ -284,9 +284,6 @@
 
   // src/util.dom.ts
   async function ensureDOM(domOrString) {
-    if (Buffer.isBuffer(domOrString)) {
-      domOrString = domOrString.toString("utf8");
-    }
     if (typeof domOrString !== "string") return domOrString;
     if (typeof window !== "undefined") {
       return new DOMParser().parseFromString(domOrString, "text/html");

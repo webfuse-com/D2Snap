@@ -2,12 +2,8 @@ import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
-export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM> {
-	if(Buffer.isBuffer(domOrString)) {
-		domOrString = domOrString.toString("utf8");
-	}
-
-	if(typeof (domOrString) !== "string") return domOrString;
+export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
+	if(typeof(domOrString) !== "string") return domOrString;
 
 	if(typeof window !== "undefined") {
 		return new DOMParser()
