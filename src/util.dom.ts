@@ -2,12 +2,23 @@ import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
-export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
+export async function ensureDOM(domOrStringOrBuffer: DOM | string | Buffer): Promise<DOM> {
+	let domOrString: DOM | string;
+	try {
+		domOrString = Buffer.isBuffer(domOrStringOrBuffer)
+			? domOrStringOrBuffer.toString()
+			: domOrStringOrBuffer;
+	} catch {
+		domOrString = domOrStringOrBuffer as DOM | string;
+	}
+
 	if(typeof(domOrString) !== "string") return domOrString;
+
+	const html: string = domOrString.trim();
 
 	if(typeof window !== "undefined") {
 		return new DOMParser()
-			.parseFromString(domOrString, "text/html");
+			.parseFromString(html, "text/html");
 	}
 
 	try {
@@ -19,8 +30,6 @@ export async function ensureDOM(domOrString: DOM | string): Promise<DOM> {
 		virtualConsole.on("warn", () => {});
 		virtualConsole.on("info", () => {});
 		virtualConsole.on("log", () => {});
-
-		const html = String(domOrString).trim();
 
 		const dom: DOM = new jsdom.JSDOM(html, {
 			runScripts: undefined,

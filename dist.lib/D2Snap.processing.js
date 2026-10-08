@@ -1,7 +1,7 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
-import { formatHTML, isVoidElement } from "./util.html.js";
-import { NON_RENDERED_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
+import { formatHTML, isRawTextElement, isVoidElement } from "./util.html.js";
+import { NON_RENDERED_TAG_NAMES, SVG_LABEL_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 const DATA_URL_ATTRIBUTE_NAME = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX = /^data:/i;
 const UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER = "-";
@@ -105,9 +105,13 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
       }
       if (elementHasTagName(elementNode, "SVG")) {
         if (options.normalize?.svgToImg) {
-          const title = (elementNode.querySelector("title")?.textContent ?? "").trim();
-          const labelAttributeValue = title || getElementLabelAttribute(elementNode, document, labelsFromAttributes);
-          return [replaceElementByImage(elementNode, document, labelAttributeValue ?? "")];
+          let labelValue = "";
+          for (const svgLabelTagName of SVG_LABEL_TAG_NAMES) {
+            labelValue = (elementNode.querySelector(svgLabelTagName.toLowerCase())?.textContent ?? "").trim();
+            if (labelValue) break;
+          }
+          labelValue ||= getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? "";
+          return [replaceElementByImage(elementNode, document, labelValue)];
         }
       } else if (iconfontsFromNames.length) {
         if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
@@ -131,13 +135,15 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
         }
       }
       if (labelsFromAttributes.length) {
-        const labelAttributeValue = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
-        if (labelAttributeValue) {
-          if (elementHasTagName(elementNode, "IMG")) {
-            const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
-            !altAttributeValue && elementNode.setAttribute("alt", labelAttributeValue);
-          } else if (!isVoidElement(elementNode.tagName)) {
-            elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
+        if (!isRawTextElement(elementNode.tagName)) {
+          const labelAttributeValue = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
+          if (labelAttributeValue) {
+            if (elementHasTagName(elementNode, "IMG")) {
+              const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
+              !altAttributeValue && elementNode.setAttribute("alt", labelAttributeValue);
+            } else if (!isVoidElement(elementNode.tagName)) {
+              elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
+            }
           }
         }
       }

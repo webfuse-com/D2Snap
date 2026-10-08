@@ -78,6 +78,7 @@
     "BR"
   ]);
   var RAW_TEXT_TAG_NAMES = /* @__PURE__ */ new Set([
+    "IFRAME",
     "NOSCRIPT",
     "SCRIPT",
     "STYLE",
@@ -90,6 +91,10 @@
     "NOSCRIPT",
     "TEMPLATE"
   ]);
+  var SVG_LABEL_TAG_NAMES = [
+    "title",
+    "desc"
+  ];
 
   // src/util.html.ts
   function tokenize(html) {
@@ -283,10 +288,17 @@
   }
 
   // src/util.dom.ts
-  async function ensureDOM(domOrString) {
+  async function ensureDOM(domOrStringOrBuffer) {
+    let domOrString;
+    try {
+      domOrString = Buffer.isBuffer(domOrStringOrBuffer) ? domOrStringOrBuffer.toString() : domOrStringOrBuffer;
+    } catch {
+      domOrString = domOrStringOrBuffer;
+    }
     if (typeof domOrString !== "string") return domOrString;
+    const html = domOrString.trim();
     if (typeof window !== "undefined") {
-      return new DOMParser().parseFromString(domOrString, "text/html");
+      return new DOMParser().parseFromString(html, "text/html");
     }
     try {
       const jsdom = await import("jsdom");
@@ -299,7 +311,6 @@
       });
       virtualConsole.on("log", () => {
       });
-      const html = String(domOrString).trim();
       const dom = new jsdom.JSDOM(html, {
         runScripts: void 0,
         virtualConsole
@@ -1863,9 +1874,13 @@
         }
         if (elementHasTagName(elementNode, "SVG")) {
           if (options.normalize?.svgToImg) {
-            const title = (elementNode.querySelector("title")?.textContent ?? "").trim();
-            const labelAttributeValue = title || getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
-            return [replaceElementByImage(elementNode, document2, labelAttributeValue ?? "")];
+            let labelValue = "";
+            for (const svgLabelTagName of SVG_LABEL_TAG_NAMES) {
+              labelValue = (elementNode.querySelector(svgLabelTagName.toLowerCase())?.textContent ?? "").trim();
+              if (labelValue) break;
+            }
+            labelValue ||= getElementLabelAttribute(elementNode, document2, labelsFromAttributes) ?? "";
+            return [replaceElementByImage(elementNode, document2, labelValue)];
           }
         } else if (iconfontsFromNames.length) {
           if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
@@ -1889,13 +1904,15 @@
           }
         }
         if (labelsFromAttributes.length) {
-          const labelAttributeValue = getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
-          if (labelAttributeValue) {
-            if (elementHasTagName(elementNode, "IMG")) {
-              const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
-              !altAttributeValue && elementNode.setAttribute("alt", labelAttributeValue);
-            } else if (!isVoidElement(elementNode.tagName)) {
-              elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
+          if (!isRawTextElement(elementNode.tagName)) {
+            const labelAttributeValue = getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
+            if (labelAttributeValue) {
+              if (elementHasTagName(elementNode, "IMG")) {
+                const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
+                !altAttributeValue && elementNode.setAttribute("alt", labelAttributeValue);
+              } else if (!isVoidElement(elementNode.tagName)) {
+                elementHasNoTextContent(elementNode) && elementNode.prepend(labelAttributeValue);
+              }
             }
           }
         }

@@ -7,7 +7,7 @@ import { FILES_DIRECTORY_PATH as TEST_FILES_DIRECTORY_PATH, writeActual } from "
 import { DEFAULT_ATTRIBUTE_SCORES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTE_SCORES.js";
 import { DEFAULT_FILTER_ATTRIBUTE_NAMES } from "../../../dist.lib/var.DEFAULTS_ATTRIBUTES.js";
 import { DEFAULT_CLASS_TEXT_TAG_NAMES, DEFAULT_FILTER_TAG_NAMES } from "../../../dist.lib/var.DEFAULTS_TAGS.js";
-import { formatHTML, isVoidElement } from "../../../dist.lib/util.html.js";
+import { formatHTML, isVoidElement, isRawTextElement } from "../../../dist.lib/util.html.js";
 import { getAttributeScore, isActionableElement } from "../../../dist.lib/D2Snap.js";
 import { d2Snap } from "../../../dist.lib/api.js";
 
@@ -130,7 +130,11 @@ function checkElementNode_SVGNormalized(element, errorContextStr) {
 
 function checkElementNode_hasDescriptor(element, errorContextStr) {
     // Assert actionable element has an idiomatic descripto; in general (recoverable) direct descendant text contents.
-    if(!isActionableElement(element) || isVoidElement(element.tagName)) {
+    if(
+        !isActionableElement(element)   // check all?
+        || isVoidElement(element.tagName)
+        || isRawTextElement(element.tagName)
+    ) {
         return true;
     }
     if(([ ...element.children ].some(child => isActionableElement(child)))) {
@@ -139,16 +143,19 @@ function checkElementNode_hasDescriptor(element, errorContextStr) {
     if((element.tagName.toUpperCase() === "A" && !element.hasAttribute("href"))) {
         return true;
     }
-
-    const hasText = !!element.textContent.trim().length;
     const elementHasDescriptor = (
         element.hasAttribute("aria-labelledby")
         || element.hasAttribute("aria-label")
         || element.hasAttribute("text")
     );
+    if(!elementHasDescriptor) {
+        return true;
+    }
+
+    const hasText = !!element.textContent.trim().length;
 
     return assertTrue(
-        hasText || !elementHasDescriptor,
+        hasText,
         contextMessage("Actionable element has proper descriptor", errorContextStr)
     );
 }

@@ -1,4 +1,4 @@
-import { readTestFile, writeActual } from "../test.util.js";
+import { readTestFile, writeActual, flattenDOMSnapshot } from "../test.util.js";
 
 import { d2Snap } from "../../dist.lib/api.js";
 
@@ -32,11 +32,55 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
     // ns:widget is in the actionable list so Turndown keeps its outerHTML verbatim.
     // createContextualFragment then parses it back with tagName NS:WIDGET, and
     // unwrapColonTaggedElements must leave it intact (regex must not match).
-    const html = `<html><body><section><p>visit <ns:widget>KEPTCONTENT</ns:widget> for help</p></section></body></html>`;
+    const html = `
+        <html>
+            <body>
+                <section>
+                    <p>
+                        visit <ns:widget>KEPTCONTENT</ns:widget> for help
+                    </p>
+                </section>
+            </body>
+        </html>
+    `;
     const snapshot = await d2Snap(html, 0.9, 0.9, 0.9);
-    assertIn("KEPTCONTENT", snapshot.html,
-        "Namespace-qualified element content was stripped (false positive in scheme regex)");
 
+    assertIn(
+        "KEPTCONTENT",
+        snapshot.html,
+        "Namespace-qualified element content was stripped (false positive in scheme regex)"
+    );
+
+});
+
+// ---------------------------------------------------------------------------
+// Root cause of the futurumshop collapse: void elements (<br>, <img>, ...) are
+// not listed in the UI feature heuristics, so the "custom element is a container"
+// heuristic classifies them as containers — and with a high container fallbackRating
+// they outrank their parent. A top-down merge then moves the parent's children
+// INTO the void element, which serializes without children, silently destroying
+// everything around it.
+// ---------------------------------------------------------------------------
+await test("Container merge never moves content into a void element", async () => {
+    for(const voidTag of [ "br", "img", "hr", "wbr" ]) {
+        const html = `
+            <html>
+                <body>
+                    <div id="d">
+                        <${voidTag}>
+                        <p>
+                            IMPORTANT CONTENT one two three four five.
+                        </p>
+                    </div>
+                </body>
+            </html>
+        `;
+        const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
+            debug: true
+        });
+
+        assertIn("IMPORTANT CONTENT", snapshot.html, `Content was merged into void <${voidTag}> and lost`);
+    }
 });
 
 // ---------------------------------------------------------------------------
@@ -51,13 +95,33 @@ await test("Namespace-qualified custom elements (FB:LIKE style) are not unwrappe
 await test("Container top-down merge does not crash on framework attribute names (@click, *ngIf, :href)", async () => {
     // UI-feature heuristics: body and section both containers, div (low) rating < section (high) rating
     // → top-down merge is triggered for section, copying div's attrs to section.
-    for(const [ name, val ] of [ [ "@click", "doIt()" ], [ "*ngIf", "show" ], [ ":href", "/path" ] ]) {
+    for(const [ name, val ] of [
+        [ "@click", "doIt()" ],
+        [ "*ngIf", "show" ],
+        [ ":href", "/path" ]
+    ]) {
         // Place the framework attribute on the low-rating div (= sourceElement in top-down merge),
         // which forces setAttribute() to be called with it.
-        const html = `<html><body><div ${name}="${val}"><section><p>IMPORTANT content</p></section></div></body></html>`;
+        const html = `
+            <html>
+                <body>
+                    <div ${name}="${val}">
+                        <section>
+                            <p>
+                                IMPORTANT content
+                            </p>
+                        </section>
+                    </div>
+                </body>
+            </html>
+        `;
         const snapshot = await d2Snap(html, 1.0, 1.0, 1.0);
 
-        assertIn("IMPORTANT content", snapshot.html, `Content lost when merging element carrying framework attr ${name}`);
+        assertIn(
+            "IMPORTANT content",
+            snapshot.html,
+            `Content lost when merging element carrying framework attr ${name}`
+        );
     }
 });
 
@@ -72,15 +136,29 @@ await test("Container top-down merge does not crash on framework attribute names
 // this hangs and the test runner times out.
 // ---------------------------------------------------------------------------
 await test("Markdown pass terminates on Turndown HTML passthrough (table without <thead>)", async () => {
-    const html = `<html><body><table class="product-description-table">
-        <tbody>
-            <tr><td>Ademend vermogen:</td><td>5/5</td></tr>
-            <tr><td>Gewicht:</td><td>150g</td></tr>
-        </tbody>
-    </table></body></html>`;
+    const html = `
+        <html>
+            <body>
+                <table class="product-description-table">
+                    <tbody>
+                        <tr>
+                            <td>Ademend vermogen:</td>
+                            <td>5/5</td>
+                        </tr>
+                        <tr>
+                            <td>Gewicht:</td>
+                            <td>150g</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </body>
+        </html>
+    `;
 
     const start = Date.now();
-    const snapshot = await d2Snap(html, 0.5, 0.5, 0.5, { debug: true });
+    const snapshot = await d2Snap(html, 0.5, 0.5, 0.5, {
+        debug: true
+    });
     const elapsedMs = Date.now() - start;
 
     assertLess(elapsedMs, 2000, `Markdown pass took ${elapsedMs}ms — infinite-loop regression?`);
@@ -94,30 +172,21 @@ await test("Markdown pass terminates on Turndown HTML passthrough (table without
 // Without re-traversal, <em> would survive as raw HTML instead of being rendered as _i_.
 // ---------------------------------------------------------------------------
 await test("Markdown pass converts nested textFormatting inside kept actionable (<em> in <button>)", async () => {
-    const html = `<html><body><li>Info <button onclick="x()"><em>i</em></button></li></body></html>`;
-    const snapshot = await d2Snap(html, 0.3, 0.3, 0.3, { debug: true });
+    const html = `
+        <html>
+            <body>
+                <li>
+                    Info <button onclick="x()"><em>i</em></button>
+                </li>
+            </body>
+        </html>
+    `;
+    const snapshot = await d2Snap(html, 0.3, 0.3, 0.3, {
+        debug: true
+    });
 
     assertIn("_i_", snapshot.html, "<em> inside kept <button> was not converted to markdown");
     assertNotIn("<em>", snapshot.html, "Raw <em> leaked through textFormatting pass");
-});
-
-// ---------------------------------------------------------------------------
-// Root cause of the futurumshop collapse: void elements (<br>, <img>, ...) are
-// not listed in the UI feature heuristics, so the "custom element is a container"
-// heuristic classifies them as containers — and with a high container fallbackRating
-// they outrank their parent. A top-down merge then moves the parent's children
-// INTO the void element, which serializes without children, silently destroying
-// everything around it.
-// ---------------------------------------------------------------------------
-await test("Container merge never moves content into a void element", async () => {
-    for(const voidTag of [ "br", "img", "hr", "wbr" ]) {
-        const html = `<html><body><div id="d"><${voidTag}><p>IMPORTANT CONTENT one two three four five.</p></div></body></html>`;
-        const snapshot = await d2Snap(html, 0.9, 0.9, 0.9, {
-            debug: true
-        });
-
-        assertIn("IMPORTANT CONTENT", snapshot.html, `Content was merged into void <${voidTag}> and lost`);
-    }
 });
 
 // ---------------------------------------------------------------------------
@@ -133,8 +202,22 @@ await test("Markdown autolink URL does not become a bogus container element", as
 		.map(el => el.tagName)
 		.filter(tagName => tagName.includes(":"));
 
-	for(const url of [ "https://example.com", "https://assets.example.com/a/FUTURUM Icon 19 UV.svg", "mailto:x@y.com" ]) {
-		const html = `<html><body><main><p>See &lt;${url}&gt; here</p></main></body></html>`;
+	for(const url of [
+        "https://example.com",
+        "https://assets.example.com/a/FUTURUM Icon 19 UV.svg",
+        "mailto:x@y.com"
+    ]) {
+		const html = `
+            <html>
+                <body>
+                    <main>
+                        <p>
+                            See &lt;${url}&gt; here
+                        </p>
+                    </main>
+                </body>
+            </html>
+        `;
 		const snapshot = await d2Snap(html, 0, 0, 0, {
 			skip: {
 				textRank: true
@@ -153,7 +236,17 @@ await test("Markdown autolink URL does not become a bogus container element", as
 	// Unwrapping the bogus `<scheme:>` elements must NOT disturb a kept
 	// actionable (`<a …>`) nested inside it. The autolink must be closed,
 	// otherwise the parser eats the anchor as attributes and there is no anchor.
-	const linkHTML = `<html><body><main><p>visit &lt;https://example.com&gt; follow <a href="https://kept.example/x">KEPTLINK</a> now</p></main></body></html>`;
+	const linkHTML = `
+        <html>
+            <body>
+                <main>
+                    <p>
+                        visit &lt;https://example.com&gt; follow <a href="https://kept.example/x">KEPTLINK</a> now
+                    </p>
+                </main>
+            </body>
+        </html>
+    `;
 	const linkSnapshot = await d2Snap(linkHTML, 0, 0, 0, {
 		skip: {
 			textRank: true
@@ -174,18 +267,26 @@ await test("Markdown autolink URL does not become a bogus container element", as
 });
 
 await test("Keep aria-labelledby descriptor of empty actionable element", async () => {
-    const html = `<html><body>
-        <div class="ot-accordion-layout">
-            <button aria-expanded="false" aria-controls="ot-desc-id-5" aria-labelledby="ot-header-id-5"></button>
-            <div class="ot-acc-hdr">
-                <h4 class="ot-cat-header" id="ot-header-id-5">Social Media Cookies</h4>
-            </div>
-            <p id="ot-desc-id-5">Social Media cookies are set by a range of social media services.</p>
-        </div>
-    </body></html>`;
+    const html = `
+        <html>
+            <body>
+                <div class="ot-accordion-layout">
+                    <button aria-expanded="false" aria-controls="ot-desc-id-5" aria-labelledby="ot-header-id-5"></button>
+                    <div class="ot-acc-hdr">
+                        <h4 class="ot-cat-header" id="ot-header-id-5">Social Media Cookies</h4>
+                    </div>
+                    <p id="ot-desc-id-5">
+                        Social Media cookies are set by a range of social media services.
+                    </p>
+                </div>
+            </body>
+        </html>
+    `;
 
     for(const r of [ 0.1, 0.5, 0.9, 1.0 ]) {
-        const snapshot = await d2Snap(html, r, r, r, { debug: true });
+        const snapshot = await d2Snap(html, r, r, r, {
+            debug: true
+        });
         const buttonText = (snapshot.dom.querySelector("button")?.textContent ?? "").trim();
 
         assertEqual(
@@ -196,11 +297,51 @@ await test("Keep aria-labelledby descriptor of empty actionable element", async 
     }
 });
 
+await test("Normalize text label for non-raw-text content elements only", async () => {
+    const html = `
+        <html>
+            <body>
+                <div class="row">
+                    <textarea aria-label="Example"></textarea>
+                    <iframe title="YouTube player"></iframe>
+                </div>
+                <div class="row">
+                    <div role="heading" aria-label="Checkout"></div>
+                </div>
+            </body>
+        </html>
+    `;
+
+    const snapshot = await d2Snap(html, 0, 1, 1, {
+        debug: true,
+        filter: {
+            emptyElements: false
+        }
+    });
+    const snapshotHTML = flattenDOMSnapshot(snapshot.html);
+
+    assertIn(
+        "<textarea></textarea>",
+        snapshotHTML,
+        `Raw-text element incorrectly normalized (TEXTAREA)`
+    );
+    assertIn(
+        "<iframe></iframe>",
+        snapshotHTML,
+        `Raw-text element incorrectly normalized (TEXTAREA)`
+    );
+    assertIn(
+        "<div role=\"heading\">Checkout</div>",
+        snapshotHTML,
+        `Non-raw-text element incorrectly normalized (DIV)`
+    );
+});
+
 // ---------------------------------------------------------------------------
-// An image without 'alt' and 'src' attributes but a text-label must not be
-// filtered if text-label promotion is enabled.
+// An image without 'alt' and 'src' attributes must not be filtered if text-label
+// promotion is enabled.
 // ---------------------------------------------------------------------------
-await test("Markdown pass converts nested textFormatting inside kept actionable (<em> in <button>)", async () => {
+await test("Image element without 'alt' and 'src' but label attribute must not be filtered", async () => {
     const html = `<div><img title="Activate"><img name="Deactivate"></div>`;
     const snapshot = await d2Snap(html, 0.9, 0.8, 0.7, {
         debug: true,

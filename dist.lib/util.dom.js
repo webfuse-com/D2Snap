@@ -1,9 +1,16 @@
 import { NodeFilter, NodeType } from "./types.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
-async function ensureDOM(domOrString) {
+async function ensureDOM(domOrStringOrBuffer) {
+  let domOrString;
+  try {
+    domOrString = Buffer.isBuffer(domOrStringOrBuffer) ? domOrStringOrBuffer.toString() : domOrStringOrBuffer;
+  } catch {
+    domOrString = domOrStringOrBuffer;
+  }
   if (typeof domOrString !== "string") return domOrString;
+  const html = domOrString.trim();
   if (typeof window !== "undefined") {
-    return new DOMParser().parseFromString(domOrString, "text/html");
+    return new DOMParser().parseFromString(html, "text/html");
   }
   try {
     const jsdom = await import("jsdom");
@@ -16,7 +23,6 @@ async function ensureDOM(domOrString) {
     });
     virtualConsole.on("log", () => {
     });
-    const html = String(domOrString).trim();
     const dom = new jsdom.JSDOM(html, {
       runScripts: void 0,
       virtualConsole
