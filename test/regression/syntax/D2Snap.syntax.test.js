@@ -43,7 +43,7 @@ const DOWNSAMPLING_ARGS = [
         debug: true,
         attributeScores: DOWNSAMPLING_ATTRIBUTE_SCORES,
         normalize: {
-            iconfontsFromNames: [ "fa", "icon", "ti" ]
+            iconClasses: [ "fa", "icon", "ti" ]
         }
     }
 ];
@@ -146,7 +146,7 @@ function checkElementNode_hasDescriptor(element, errorContextStr) {
     const elementHasDescriptor = (
         element.hasAttribute("aria-labelledby")
         || element.hasAttribute("aria-label")
-        || element.hasAttribute("text")
+        || element.hasAttribute("title")
     );
     if(!elementHasDescriptor) {
         return true;

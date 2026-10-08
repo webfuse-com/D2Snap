@@ -327,17 +327,13 @@
   function resolveRoot(node) {
     return node?.body ?? node?.documentElement ?? node;
   }
-  function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb, excludeRoot = false) {
+  function traverseDom(root2, filter = 4294967295 /* SHOW_ALL */, cb) {
     const showElement = (filter & 1 /* SHOW_ELEMENT */) !== 0;
     const showText = (filter & 4 /* SHOW_TEXT */) !== 0;
     const showComment = (filter & 128 /* SHOW_COMMENT */) !== 0;
     const stack = [];
-    if (!excludeRoot && (filter === 4294967295 /* SHOW_ALL */ || filter === 1 /* SHOW_ELEMENT */)) {
-      stack.push(root2);
-    } else {
-      for (let i = root2.childNodes.length - 1; i >= 0; i--) {
-        stack.push(root2.childNodes[i]);
-      }
+    for (let i = root2.childNodes.length - 1; i >= 0; i--) {
+      stack.push(root2.childNodes[i]);
     }
     while (stack.length) {
       const node = stack.pop();
@@ -1570,7 +1566,7 @@
         replacement: (_content, node) => node.outerHTML
       }).addRule("imageWithoutSrc", {
         filter: (node) => {
-          return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
+          return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim() && !retainElementCbs.some((cb) => cb(node));
         },
         replacement: (_content, node) => {
           const alt = (node.getAttribute("alt") ?? "").trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(BRACKET_REGEX, "\\$&");
@@ -1837,8 +1833,16 @@
   function preProcessDOM(domRoot, document2, options, isActionableElement2) {
     const filterElementsTagNames = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
     const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
-    const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
-    const labelsFromAttributes = options.normalize?.labelsFromAttributes ?? [];
+    const iconClasses = options.normalize?.iconClasses ?? [];
+    const labelAttributes = options.normalize?.labelAttributes ?? [];
+    const preResolvedLabels = /* @__PURE__ */ new WeakMap();
+    for (const referrer of document2.querySelectorAll("[aria-labelledby]")) {
+      const label = getElementLabelAttribute(referrer, document2, labelAttributes);
+      label && preResolvedLabels.set(referrer, label);
+    }
+    const resolveLabel = (element) => {
+      return preResolvedLabels.get(element) ?? getElementLabelAttribute(element, document2, labelAttributes);
+    };
     traverseDom(
       domRoot,
       4294967295 /* SHOW_ALL */,
@@ -1853,14 +1857,6 @@
           elementNode.remove();
           return;
         }
-        if (options.filter?.emptyElements) {
-          if (elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document2, labelsFromAttributes)) {
-            if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
-              elementNode.remove();
-              return;
-            }
-          }
-        }
         for (const attr of [...elementNode.attributes]) {
           if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
             elementNode.removeAttribute(attr.name);
@@ -1872,6 +1868,14 @@
             elementNode.removeAttribute(attr.name);
           }
         }
+        if (options.filter?.emptyElements) {
+          if (elementHasTagName(elementNode, "IMG") && !resolveLabel(elementNode)) {
+            if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
+              elementNode.remove();
+              return;
+            }
+          }
+        }
         if (elementHasTagName(elementNode, "SVG")) {
           if (options.normalize?.svgToImg) {
             let labelValue = "";
@@ -1879,14 +1883,14 @@
               labelValue = (elementNode.querySelector(svgLabelTagName.toLowerCase())?.textContent ?? "").trim();
               if (labelValue) break;
             }
-            labelValue ||= getElementLabelAttribute(elementNode, document2, labelsFromAttributes) ?? "";
+            labelValue ||= resolveLabel(elementNode) ?? "";
             return [replaceElementByImage(elementNode, document2, labelValue)];
           }
-        } else if (iconfontsFromNames.length) {
+        } else if (iconClasses.length) {
           if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
             let iconfontsInClass = null;
             for (const className of [...elementNode.classList].reverse()) {
-              const iconfontName = iconfontsFromNames.find((name) => {
+              const iconfontName = iconClasses.find((name) => {
                 return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`);
               });
               if (!iconfontName) continue;
@@ -1894,7 +1898,7 @@
               break;
             }
             if (iconfontsInClass) {
-              const alt = getElementLabelAttribute(elementNode, document2, labelsFromAttributes) ?? iconfontsInClass;
+              const alt = resolveLabel(elementNode) ?? iconfontsInClass;
               if (!isActionableElement2(elementNode)) {
                 return [replaceElementByImage(elementNode, document2, alt)];
               } else {
@@ -1903,9 +1907,9 @@
             }
           }
         }
-        if (labelsFromAttributes.length) {
+        if (labelAttributes.length) {
           if (!isRawTextElement(elementNode.tagName)) {
-            const labelAttributeValue = getElementLabelAttribute(elementNode, document2, labelsFromAttributes);
+            const labelAttributeValue = resolveLabel(elementNode);
             if (labelAttributeValue) {
               if (elementHasTagName(elementNode, "IMG")) {
                 const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
@@ -1933,8 +1937,7 @@
             if (elementNode.children.length || elementNode.textContent.trim().length) return;
             elementNode.remove();
             hasRemovedElement = true;
-          },
-          true
+          }
         );
       } while (hasRemovedElement);
     }
@@ -2018,8 +2021,8 @@
       },
       minify: true,
       normalize: {
-        iconfontsFromNames: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
-        labelsFromAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
+        iconClasses: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+        labelAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
         svgToImg: true
       },
       skip: {
@@ -2126,7 +2129,18 @@
     }
     t0 = t();
     const inertDoc = document2.implementation.createHTMLDocument("");
-    const virtualDOM = inertDoc.importNode(rootElement, true);
+    const rootElementClone = inertDoc.importNode(rootElement, true);
+    switch (rootElement.localName.toLowerCase()) {
+      case "html":
+        inertDoc.replaceChild(rootElementClone, inertDoc.documentElement);
+        break;
+      case "body":
+        inertDoc.documentElement.replaceChild(rootElementClone, inertDoc.body);
+        break;
+      default:
+        inertDoc.body.appendChild(rootElementClone);
+    }
+    const virtualDOM = rootElement.nodeType === 9 /* DOCUMENT_NODE */ ? inertDoc.documentElement : inertDoc.body;
     timings.clone = t() - t0;
     t0 = t();
     preProcessDOM(virtualDOM, inertDoc, {
@@ -2157,8 +2171,7 @@
     traverseDom(
       virtualDOM,
       1 /* SHOW_ELEMENT */,
-      (node) => snapElementTextFormattingNode(inertDoc, node),
-      true
+      (node) => snapElementTextFormattingNode(inertDoc, node)
     );
     timings.textFormatting = t() - t0;
     t0 = t();

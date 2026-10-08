@@ -1,4 +1,5 @@
-import { type D2SnapOptions, NodeFilter, NodeType } from "./types.js";
+import { type D2SnapOptions } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isRawTextElement, isVoidElement } from "./util.html.js";
 import { NON_RENDERED_TAG_NAMES, SVG_LABEL_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
@@ -6,7 +7,7 @@ import { NON_RENDERED_TAG_NAMES, SVG_LABEL_TAG_NAMES } from "./var.SEMANTICS_TAG
 
 interface DOMPreProcessingOptions {
 	filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
-	normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
+	normalize: Pick<D2SnapOptions["normalize"], "iconClasses" | "labelAttributes" | "svgToImg">;
 }
 
 interface DOMPostProcessingOptions {
@@ -127,13 +128,27 @@ export function preProcessDOM(
 ): void {
 	const filterElementsTagNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
 	const filterAttributesNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
-	const iconfontsFromNames: string[] = options.normalize?.iconfontsFromNames ?? [];
-	const labelsFromAttributes: string[] = options.normalize?.labelsFromAttributes ?? [];
+	const iconClasses: string[] = options.normalize?.iconClasses ?? [];
+	const labelAttributes: string[] = options.normalize?.labelAttributes ?? [];
+
+	const preResolvedLabels = new WeakMap<Element, string>();
+
+	for(const referrer of document.querySelectorAll("[aria-labelledby]")) {
+		const label: string | null = getElementLabelAttribute(referrer, document, labelAttributes);
+		label && preResolvedLabels.set(referrer, label);
+	}
+
+	const resolveLabel = (element: Element): string | null => {
+		return preResolvedLabels.get(element) ?? getElementLabelAttribute(element, document, labelAttributes);
+	};
 
 	traverseDom<HTMLElement>(
 		domRoot,
 		NodeFilter.SHOW_ALL,
 		(node: Node) => {
+			// Filters + Normalization
+			// STRICT ORDER MATTERS
+
 			// Filter
 
 			if(node.nodeType === NodeType.COMMENT_NODE) {
@@ -147,24 +162,13 @@ export function preProcessDOM(
 			const elementNode = node as Element;
 
 			// Filter (optionals)
+			// Root node-destructive operations are no-ops, otherwise the DOm would break.
+			// Non-full document input snippets are wrapped by BODY to have a generic wrapper.
 
 			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
 				elementNode.remove();
 
 				return;
-			}
-
-			if(options.filter?.emptyElements) {
-				if(elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document, labelsFromAttributes)) {
-					if(
-						!resolveAttributeAsString(elementNode, "src")
-						&& !resolveAttributeAsString(elementNode, "alt")
-					 ) {
-						elementNode.remove();
-
-						return;
-					}
-				}
 			}
 
 			for(const attr of [ ...elementNode.attributes ]) {
@@ -184,6 +188,19 @@ export function preProcessDOM(
 				}
 			}
 
+			if(options.filter?.emptyElements) {
+				if(elementHasTagName(elementNode, "IMG") && !resolveLabel(elementNode)) {
+					if(
+						!resolveAttributeAsString(elementNode, "src")
+						&& !resolveAttributeAsString(elementNode, "alt")
+					 ) {
+						elementNode.remove();
+
+						return;
+					}
+				}
+			}
+
 			// Normalize (optionals)
 
 			// Meta-image to image.
@@ -195,16 +212,16 @@ export function preProcessDOM(
 						if(labelValue) break;
 					}
 
-					labelValue ||= getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? "";
+					labelValue ||= resolveLabel(elementNode) ?? "";
 
 					return [ replaceElementByImage(elementNode, document, labelValue) ];
 				}
-			} else if(iconfontsFromNames.length) {
+			} else if(iconClasses.length) {
 				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
 					let iconfontsInClass: string | null = null;
 
 					for(const className of [ ...elementNode.classList ].reverse()) {
-						const iconfontName: string | undefined = iconfontsFromNames
+						const iconfontName: string | undefined = iconClasses
 							.find((name: string) => {
 								return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`)
 							});
@@ -218,7 +235,7 @@ export function preProcessDOM(
 					}
 
 					if(iconfontsInClass) {
-						const alt: string = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
+						const alt: string = resolveLabel(elementNode) ?? iconfontsInClass;
 
 						if(!isActionableElement(elementNode)) {
 							return [ replaceElementByImage(elementNode, document, alt) ];
@@ -230,9 +247,10 @@ export function preProcessDOM(
 			}
 
 			// Text-label attributes to text (non-void elements) or 'alt' (image elements).
-			if(labelsFromAttributes.length) {
+			if(labelAttributes.length) {
 				if(!isRawTextElement(elementNode.tagName)) {
-					const labelAttributeValue: string | null = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
+					const labelAttributeValue: string | null = resolveLabel(elementNode);
+
 					if(labelAttributeValue) {
 						if(elementHasTagName(elementNode, "IMG")) {
 							// Image
@@ -275,8 +293,7 @@ export function postProcessDOM(
 					elementNode.remove();
 
 					hasRemovedElement = true;
-				},
-				true
+				}
 			);
 		} while (hasRemovedElement);
 	}

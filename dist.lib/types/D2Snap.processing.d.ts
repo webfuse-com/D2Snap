@@ -1,7 +1,7 @@
 import { type D2SnapOptions } from "./types.js";
 interface DOMPreProcessingOptions {
     filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
-    normalize: Pick<D2SnapOptions["normalize"], "iconfontsFromNames" | "labelsFromAttributes" | "svgToImg">;
+    normalize: Pick<D2SnapOptions["normalize"], "iconClasses" | "labelAttributes" | "svgToImg">;
 }
 interface DOMPostProcessingOptions {
     filter: Pick<D2SnapOptions["filter"], "emptyElements">;

@@ -15,8 +15,8 @@ const NO_NORMALIZING_DOWNSAMPLING_OPTIONS_ARG = {
     ..._DOWNSAMPLING_OPTIONS_ARG_BASE,
 
     normalize: {
-        iconfontsFromNames: [],
-        labelsFromAttributes: [],
+        iconClasses: [],
+        labelAttributes: [],
         svgToImg: false
     }
 };
@@ -24,8 +24,8 @@ const NORMALIZING_DOWNSAMPLING_OPTIONS_ARG = {
     ..._DOWNSAMPLING_OPTIONS_ARG_BASE,
 
     normalize: {
-        iconfontsFromNames: [ "fa", "my-icons" ],
-        labelsFromAttributes: [ "ARIA-LABELLEDBY", "aria-label", "title" ],
+        iconClasses: [ "fa", "my-icons" ],
+        labelAttributes: [ "ARIA-LABELLEDBY", "aria-label", "title" ],
         svgToImg: true
     }
 };

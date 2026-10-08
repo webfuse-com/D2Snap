@@ -1,4 +1,4 @@
-import { NodeFilter, NodeType } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 async function ensureDOM(domOrStringOrBuffer) {
   let domOrString;
@@ -39,17 +39,13 @@ function resolveDocument(dom) {
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;
 }
-function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb, excludeRoot = false) {
+function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
   const showElement = (filter & NodeFilter.SHOW_ELEMENT) !== 0;
   const showText = (filter & NodeFilter.SHOW_TEXT) !== 0;
   const showComment = (filter & NodeFilter.SHOW_COMMENT) !== 0;
   const stack = [];
-  if (!excludeRoot && (filter === NodeFilter.SHOW_ALL || filter === NodeFilter.SHOW_ELEMENT)) {
-    stack.push(root);
-  } else {
-    for (let i = root.childNodes.length - 1; i >= 0; i--) {
-      stack.push(root.childNodes[i]);
-    }
+  for (let i = root.childNodes.length - 1; i >= 0; i--) {
+    stack.push(root.childNodes[i]);
   }
   while (stack.length) {
     const node = stack.pop();

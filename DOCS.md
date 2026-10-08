@@ -10,7 +10,7 @@ D2Snap reduces an input DOM by "averaging" features that render in the UI. The r
 - **Text** contents are truncated at the least relevant sentences; relevance is translated by _TextRank_ centrality. Each text is set to reduce by ratio at the sentence level (with `0.5`: half of the sentences)
 - **Attribute** removal is implied with bottom-up folds (assumption: attributes are reflexiv or forward-transitive). Additionally, attributes are removed if they score below a ratio-equivalent threshold (with `0.5`: all attributes less relevant than `0.5`). Scoring is thereby an affordance-frequency mapping between attribute names and a value on the ratio scale. Note that this technique is idempotent.
 
-The API adds additional absilute measures to reduce the DOM, e.g., by removing noise.
+The API adds additional absolute measures to reduce the DOM, e.g., by removing noise.
 
 ## Installation
 
@@ -48,6 +48,8 @@ function d2Snap(
   options?: D2SnapOptions
 ): Promise<D2SnapResult>
 ```
+
+> The DOM-parsed input is always wrapped by a `BODY` element to allow destructive filtering operations on the passed root node.
 
 #### Parameters
 
@@ -190,8 +192,8 @@ interface D2SnapOptions {
     emptyElements?: boolean;
   };
   normalize?: {
-    iconfontsFromNames?: string[];
-    labelsFromAttributes?: string[];
+    iconClasses?: string[];
+    labelAttributes?: string[];
     svgToImg?: boolean;
   };
   skip?: {
@@ -215,7 +217,7 @@ interface D2SnapOptions {
 | `attributeScores` | Attribute scores for threshold-based removal. | [var.DEFAULTS_ATTRIBUTE_SCORES.ts](./src/var.DEFAULTS_ATTRIBUTE_SCORES.ts) |
 | `classification` | HTML syntax-to-concept classifications: `actionableElements` – what counts as an actionable, `textElements` – what should be translated to Markdown. |
 | `filter` | Filter elements from the output DOM by absolute measures: `attributes` – attributes by name, `elements` – elements by tag name, `dataURLs` – data URLs from attribute src values, `emptyElements` – elements with no contents (also images without `alt` and `src`). |
-| `normalize` | Normalise the DOM for more idiomatic results; anti-patterns are recovered: `iconfontsFromNames` – names of icon fonts used via `class` attribute, `labelsFromAttributes` – element text contents or image `alt` attribute values from text-label attributes (e.g., `aria-label`; precedence order), `svgToImg` – convert `SVG` to `IMG` elements for Markdown translation. |
+| `normalize` | Normalise the DOM for more idiomatic results; anti-patterns are recovered: `iconClasses` – names of icon fonts used via `class` attribute, `labelAttributes` – element text contents or image `alt` attribute values from text-label attributes (e.g., `aria-label`; precedence order), `svgToImg` – convert `SVG` to `IMG` elements for Markdown translation. |
 | `skip` | Toggle absolute downsampling measures: `markdown` – whether to translate text formatting elements (`classification.textElements`) to Markdown, `textRank` – whether to rank text sentences by centrality before text-downsampling truncation. |
 | `textRankOptions` | Configure TextRank, which is embedded in the text downsampling procedure. |
 
@@ -263,8 +265,8 @@ interface D2SnapOptions {
     emptyElements: true
   },
   normalize: {
-    iconfontsFromNames: [],
-    labelsFromAttributes: [
+    iconClasses: [],
+    labelAttributes: [
       "aria-labelledby", "aria-label", "title"
     ],
     svgToImg: true
@@ -317,8 +319,8 @@ await d2Snap(`
       emptyElements: true
     },
     normalize: {
-        iconfontsFromNames: [ "fa" ],
-        labelsFromAttributes: [ "aria-label", "title" ],
+        iconClasses: [ "fa" ],
+        labelAttributes: [ "aria-label", "title" ],
         svgToImg: true
     }
   }

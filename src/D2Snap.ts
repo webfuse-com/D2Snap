@@ -1,8 +1,6 @@
 import { transformWithTextRank } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
-	NodeFilter,
-	NodeType,
 	type DeepPartial,
 	type D2SnapOptions,
 	type D2SnapResult,
@@ -10,6 +8,7 @@ import {
 	type ElementWithDepth,
 	type TextNode
 } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { CONFIG } from "./var.CONFIG.js";
 import {
 	DEFAULT_ATTRIBUTE_SCORES
@@ -130,8 +129,8 @@ export function d2Snap(
 		},
 		minify: true,
 		normalize: {
-			iconfontsFromNames: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
-			labelsFromAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
+			iconClasses: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+			labelAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
 			svgToImg: true
 		},
 		skip: {
@@ -302,10 +301,25 @@ export function d2Snap(
 	// Clone
 	t0 = t();
 	const inertDoc: Document = document.implementation.createHTMLDocument("");
-	const virtualDOM = inertDoc.importNode(rootElement, true) as HTMLElement;
+	const rootElementClone: DOM = inertDoc.importNode(rootElement, true);
+	switch(rootElement.localName.toLowerCase()) {
+		case "html":
+			inertDoc.replaceChild(rootElementClone, inertDoc.documentElement);
+			break;
+		case "body":
+			inertDoc.documentElement.replaceChild(rootElementClone, inertDoc.body);
+			break;
+		default:
+			inertDoc.body.appendChild(rootElementClone);
+	}
+	// Wrap local DOM input (e.g., SECTIOn snippet) in BODY to allow destructive mutation
+	// of input DOM root.  
+	const virtualDOM = (rootElement.nodeType === NodeType.DOCUMENT_NODE)
+		? inertDoc.documentElement
+		: inertDoc.body;
 	timings.clone = t() - t0;
 
-	// Pre-process
+	// Pre-proces
 	t0 = t();
 	preProcessDOM(virtualDOM, inertDoc, {
 		filter: optionsWithDefaults.filter,
@@ -344,8 +358,7 @@ export function d2Snap(
 	traverseDom<HTMLElement>(
 		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node),
-		true
+		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node)
 	);
 	timings.textFormatting = t() - t0;
 

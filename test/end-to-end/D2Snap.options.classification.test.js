@@ -10,8 +10,8 @@ await test("Take DOM snapshot (options.classification)", async () => {
     const snapshot = await d2Snap(PIZZA_HTML, 0.7, 1, 1, {
         debug: true,
         classification: {
-            actionables: [ "li", "STRONG" ],
-            text: [ "p", "B" ]
+            actionableElements: [ "li", "STRONG" ],
+            textElements: [ "p", "B" ]
         }
     });
 

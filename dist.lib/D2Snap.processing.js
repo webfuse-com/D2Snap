@@ -1,4 +1,4 @@
-import { NodeFilter, NodeType } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
 import { formatHTML, isRawTextElement, isVoidElement } from "./util.html.js";
 import { NON_RENDERED_TAG_NAMES, SVG_LABEL_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
@@ -68,8 +68,16 @@ function replaceElementByImage(elementNode, document, alt = "") {
 function preProcessDOM(domRoot, document, options, isActionableElement) {
   const filterElementsTagNames = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
   const filterAttributesNames = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
-  const iconfontsFromNames = options.normalize?.iconfontsFromNames ?? [];
-  const labelsFromAttributes = options.normalize?.labelsFromAttributes ?? [];
+  const iconClasses = options.normalize?.iconClasses ?? [];
+  const labelAttributes = options.normalize?.labelAttributes ?? [];
+  const preResolvedLabels = /* @__PURE__ */ new WeakMap();
+  for (const referrer of document.querySelectorAll("[aria-labelledby]")) {
+    const label = getElementLabelAttribute(referrer, document, labelAttributes);
+    label && preResolvedLabels.set(referrer, label);
+  }
+  const resolveLabel = (element) => {
+    return preResolvedLabels.get(element) ?? getElementLabelAttribute(element, document, labelAttributes);
+  };
   traverseDom(
     domRoot,
     NodeFilter.SHOW_ALL,
@@ -84,14 +92,6 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
         elementNode.remove();
         return;
       }
-      if (options.filter?.emptyElements) {
-        if (elementHasTagName(elementNode, "IMG") && !getElementLabelAttribute(elementNode, document, labelsFromAttributes)) {
-          if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
-            elementNode.remove();
-            return;
-          }
-        }
-      }
       for (const attr of [...elementNode.attributes]) {
         if (filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
           elementNode.removeAttribute(attr.name);
@@ -103,6 +103,14 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
           elementNode.removeAttribute(attr.name);
         }
       }
+      if (options.filter?.emptyElements) {
+        if (elementHasTagName(elementNode, "IMG") && !resolveLabel(elementNode)) {
+          if (!resolveAttributeAsString(elementNode, "src") && !resolveAttributeAsString(elementNode, "alt")) {
+            elementNode.remove();
+            return;
+          }
+        }
+      }
       if (elementHasTagName(elementNode, "SVG")) {
         if (options.normalize?.svgToImg) {
           let labelValue = "";
@@ -110,14 +118,14 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
             labelValue = (elementNode.querySelector(svgLabelTagName.toLowerCase())?.textContent ?? "").trim();
             if (labelValue) break;
           }
-          labelValue ||= getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? "";
+          labelValue ||= resolveLabel(elementNode) ?? "";
           return [replaceElementByImage(elementNode, document, labelValue)];
         }
-      } else if (iconfontsFromNames.length) {
+      } else if (iconClasses.length) {
         if (elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
           let iconfontsInClass = null;
           for (const className of [...elementNode.classList].reverse()) {
-            const iconfontName = iconfontsFromNames.find((name) => {
+            const iconfontName = iconClasses.find((name) => {
               return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`);
             });
             if (!iconfontName) continue;
@@ -125,7 +133,7 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
             break;
           }
           if (iconfontsInClass) {
-            const alt = getElementLabelAttribute(elementNode, document, labelsFromAttributes) ?? iconfontsInClass;
+            const alt = resolveLabel(elementNode) ?? iconfontsInClass;
             if (!isActionableElement(elementNode)) {
               return [replaceElementByImage(elementNode, document, alt)];
             } else {
@@ -134,9 +142,9 @@ function preProcessDOM(domRoot, document, options, isActionableElement) {
           }
         }
       }
-      if (labelsFromAttributes.length) {
+      if (labelAttributes.length) {
         if (!isRawTextElement(elementNode.tagName)) {
-          const labelAttributeValue = getElementLabelAttribute(elementNode, document, labelsFromAttributes);
+          const labelAttributeValue = resolveLabel(elementNode);
           if (labelAttributeValue) {
             if (elementHasTagName(elementNode, "IMG")) {
               const altAttributeValue = resolveAttributeAsString(elementNode, "alt");
@@ -164,8 +172,7 @@ function postProcessDOM(domRoot, options, isActionableElement) {
           if (elementNode.children.length || elementNode.textContent.trim().length) return;
           elementNode.remove();
           hasRemovedElement = true;
-        },
-        true
+        }
       );
     } while (hasRemovedElement);
   }

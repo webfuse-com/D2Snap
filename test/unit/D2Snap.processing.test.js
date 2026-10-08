@@ -6,26 +6,12 @@ import { preProcessDOM, postProcessDOM, postProcessHTML } from "../../dist.lib/D
 import { isActionableElement } from "../../dist.lib/D2Snap.js";
 
 
-const PIZZA_HTML = await readTestFile("pizza/pizza");
-
-const NORMALIZING_PRE_PROCESSING_OPTIONS = {
-    filter: {
-        dataURLs: false,
-        attributes: [],
-        elements: [],
-        emptyElements: false
-    },
-    normalize: {
-        iconfontsFromNames: [ "fa", "my-icons" ],
-        labelsFromAttributes: [ "aria-labelledby", "aria-label", "title" ],
-        svgToImg: true
-    }
-};
+const HOTDOG_HTML = await readTestFile("hotdog/hotdog");
 
 
-await test("Pre-process DOM for snapshot", async () => {
-    const dom = new JSDOM(PIZZA_HTML).window;
-    const domRoot = dom.document.querySelector("#analytics");
+await test("Pre-process DOM for snapshot (filtering)", async () => {
+    const dom = new JSDOM(HOTDOG_HTML).window;
+    const domRoot = dom.document.body;
 
     // No-processing options (expect identity)
     // In-place
@@ -40,8 +26,8 @@ await test("Pre-process DOM for snapshot", async () => {
 
     const htmlIdentity = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.pre.identity", htmlIdentity);
-    const expectedIdentity = await readExpected("pizza/pizza.processed.dom.pre.identity");
+    await writeActual("hotdog/hotdog.processed.dom.pre.identity", htmlIdentity);
+    const expectedIdentity = await readExpected("hotdog/hotdog.processed.dom.pre.identity");
 
     assertEqual(
         flattenDOMSnapshot(htmlIdentity),
@@ -62,8 +48,8 @@ await test("Pre-process DOM for snapshot", async () => {
 
     const html = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.pre", html);
-    const expected = await readExpected("pizza/pizza.processed.dom.pre");
+    await writeActual("hotdog/hotdog.processed.dom.pre", html);
+    const expected = await readExpected("hotdog/hotdog.processed.dom.pre");
 
     assertEqual(
         flattenDOMSnapshot(html),
@@ -84,8 +70,8 @@ await test("Pre-process DOM for snapshot", async () => {
 
     const htmlIdempotency = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.pre.idempotency", htmlIdempotency);
-    const expectedIdempotency = await readExpected("pizza/pizza.processed.dom.pre.idempotency");
+    await writeActual("hotdog/hotdog.processed.dom.pre.idempotency", htmlIdempotency);
+    const expectedIdempotency = await readExpected("hotdog/hotdog.processed.dom.pre.idempotency");
 
     assertEqual(
         flattenDOMSnapshot(htmlIdempotency),
@@ -94,11 +80,11 @@ await test("Pre-process DOM for snapshot", async () => {
     );
 });
 
-await test("Post-process DOM for snapshot", async () => {
-    const dom = new JSDOM(PIZZA_HTML).window;
-    const domRoot = dom.document.querySelector("#analytics");
+await test("Post-process DOM for snapshot (filtering)", async () => {
+    const dom = new JSDOM(HOTDOG_HTML).window;
+    const domRoot = dom.document.body;
 
-    const isActionableElementFn = element => [ "IMG" ].includes(element.tagName.toUpperCase());
+    const isActionableElementFn = element => [ "ELEMENT-ACTIONABLE" ].includes(element.tagName.toUpperCase());
 
     // No-processing options (expect identity)
     // In-place
@@ -110,8 +96,8 @@ await test("Post-process DOM for snapshot", async () => {
 
     const htmlIdentity = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.post.identity", htmlIdentity);
-    const expectedIdentity = await readExpected("pizza/pizza.processed.dom.post.identity");
+    await writeActual("hotdog/hotdog.processed.dom.post.identity", htmlIdentity);
+    const expectedIdentity = await readExpected("hotdog/hotdog.processed.dom.post.identity");
 
     assertEqual(
         flattenDOMSnapshot(htmlIdentity),
@@ -129,8 +115,8 @@ await test("Post-process DOM for snapshot", async () => {
 
     const html = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.post", html);
-    const expected = await readExpected("pizza/pizza.processed.dom.post");
+    await writeActual("hotdog/hotdog.processed.dom.post", html);
+    const expected = await readExpected("hotdog/hotdog.processed.dom.post");
 
     assertEqual(
         flattenDOMSnapshot(html),
@@ -148,8 +134,8 @@ await test("Post-process DOM for snapshot", async () => {
 
     const htmlIdempotency = domRoot.outerHTML;
 
-    await writeActual("pizza/pizza.processed.dom.post.idempotency", htmlIdempotency);
-    const expectedIdempotency = await readExpected("pizza/pizza.processed.dom.post.idempotency");
+    await writeActual("hotdog/hotdog.processed.dom.post.idempotency", htmlIdempotency);
+    const expectedIdempotency = await readExpected("hotdog/hotdog.processed.dom.post.idempotency");
 
     assertEqual(
         flattenDOMSnapshot(htmlIdempotency),
@@ -159,8 +145,8 @@ await test("Post-process DOM for snapshot", async () => {
 });
 
 await test("Post-process HTML snapshot", async () => {
-    const dom = new JSDOM(PIZZA_HTML).window;
-    const domRoot = dom.document.querySelector("#analytics");
+    const dom = new JSDOM(HOTDOG_HTML).window;
+    const domRoot = dom.document.body;
     const rawHTML = domRoot.outerHTML;
 
     // No-processing options (expect identity)
@@ -170,8 +156,8 @@ await test("Post-process HTML snapshot", async () => {
 		minify: false
     });
 
-    await writeActual("pizza/pizza.processed.html.post.identity", htmlIdentity);
-    const expectedIdentity = await readExpected("pizza/pizza.processed.html.post.identity");
+    await writeActual("hotdog/hotdog.processed.html.post.identity", htmlIdentity);
+    const expectedIdentity = await readExpected("hotdog/hotdog.processed.html.post.identity");
 
     assertEqual(
         htmlIdentity,
@@ -185,8 +171,8 @@ await test("Post-process HTML snapshot", async () => {
 		minify: true
     });
 
-    await writeActual("pizza/pizza.processed.html.post", html);
-    const expected = await readExpected("pizza/pizza.processed.html.post");
+    await writeActual("hotdog/hotdog.processed.html.post", html);
+    const expected = await readExpected("hotdog/hotdog.processed.html.post");
 
     assertEqual(
         flattenDOMSnapshot(html),
@@ -196,13 +182,27 @@ await test("Post-process HTML snapshot", async () => {
 });
 
 
+const NORMALIZING_PRE_PROCESSING_OPTIONS = {
+    filter: {
+        dataURLs: false,
+        attributes: [],
+        elements: [],
+        emptyElements: false
+    },
+    normalize: {
+        iconClasses: [ "fa", "my-icons" ],
+        labelAttributes: [ "aria-labelledby", "aria-label", "title" ],
+        svgToImg: true
+    }
+};
+
 for(const fixture of [
     "hamburger.no-text",
     "hamburger.img.no-alt",
     "hamburger.img.svg",
     "hamburger.img.iconfont"
 ]) {
-    await test(`Pre-process DOM normalization (${fixture})`, async () => {
+    await test(`Pre-process DOM for snapshot (normalization; ${fixture})`, async () => {
         const dom = new JSDOM(await readTestFile(`hamburger/${fixture}`)).window;
         const domRoot = dom.document.body;
 

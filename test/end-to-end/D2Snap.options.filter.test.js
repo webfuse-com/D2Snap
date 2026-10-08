@@ -3,11 +3,12 @@ import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../
 import { d2Snap } from "../../dist.lib/api.js";
 
 
+const HOTDOG_HTML = await readTestFile("hotdog/hotdog");
 const PIZZA_HTML = await readTestFile("pizza/pizza");
 
 
 await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
-    const snapshotFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
+    const snapshotFilter = await d2Snap(HOTDOG_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: true
@@ -17,8 +18,8 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
         }
     });
 
-    await writeActual("pizza/pizza.options.filter.dataURLs", snapshotFilter.html);
-    const expectedFalse = await readExpected("pizza/pizza.options.filter.dataURLs");
+    await writeActual("hotdog/hotdog.options.filter.dataURLs", snapshotFilter.html);
+    const expectedFalse = await readExpected("hotdog/hotdog.options.filter.dataURLs");
 
     assertEqual(
         flattenDOMSnapshot(snapshotFilter.html),
@@ -32,7 +33,7 @@ await test("Take DOM snapshot (options.filter.dataURLs)", async () => {
         "Invalid DOM snapshot"
     );
 
-    const snapshotNoFilter = await d2Snap(PIZZA_HTML, 0.5, 0, 1, {
+    const snapshotNoFilter = await d2Snap(HOTDOG_HTML, 0.5, 0, 1, {
         debug: true,
         filter: {
             dataURLs: false

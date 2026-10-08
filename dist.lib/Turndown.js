@@ -23,7 +23,7 @@ class Turndown {
       replacement: (_content, node) => node.outerHTML
     }).addRule("imageWithoutSrc", {
       filter: (node) => {
-        return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim();
+        return node.nodeName === "IMG" && !(node.getAttribute("src") ?? "").trim() && !retainElementCbs.some((cb) => cb(node));
       },
       replacement: (_content, node) => {
         const alt = (node.getAttribute("alt") ?? "").trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(BRACKET_REGEX, "\\$&");

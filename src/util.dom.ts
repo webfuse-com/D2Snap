@@ -1,4 +1,5 @@
-import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
+import type { DOM, TextNode } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
@@ -56,11 +57,11 @@ export function resolveRoot(node: DOM): Element {
 	return (node as Document)?.body ?? (node as Document)?.documentElement ?? node;
 }
 
+// Pre-order DFS: child before parent.
 export function traverseDom<T>(
 	root: Element,
 	filter: number = NodeFilter.SHOW_ALL,
-	cb: (node: T) => Node[] | void,
-	excludeRoot: boolean = false
+	cb: (node: T) => Node[] | void
 ) {
 	const showElement: boolean = ((filter & NodeFilter.SHOW_ELEMENT) !== 0);
 	const showText: boolean = ((filter & NodeFilter.SHOW_TEXT) !== 0);
@@ -69,17 +70,8 @@ export function traverseDom<T>(
 	// Pre-order DFS
 	const stack: Node[] = [];
 
-	if(
-		!excludeRoot && (
-			filter === NodeFilter.SHOW_ALL
-			|| filter === NodeFilter.SHOW_ELEMENT
-		)
-	) {
-		stack.push(root);
-	} else {
-		for(let i = root.childNodes.length - 1; i >= 0; i--) {
-			stack.push(root.childNodes[i]);
-		}
+	for(let i = root.childNodes.length - 1; i >= 0; i--) {
+		stack.push(root.childNodes[i]);
 	}
 
 	while(stack.length) {

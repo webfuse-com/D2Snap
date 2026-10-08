@@ -1,3 +1,5 @@
+import { JSDOM } from "jsdom";
+
 import { readTestFile, writeActual, flattenDOMSnapshot } from "../test.util.js";
 
 import { d2Snap } from "../../dist.lib/api.js";
@@ -268,19 +270,15 @@ await test("Markdown autolink URL does not become a bogus container element", as
 
 await test("Keep aria-labelledby descriptor of empty actionable element", async () => {
     const html = `
-        <html>
-            <body>
-                <div class="ot-accordion-layout">
-                    <button aria-expanded="false" aria-controls="ot-desc-id-5" aria-labelledby="ot-header-id-5"></button>
-                    <div class="ot-acc-hdr">
-                        <h4 class="ot-cat-header" id="ot-header-id-5">Social Media Cookies</h4>
-                    </div>
-                    <p id="ot-desc-id-5">
-                        Social Media cookies are set by a range of social media services.
-                    </p>
-                </div>
-            </body>
-        </html>
+        <div class="ot-accordion-layout">
+            <button aria-expanded="false" aria-controls="ot-desc-id-5" aria-labelledby="ot-header-id-5"></button>
+            <div class="ot-acc-hdr">
+                <h4 class="ot-cat-header" id="ot-header-id-5">Social Media Cookies</h4>
+            </div>
+            <p id="ot-desc-id-5">
+                Social Media cookies are set by a range of social media services.
+            </p>
+        </div>
     `;
 
     for(const r of [ 0.1, 0.5, 0.9, 1.0 ]) {
@@ -299,17 +297,13 @@ await test("Keep aria-labelledby descriptor of empty actionable element", async 
 
 await test("Normalize text label for non-raw-text content elements only", async () => {
     const html = `
-        <html>
-            <body>
-                <div class="row">
-                    <textarea aria-label="Example"></textarea>
-                    <iframe title="YouTube player"></iframe>
-                </div>
-                <div class="row">
-                    <div role="heading" aria-label="Checkout"></div>
-                </div>
-            </body>
-        </html>
+        <div class="row">
+            <textarea aria-label="Example"></textarea>
+            <iframe title="YouTube player"></iframe>
+        </div>
+        <div class="row">
+            <div role="heading" aria-label="Checkout"></div>
+        </div>
     `;
 
     const snapshot = await d2Snap(html, 0, 1, 1, {
@@ -342,15 +336,79 @@ await test("Normalize text label for non-raw-text content elements only", async 
 // promotion is enabled.
 // ---------------------------------------------------------------------------
 await test("Image element without 'alt' and 'src' but label attribute must not be filtered", async () => {
-    const html = `<div><img title="Activate"><img name="Deactivate"></div>`;
+    const html = `
+        <div>
+            <img title="Activate">
+            <img name="Deactivate">
+        </div>`;
     const snapshot = await d2Snap(html, 0.9, 0.8, 0.7, {
         debug: true,
         normalize: {
-            labelsFromAttributes: [ "name" ],
+            labelAttributes: [ "name" ],
         }
     });
 
     assertIn("![Deactivate]()", snapshot.html, "Image was filtered from snapshot");
+});
+
+// ---------------------------------------------------------------------------
+// An element with 'aria-labelledby' attribute that is described by an element embedded
+// in an SVG must not remain empty-normalized because of SVG-to-IMG normalization.
+// ---------------------------------------------------------------------------
+await test("Element with 'aria-labelledby' related to SVG and SVG both normalize", async () => {
+    const html = `
+        <svg><title id="label">Submit</title></svg>
+        <button aria-labelledby="label"></button>
+    `;
+    const snapshot = await d2Snap(html, 0, 1, 0, {
+        debug: true,
+        normalize: {
+            labelAttributes: [ "aria-labelledby" ],
+            svgToImg: true
+        }
+    });
+
+    assertNotIn("<svg>", snapshot.html, "SVG was preserved");
+    assertIn("![Submit]()", snapshot.html, "MD image is missing");
+    assertIn("<button>Submit</button>", flattenDOMSnapshot(snapshot.html), "Button text-label was not normalized");
+});
+
+// ---------------------------------------------------------------------------
+// Any input is ensured to be wrapped by a BODY element (if is no full document).
+// Root node-destructive operations would otherwise be no-ops, so filtering would
+// break at the root.
+// ---------------------------------------------------------------------------
+await test("Filterable root element must not error", async () => {
+    const html = `
+        <section class="wrapper">
+            <strong>Filters</strong>
+            <p>
+                Remove DOM features before downsampling.
+            </p>
+        </section>
+        <div class="wrapper">
+            <strong>Filters</strong>
+            <p>
+                Remove DOM features before downsampling.
+            </p>
+        </div>
+    `;
+    const dom = new JSDOM(html).window;
+    const document = dom.document;
+    const sectionRoot = dom.document.body.firstChild;
+
+    for(const input of [ html, document, sectionRoot ]) {
+        const snapshot = await d2Snap(input, 1, 1, 1, {
+            debug: true,
+            filter: {
+                elements: [ "SECTION" ],
+            }
+        });
+
+        assertIn("<body>", snapshot.outerHTML, "Inserted wrapper root element (BODY) was removed");
+        assertNotIn("<section>", snapshot.outerHTML, "To-be-filtered root element (SECTION) was not removed");
+        assertNotIn("<div>", snapshot.outerHTML, "Not-to-be-filtered root element (DIV) was removed");
+    }
 });
 
 // ---------------------------------------------------------------------------

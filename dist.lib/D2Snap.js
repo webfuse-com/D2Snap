@@ -1,9 +1,6 @@
 import { transformWithTextRank } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
-import {
-  NodeFilter,
-  NodeType
-} from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { CONFIG } from "./var.CONFIG.js";
 import {
   DEFAULT_ATTRIBUTE_SCORES
@@ -86,8 +83,8 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
     },
     minify: true,
     normalize: {
-      iconfontsFromNames: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
-      labelsFromAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
+      iconClasses: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+      labelAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
       svgToImg: true
     },
     skip: {
@@ -194,7 +191,18 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   }
   t0 = t();
   const inertDoc = document.implementation.createHTMLDocument("");
-  const virtualDOM = inertDoc.importNode(rootElement, true);
+  const rootElementClone = inertDoc.importNode(rootElement, true);
+  switch (rootElement.localName.toLowerCase()) {
+    case "html":
+      inertDoc.replaceChild(rootElementClone, inertDoc.documentElement);
+      break;
+    case "body":
+      inertDoc.documentElement.replaceChild(rootElementClone, inertDoc.body);
+      break;
+    default:
+      inertDoc.body.appendChild(rootElementClone);
+  }
+  const virtualDOM = rootElement.nodeType === NodeType.DOCUMENT_NODE ? inertDoc.documentElement : inertDoc.body;
   timings.clone = t() - t0;
   t0 = t();
   preProcessDOM(virtualDOM, inertDoc, {
@@ -225,8 +233,7 @@ function d2Snap(dom, rE, rA, rT, options = {}) {
   traverseDom(
     virtualDOM,
     NodeFilter.SHOW_ELEMENT,
-    (node) => snapElementTextFormattingNode(inertDoc, node),
-    true
+    (node) => snapElementTextFormattingNode(inertDoc, node)
   );
   timings.textFormatting = t() - t0;
   t0 = t();

@@ -43,6 +43,7 @@ export class Turndown {
 					return (
 						node.nodeName === "IMG"
 						&& !(node.getAttribute("src") ?? "").trim()
+						&& !retainElementCbs.some(cb => cb(node))
 					);
 				},
 				replacement: (_content: string, node: HTMLElement) => {
