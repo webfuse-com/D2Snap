@@ -24,6 +24,9 @@
   </div>
 </section>
 		`.trim();
+	const ACTIONABLE_AND_TEXT_FORMATTING_TAG_NAMES = [
+		"A", "BUTTON", "DETAILS", "FORM", "INPUT", "LABEL", "SELECT", "OPTION", "SUMMARY", "TEXTAREA", "ADDRESS", "BLOCKQUOTE", "B", "CODE", "EM", "FIGURE", "FIGCAPTION", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "IMG", "LI", "OL", "P", "PRE", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TABLE", "TBODY", "TD", "THEAD", "TH", "TR", "UL"
+	];
 	const MAX_INDEX_LIST_TEXT_LENGTH = 100;
 	const MIN_PANEL_WIDTH_FRACTION = 0.2;
 
@@ -34,6 +37,24 @@
 	const inputFrame = document.querySelector("[data-frame='input']");
 	const outputFrame = document.querySelector("[data-frame='output']");
 	const canvas = document.querySelector("canvas#dom-relief");
+	const panelContainer = document.querySelector("main");
+	const panels = [ ...document.querySelectorAll(".panel") ];
+	const resizers = [ ...document.querySelectorAll(".resizer") ];
+	const tabs = [ ...document.querySelectorAll(".tabs") ];
+	const metaElements = Object.fromEntries(
+		[ ...document.querySelectorAll("#dom-results [data-key]") ]
+			.map(element => [ element.dataset.key, element ])
+	);
+	const parameterOutputs = Object.fromEntries(
+		[ ...document.querySelectorAll("form[name='downsampling-params'] output") ]
+			.map(output => [ output.htmlFor, output ])
+	);
+
+	const reliefInputs = {
+		flat: document.querySelector("input[name='relief-flat']"),
+		ortho: document.querySelector("input[name='relief-ortho']")
+	};
+
 	const domRelief = new DOMRelief.DOMRelief();
 
 	const downsamplingInputs = {
@@ -80,7 +101,7 @@
 
 	function updateMeta(meta) {
 		for(const [key, value] of Object.entries(meta)) {
-			const span = document.querySelector(`#dom-results [data-key="${key}"]`);
+			const span = metaElements[key];
 
 			if(!span) continue;
 
@@ -88,14 +109,11 @@
 		}
 	}
 
-	function renderResult(htmlInput, result) {
+	function renderResult3D(htmlInput, result) {
 		const htmlOutput = result.html;
 
 		textareaHTMLOutput.value = htmlOutput;
 		textareaIndexOutput.value = getDOMIndex(result.dom);
-
-		inputFrame.srcdoc = htmlInput;
-		outputFrame.srcdoc = htmlOutput;
 
 		domRelief.update({
 			documents: [ htmlInput, htmlOutput ]
@@ -117,52 +135,91 @@
 		});
 	}
 
-	let updateId = 0;
+	function renderResultFrames(htmlInput, result) {
+		if(htmlInput) {
+			inputFrame.srcdoc = htmlInput;
+		}
+		if(result) {
+			outputFrame.srcdoc = result.outerHTML;
+		}
+	}
+
+	let updateCount = 0;
 
 	async function updateState() {
-		const id = ++updateId;
+		const id = ++updateCount;
 		const htmlInput = textareaHTMLInput.value;
+
+		const rE = parseFloat(downsamplingInputs.rE.value);
+		const rA = parseFloat(downsamplingInputs.rA.value);
+		const rT = parseFloat(downsamplingInputs.rT.value);
+		const options = {
+			debug: true,
+			skip: {
+				markdown: !downsamplingInputs.markdown.checked,
+				textRank: !downsamplingInputs.textRank.checked
+			}
+		};
 
 		const result = await D2Snap.d2Snap(
 			htmlInput,
-			parseFloat(downsamplingInputs.rE.value),
-			parseFloat(downsamplingInputs.rA.value),
-			parseFloat(downsamplingInputs.rT.value),
+			rE, rA, rT,
+			options
+		);
+		const resultPreservedTextFormattingElements = await D2Snap.d2Snap(
+			htmlInput,
+			rE, rA, rT,
 			{
-				debug: true,
-				skip: {
-					markdown: !downsamplingInputs.markdown.checked,
-					textRank: !downsamplingInputs.textRank.checked
+				...options,
+
+				classification: {
+					actionableElements: ACTIONABLE_AND_TEXT_FORMATTING_TAG_NAMES
 				}
 			}
 		);
 
-		if(id != updateId) return;
+		if(id != updateCount) return;
 
-		renderResult(htmlInput, result);
+		renderResult3D(htmlInput, result);
+		renderResultFrames(null, resultPreservedTextFormattingElements);
 	}
 
 
+	function setupIframes() {
+		for(const iframe of  [ inputFrame, outputFrame ]) {
+			iframe
+				.addEventListener("load", () => {
+					iframe.contentDocument
+						.documentElement
+						.style
+						.fontSize = "9px";
+				});
+		}
+	}
+
 	function setupTabs() {
-		document.querySelectorAll(".tabs")
-			.forEach(tabs => {
-				const buttons = [ ...tabs.querySelectorAll(".tabs-header > button") ];
-				const tabViews = [ ...tabs.querySelectorAll(".tabs-body > *") ];
-
-				function activateTab(index) {
-					buttons.forEach((button, i) => {
-						button.classList.toggle("active", i == index);
-					});
-
-					tabViews.forEach((tabView, i) => {
-						tabView.classList.toggle("active", i == index);
-					});
-				}
+		tabs
+			.map(tabs => ({
+				buttons: [ ...tabs.querySelectorAll(".tabs-header > button") ],
+				tabViews: [ ...tabs.querySelectorAll(".tabs-body > *") ]
+			}))
+			.forEach(({ buttons, tabViews }) => {
+				const activateTab = index => {
+					buttons
+						.forEach((button, i) => {
+							button.classList.toggle("active", i == index);
+						});
+					tabViews
+						.forEach((tabView, i) => {
+							tabView.classList.toggle("active", i == index);
+						});
+				};
 
 				buttons.forEach((button, i) => {
-					button.addEventListener("click", () => {
-						activateTab(i);
-					});
+					button
+						.addEventListener("click", () => {
+							activateTab(i);
+						});
 				});
 
 				activateTab(0);
@@ -170,27 +227,32 @@
 	}
 
 	function setupDownsamplingParams() {
-		document.querySelectorAll("form[name='downsampling-params'] input")
+		Object.values(downsamplingInputs)
 			.forEach(input => {
-				const output = document.querySelector(`output[for="${input.name}"]`);
+				const output = parameterOutputs[input.name];
 
-				function updateOutput() {
+				const updateOutput = () => {
 					if(!output) return;
 
 					output.textContent = parseFloat(input.value).toFixed(1);
-				}
+				};
 
 				updateOutput();
 
-				input.addEventListener("input", () => {
-					updateOutput();
-					updateState();
-				});
+				input
+					.addEventListener("input", () => {
+						updateOutput();
+						updateState();
+					});
 			});
 
 		textareaHTMLInput.value ||= DEFAULT_HTML_INPUT;
 
-		textareaHTMLInput.addEventListener("input", updateState);
+		textareaHTMLInput.addEventListener("input", () => {
+			renderResultFrames(textareaHTMLInput.value, null);
+
+			updateState();
+		});
 	}
 
 	function setupRelief() {
@@ -203,14 +265,14 @@
 				once: true
 			});
 
-		document.querySelector("input[name='relief-flat']")
+		reliefInputs.flat
 			?.addEventListener("change", e => {
 				domRelief.update({
 					orientation: e.target.checked ? "horizontal" : "vertical"
 				});
 			});
 
-		document.querySelector("input[name='relief-ortho']")
+		reliefInputs.ortho
 			?.addEventListener("change", e => {
 				domRelief.update({
 					projection: e.target.checked ? "orthographic" : "perspective"
@@ -229,72 +291,73 @@
 	}
 
 	function setupResizers() {
-		const panelContainer = document.querySelector("main");
-		const panels = [ ...document.querySelectorAll(".panel") ];
-		const resizers = [ ...document.querySelectorAll(".resizer") ];
-
 		let fractions = panels.map(() => 1 / panels.length);
 
-		function applyLayout() {
+		const applyLayout = () => {
 			panelContainer.style.gridTemplateColumns = fractions
 				.map(f => `minmax(0, ${f}fr)`)
 				.join(" var(--space-s) ");
-		}
+		};
 
-		function stopResizing(resizer, e) {
+		const stopResizing = (resizer, e) => {
 			if(resizer.hasPointerCapture(e.pointerId)) {
 				resizer.releasePointerCapture(e.pointerId);
 			}
 
 			document.body.classList.remove("resizing");
-		}
+		};
 
 		applyLayout();
 
-		resizers.forEach((resizer, i) => {
-			let startX, startA, startB;
+		resizers
+			.forEach((resizer, i) => {
+				let startX, startA, startB;
 
-			resizer.addEventListener("pointerdown", e => {
-				resizer.setPointerCapture(e.pointerId);
+				resizer
+					.addEventListener("pointerdown", e => {
+						resizer.setPointerCapture(e.pointerId);
 
-				document.body.classList.add("resizing");
+						document.body.classList.add("resizing");
 
-				startX = e.clientX;
-				startA = fractions[i];
-				startB = fractions[i + 1];
+						startX = e.clientX;
+						startA = fractions[i];
+						startB = fractions[i + 1];
+					});
+
+				resizer
+					.addEventListener("pointermove", e => {
+						if(!resizer.hasPointerCapture(e.pointerId)) return;
+
+						const style = getComputedStyle(panelContainer);
+						const resizerTotal = resizers.reduce((sum, r) => sum + r.offsetWidth, 0);
+						const available = panelContainer.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - resizerTotal;
+
+						if(available <= 0) return;
+
+						const delta = (e.clientX - startX) / available;
+						const pair = startA + startB;
+						const min = Math.min(MIN_PANEL_WIDTH_FRACTION, pair / 2);
+						const a = Math.min(Math.max(startA + delta, min), pair - min);
+
+						fractions[i] = a;
+						fractions[i + 1] = pair - a;
+
+						applyLayout();
+					});
+
+				resizer
+					.addEventListener("pointerup", e => {
+						stopResizing(resizer, e);
+					});
+				resizer
+					.addEventListener("pointercancel", e => {
+						stopResizing(resizer, e);
+					});
 			});
-
-			resizer.addEventListener("pointermove", e => {
-				if(!resizer.hasPointerCapture(e.pointerId)) return;
-
-				const style = getComputedStyle(panelContainer);
-				const resizerTotal = resizers.reduce((sum, r) => sum + r.offsetWidth, 0);
-				const available = panelContainer.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - resizerTotal;
-
-				if(available <= 0) return;
-
-				const delta = (e.clientX - startX) / available;
-				const pair = startA + startB;
-				const min = Math.min(MIN_PANEL_WIDTH_FRACTION, pair / 2);
-				const a = Math.min(Math.max(startA + delta, min), pair - min);
-
-				fractions[i] = a;
-				fractions[i + 1] = pair - a;
-
-				applyLayout();
-			});
-
-			resizer.addEventListener("pointerup", e => {
-				stopResizing(resizer, e);
-			});
-
-			resizer.addEventListener("pointercancel", e => {
-				stopResizing(resizer, e);
-			});
-		});
 	}
 
 
+	setupIframes();
 	setupTabs();
 	setupDownsamplingParams();
 	setupRelief();

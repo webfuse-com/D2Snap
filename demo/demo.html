@@ -88,14 +88,15 @@
                             <textarea name="html-output" readonly></textarea>
                             <div class="card">
                                 <div class="flex" id="dom-results">
-                                    <p class="nowrap">
+                                    <!-- <p class="nowrap">
                                         <span data-key="originalNodes">n</span>
                                         →
-                                        <span data-key="snapshotNodes">m</span> nodes
-                                    </p>
+                                        <span data-key="snapshotNodes">m</span> Nodes
+                                    </p> -->
                                     <div class="flex-space"></div>
-                                    <p class="flex flex--s">
-                                        <span class="text-primary text-l nowrap">
+                                    <p class="flex flex--xs">
+                                        <span class="text-primary text-l nowrap"
+                                            title="Result size compared to original size (raw bytes)">
                                             📦 &hairsp;
                                             <b data-key="sizeRatio">x</b> %
                                         </span>
@@ -106,7 +107,8 @@
                                                 <span data-key="originalSize">z</span>
                                             )
                                         </span>
-                                        <span class="nowrap">
+                                        <span class="nowrap"
+                                            title="Estimated LLM input tokens">
                                             ~ <span data-key="tokenEstimate">T</span> Tokens
                                         </span>
                                     </p>
@@ -129,14 +131,14 @@
                     <div class="tabs-body">
                         <div class="content">
                             <canvas id="dom-relief"></canvas>
-                            <small class="float float--r text-dim no-select">Hold SHIFT to pan</small>
-                            <div class="flex float float--l">
+                            <small class="float float--r text-dim no-select">Hold SHIFT to translate</small>
+                            <div class="flex flex--s float float--l">
                                 <label for="relief-flat">
                                     <span class="no-select">Flat</span>
                                     <input type="checkbox" name="relief-flat" autocomplete="off">
                                 </label>
                                 <label for="relief-ortho">
-                                    <span class="no-select">Ortho</span>
+                                    <span class="no-select">Orthographic</span>
                                     <input type="checkbox" name="relief-ortho" autocomplete="off">
                                 </label>
                             </div>

@@ -280,6 +280,10 @@ hr {
 }
 
 .flex--s {
+    gap: var(--space-s);
+}
+
+.flex--xs {
     gap: var(--space-xs);
 }
 
