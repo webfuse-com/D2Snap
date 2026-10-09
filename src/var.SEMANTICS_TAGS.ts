@@ -48,8 +48,22 @@ export const INLINE_TAG_NAMES: Set<string> = new Set([
 ]);
 
 export const RAW_TEXT_TAG_NAMES: Set<string> = new Set([
+	"IFRAME",
+	"NOSCRIPT",
 	"SCRIPT",
 	"STYLE",
 	"TEXTAREA",
-	"TITLE"
+	"TITLE",
 ]);
+
+export const NON_RENDERED_TAG_NAMES: Set<string> = new Set([
+	"SCRIPT",
+	"STYLE",
+	"NOSCRIPT",
+	"TEMPLATE"
+]);
+
+export const SVG_LABEL_TAG_NAMES: string[] = [
+	"title",
+	"desc"
+];

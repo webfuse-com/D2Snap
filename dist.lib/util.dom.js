@@ -1,12 +1,16 @@
-import { NodeFilter, NodeType } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
-async function ensureDOM(domOrString) {
-  if (Buffer.isBuffer(domOrString)) {
-    domOrString = domOrString.toString("utf8");
+async function ensureDOM(domOrStringOrBuffer) {
+  let domOrString;
+  try {
+    domOrString = Buffer.isBuffer(domOrStringOrBuffer) ? domOrStringOrBuffer.toString() : domOrStringOrBuffer;
+  } catch {
+    domOrString = domOrStringOrBuffer;
   }
   if (typeof domOrString !== "string") return domOrString;
+  const html = domOrString.trim();
   if (typeof window !== "undefined") {
-    return new DOMParser().parseFromString(domOrString, "text/html");
+    return new DOMParser().parseFromString(html, "text/html");
   }
   try {
     const jsdom = await import("jsdom");
@@ -19,29 +23,18 @@ async function ensureDOM(domOrString) {
     });
     virtualConsole.on("log", () => {
     });
-    const dom = new jsdom.JSDOM(domOrString, {
+    const dom = new jsdom.JSDOM(html, {
       runScripts: void 0,
       virtualConsole
-    });
-    return dom.window.document;
+    }).window.document;
+    return dom;
   } catch (err) {
     if (err?.code !== "ERR_MODULE_NOT_FOUND") throw err;
     throw new ReferenceError("Install 'jsdom' to use D2Snap with a non-browser runtime");
   }
 }
 function resolveDocument(dom) {
-  let doc;
-  try {
-    const doc2 = (window ?? {}).document;
-    if (doc2) return doc2;
-  } catch {
-  }
-  doc = dom;
-  while (doc) {
-    if ("createTreeWalker" in doc) return doc;
-    doc = doc?.parentNode;
-  }
-  return null;
+  return dom.nodeType === 9 ? dom : dom.ownerDocument;
 }
 function resolveRoot(node) {
   return node?.body ?? node?.documentElement ?? node;
@@ -56,6 +49,7 @@ function traverseDom(root, filter = NodeFilter.SHOW_ALL, cb) {
   }
   while (stack.length) {
     const node = stack.pop();
+    if (!root.contains(node)) continue;
     const children = [...node.childNodes];
     const childIndex = stack.length;
     const childCount = children.length;

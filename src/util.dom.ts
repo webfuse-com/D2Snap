@@ -1,17 +1,25 @@
-import { type DOM, NodeFilter, NodeType, TextNode } from "./types.js";
+import type { DOM, TextNode } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { isInlineElement, isRawTextElement } from "./util.html.js";
 
 
-export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM> {
-	if(Buffer.isBuffer(domOrString)) {
-		domOrString = domOrString.toString("utf8");
+export async function ensureDOM(domOrStringOrBuffer: DOM | string | Buffer): Promise<DOM> {
+	let domOrString: DOM | string;
+	try {
+		domOrString = Buffer.isBuffer(domOrStringOrBuffer)
+			? domOrStringOrBuffer.toString()
+			: domOrStringOrBuffer;
+	} catch {
+		domOrString = domOrStringOrBuffer as DOM | string;
 	}
 
-	if(typeof (domOrString) !== "string") return domOrString;
+	if(typeof(domOrString) !== "string") return domOrString;
+
+	const html: string = domOrString.trim();
 
 	if(typeof window !== "undefined") {
 		return new DOMParser()
-			.parseFromString(domOrString, "text/html");
+			.parseFromString(html, "text/html");
 	}
 
 	try {
@@ -24,12 +32,14 @@ export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM
 		virtualConsole.on("info", () => {});
 		virtualConsole.on("log", () => {});
 
-		const dom = new jsdom.JSDOM(domOrString, {
+		const dom: DOM = new jsdom.JSDOM(html, {
 			runScripts: undefined,
 			virtualConsole
-		});
+		})
+			.window
+			.document;
 
-		return (dom.window as unknown as { document: Document }).document;
+		return dom;
 	} catch (err) {
 		if((err as { code: string; })?.code !== "ERR_MODULE_NOT_FOUND") throw err;
 
@@ -38,26 +48,16 @@ export async function ensureDOM(domOrString: DOM | string | Buffer): Promise<DOM
 }
 
 export function resolveDocument(dom: DOM): Document | null {
-	let doc: Node | Document | null;
-	try {
-		const doc: Node | Document | null = (window ?? {}).document;
-		if (doc) return doc as Document;
-	} catch { /**/ }
-
-	doc = dom;
-	while(doc) {
-		if ("createTreeWalker" in doc) return doc;
-
-		doc = doc?.parentNode;
-	}
-
-	return null;
+	return dom.nodeType === 9
+		? dom as Document
+		: dom.ownerDocument;
 }
 
 export function resolveRoot(node: DOM): Element {
 	return (node as Document)?.body ?? (node as Document)?.documentElement ?? node;
 }
 
+// Pre-order DFS: child before parent.
 export function traverseDom<T>(
 	root: Element,
 	filter: number = NodeFilter.SHOW_ALL,
@@ -69,12 +69,15 @@ export function traverseDom<T>(
 
 	// Pre-order DFS
 	const stack: Node[] = [];
+
 	for(let i = root.childNodes.length - 1; i >= 0; i--) {
 		stack.push(root.childNodes[i]);
 	}
 
 	while(stack.length) {
 		const node: Node = stack.pop()!;
+
+		if(!root.contains(node)) continue;
 
 		const children: Node[] = [ ...node.childNodes ];
 		const childIndex = stack.length;

@@ -1,26 +1,17 @@
-import { NodeFilter, NodeType } from "./types.js";
-import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_FILTER_TAG_NAMES, DEFAULT_LABEL_TO_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
+import { type D2SnapOptions } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { minifyDOM, traverseDom } from "./util.dom.js";
-import { formatHTML, isVoidElement } from "./util.html.js";
+import { formatHTML, isRawTextElement, isVoidElement } from "./util.html.js";
+import { NON_RENDERED_TAG_NAMES, SVG_LABEL_TAG_NAMES } from "./var.SEMANTICS_TAGS.js";
 
 
 interface DOMPreProcessingOptions {
-	filter: Partial<{
-		dataURLs: boolean;
-		tagNames: string[];
-	}>;
-	labelToText: Partial<{
-		iconFonts: boolean,
-		tagNames: string[];
-	}>;
-	uniqueIDs: boolean;
+	filter: Pick<D2SnapOptions["filter"], "attributes" | "dataURLs" | "elements" | "emptyElements">;
+	normalize: Pick<D2SnapOptions["normalize"], "iconClasses" | "labelAttributes" | "svgToImg">;
 }
 
 interface DOMPostProcessingOptions {
-	filter: Partial<{
-		emptyElements: boolean;
-	}>;
+	filter: Pick<D2SnapOptions["filter"], "emptyElements">;
 	minify: boolean;
 }
 
@@ -31,128 +22,260 @@ interface HTMLPostProcessingOptions {
 
 const DATA_URL_ATTRIBUTE_NAME: string = "src";
 const DATA_URL_ATTRIBUTE_VALUE_REGEX: RegExp = /^data:/i;
+const UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER: string = "-";
 
 
-function tagNamesToNormalizedSet(tagNames: string[]): Set<string> {
-	return new Set(
-		tagNames
-			.map((tagName: string) => tagName.toUpperCase())
-	);
+function normalizeCaseInsensitive(str: string): string {
+	return str.toUpperCase();
 }
 
-function liftImageDescription(document: Document, elementNode: Element) {
-	// Find an accessibility label, preferring attributes over child elements.
-	// Attribute order is taken from the UI feature heuristics (default: aria-label, title, alt).
-	let label: string | null = null;
-	for (const attrName of ["aria-label", "title", "alt"]) {
-		const value: string | null = elementNode.getAttribute(attrName);
-		const trimmed: string = (value ?? "").trim();
-		if (trimmed) { label = trimmed; break; }
+function normalizeCaseInsensitiveArray(tagNames: string[]): string[] {
+	return tagNames
+		.map((tagName: string) => normalizeCaseInsensitive(tagName));
+}
+
+function elementHasTagName(elementNode: Element, tagName: string): boolean {
+	return normalizeCaseInsensitive(elementNode.tagName) === normalizeCaseInsensitive(tagName);
+}
+
+function hasRenderedText(node: Node): boolean {
+	for(const child of node.childNodes) {
+		if(child.nodeType === NodeType.TEXT_NODE) {
+			if((child.nodeValue ?? "").trim()) return true;
+
+			continue;
+		}
+
+		if(child.nodeType !== NodeType.ELEMENT_NODE) continue;
+		if(NON_RENDERED_TAG_NAMES.has(normalizeCaseInsensitive((child as Element).tagName))) continue;
+
+		if(hasRenderedText(child)) return true;
 	}
-	if (!label) {
-		for (const child of Array.from(elementNode.children)) {
-			if (!["title", "desc"].includes(child.tagName)) continue;
-			const trimmed: string = (child.textContent ?? "").trim();
-			if (trimmed) { label = trimmed; break; }
+
+	return false;
+}
+
+function elementHasNoTextContent(elementNode: Element): boolean {
+	return !hasRenderedText(elementNode)
+		&& ![ ...elementNode.querySelectorAll("img[alt]") ]
+			.some((image: Element) => !!resolveAttributeAsString(image, "alt"));
+}
+
+function resolveAttributeAsString(elementNode: Element, attributeName: string): string {
+	return (elementNode.getAttribute(attributeName) ?? "").trim();
+}
+
+function resolveIdReferenceText(elementNode: Element, document: Document, id: string): string {
+	const selector: string = `[id="${id.replace(/["\\]/g, "\\$&")}"]`;
+	const scopes: ParentNode[] = [ elementNode.getRootNode() as ParentNode, document ];
+
+	for(const scope of scopes) {
+		for(const candidate of scope.querySelectorAll?.(selector) ?? []) {
+			const text: string = (candidate.textContent ?? "").trim();
+
+			if(text) return text;
 		}
 	}
 
-	if (label !== null) {
-		// Replace with a plain text node carrying the label. It lands under the
-		// element's former parent, so an actionable parent keeps it (icon buttons:
-		// <button><svg aria-label="X"/></button> -> <button>X</button>).
-		elementNode.replaceWith(document.createTextNode(label));
-	} else {
-		// No label found anywhere — element is pure decoration. Drop it.
-		elementNode.remove();
+	return "";
+}
+
+function getElementLabelAttribute(elementNode: Element, document: Document, labelAttributeNames: string[]): string | null {
+	for(const labelAttributeName of labelAttributeNames) {
+		const labelAttributeValue: string = resolveAttributeAsString(elementNode, labelAttributeName);
+
+		if(!labelAttributeValue) continue;
+
+		if(normalizeCaseInsensitive(labelAttributeName) !== normalizeCaseInsensitive("aria-labelledby")) {
+			return labelAttributeValue;
+		}
+
+		const referencedText: string = labelAttributeValue
+			.split(/\s+/)
+			.map((id: string) => resolveIdReferenceText(elementNode, document, id))
+			.filter(Boolean)
+			.join(" ");
+
+		if(referencedText) return referencedText;
 	}
+
+	return null;
+}
+
+function createImage(document: Document, alt: string = ""): HTMLImageElement {
+	const imgSubstituteElementNode: HTMLImageElement = document.createElement("img");
+
+	alt
+		&& imgSubstituteElementNode.setAttribute("alt", alt);
+
+	return imgSubstituteElementNode;
+}
+
+function replaceElementByImage(elementNode: Element, document: Document, alt: string = "") {
+	const imgSubstituteElementNode: HTMLImageElement = createImage(document, alt);
+
+	elementNode.replaceWith(imgSubstituteElementNode);
+
+	return imgSubstituteElementNode;
 }
 
 
-export function preProcessDOM(domRoot: Element, document: Document, options: Partial<DOMPreProcessingOptions>): void {
-	const optionsWithDefaults: DOMPreProcessingOptions = {
-		uniqueIDs: false,
+export function preProcessDOM(
+	domRoot: Element,
+	document: Document,
+	options: DOMPreProcessingOptions,
+	isActionableElement: (elementNode: Element) => boolean
+): void {
+	const filterElementsTagNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.elements ?? []));
+	const filterAttributesNames: Set<string> = new Set(normalizeCaseInsensitiveArray(options.filter?.attributes ?? []));
+	const iconClasses: string[] = options.normalize?.iconClasses ?? [];
+	const labelAttributes: string[] = options.normalize?.labelAttributes ?? [];
 
-		...options,
+	const preResolvedLabels = new WeakMap<Element, string>();
 
-		filter: {
-			dataURLs: true,
-			tagNames: DEFAULT_FILTER_TAG_NAMES,
+	for(const referrer of document.querySelectorAll("[aria-labelledby]")) {
+		const label: string | null = getElementLabelAttribute(referrer, document, labelAttributes);
+		label && preResolvedLabels.set(referrer, label);
+	}
 
-			...(options.filter ?? {})
-		},
-		labelToText: {
-			iconFonts: true,
-			tagNames: DEFAULT_LABEL_TO_TEXT_TAG_NAMES,
-
-			...(options.labelToText ?? {})
-		},
+	const resolveLabel = (element: Element): string | null => {
+		return preResolvedLabels.get(element) ?? getElementLabelAttribute(element, document, labelAttributes);
 	};
-
-	const filterTagNames: Set<string> = tagNamesToNormalizedSet(optionsWithDefaults.filter?.tagNames ?? []);
-	const labelToTextTagNames: Set<string> = tagNamesToNormalizedSet(optionsWithDefaults.labelToText?.tagNames ?? []);
-
-	let i: number = 0;
 
 	traverseDom<HTMLElement>(
 		domRoot,
 		NodeFilter.SHOW_ALL,
 		(node: Node) => {
-			if (node.nodeType === NodeType.COMMENT_NODE) {
+			// Filters + Normalization
+			// STRICT ORDER MATTERS
+
+			// Filter
+
+			if(node.nodeType === NodeType.COMMENT_NODE) {
 				node.parentNode?.removeChild(node);
 
 				return;
 			}
 
-			if (node.nodeType !== NodeType.ELEMENT_NODE) return;
+			if(node.nodeType !== NodeType.ELEMENT_NODE) return;
 
 			const elementNode = node as Element;
 
-			if (filterTagNames.has(elementNode.tagName.toUpperCase())) {
+			// Filter (optionals)
+			// Root node-destructive operations are no-ops, otherwise the DOm would break.
+			// Non-full document input snippets are wrapped by BODY to have a generic wrapper.
+
+			if(filterElementsTagNames.has(normalizeCaseInsensitive(elementNode.tagName))) {
 				elementNode.remove();
 
 				return;
 			}
 
-			if (optionsWithDefaults.uniqueIDs) {
-				elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
-
-				i++;
+			for(const attr of [ ...elementNode.attributes ]) {
+				if(filterAttributesNames.has(normalizeCaseInsensitive(attr.name))) {
+					elementNode.removeAttribute(attr.name);
+				}
 			}
 
-			if (optionsWithDefaults.filter?.dataURLs ?? []) {
-				for (const attr of Array.from(elementNode.attributes)) {
-					if (
+			if(options.filter?.dataURLs) {
+				for(const attr of Array.from(elementNode.attributes)) {
+					if(
 						(attr.name.toLowerCase() !== DATA_URL_ATTRIBUTE_NAME)
-						|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
+							|| !DATA_URL_ATTRIBUTE_VALUE_REGEX.test(attr.value)
 					) continue;
 
 					elementNode.removeAttribute(attr.name);
 				}
 			}
 
-			if (labelToTextTagNames.has(elementNode.tagName.toUpperCase())) {
-				// Lift accessibility labels into plain text first, so labels survive and empty wrappers do not linger.
-				liftImageDescription(document, elementNode);
+			if(options.filter?.emptyElements) {
+				if(elementHasTagName(elementNode, "IMG") && !resolveLabel(elementNode)) {
+					if(
+						!resolveAttributeAsString(elementNode, "src")
+						&& !resolveAttributeAsString(elementNode, "alt")
+					 ) {
+						elementNode.remove();
+
+						return;
+					}
+				}
+			}
+
+			// Normalize (optionals)
+
+			// Meta-image to image.
+			if(elementHasTagName(elementNode, "SVG")) {
+				if(options.normalize?.svgToImg) {
+					let labelValue: string = "";
+					for(const svgLabelTagName of SVG_LABEL_TAG_NAMES) {
+						labelValue = (elementNode.querySelector(svgLabelTagName.toLowerCase())?.textContent ?? "").trim();
+						if(labelValue) break;
+					}
+
+					labelValue ||= resolveLabel(elementNode) ?? "";
+
+					return [ replaceElementByImage(elementNode, document, labelValue) ];
+				}
+			} else if(iconClasses.length) {
+				if(elementHasNoTextContent(elementNode) && elementNode.children.length === 0) {
+					let iconfontsInClass: string | null = null;
+
+					for(const className of [ ...elementNode.classList ].reverse()) {
+						const iconfontName: string | undefined = iconClasses
+							.find((name: string) => {
+								return className.startsWith(`${name}${UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER}`)
+							});
+
+						if(!iconfontName) continue;
+
+						iconfontsInClass = className
+							.slice(iconfontName.length + UNIVERSAL_ICONFONT_PREFIX_SUFFIX_DELIMITER.length);
+
+						break;
+					}
+
+					if(iconfontsInClass) {
+						const alt: string = resolveLabel(elementNode) ?? iconfontsInClass;
+
+						if(!isActionableElement(elementNode)) {
+							return [ replaceElementByImage(elementNode, document, alt) ];
+						} else {
+							elementNode.prepend(createImage(document, alt));
+						}
+					}
+				}
+			}
+
+			// Text-label attributes to text (non-void elements) or 'alt' (image elements).
+			if(labelAttributes.length) {
+				if(!isRawTextElement(elementNode.tagName)) {
+					const labelAttributeValue: string | null = resolveLabel(elementNode);
+
+					if(labelAttributeValue) {
+						if(elementHasTagName(elementNode, "IMG")) {
+							// Image
+							const altAttributeValue: string = resolveAttributeAsString(elementNode, "alt");
+							!altAttributeValue
+								&& elementNode.setAttribute("alt", labelAttributeValue);
+						} else if(!isVoidElement(elementNode.tagName)) {
+							// Text
+							elementHasNoTextContent(elementNode)
+								&& elementNode.prepend(labelAttributeValue);
+						}
+					}
+				}
 			}
 		}
 	);
 }
 
-export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcessingOptions>, isActionableElement: (elementNode: Element) => boolean): void {
-	const optionsWithDefaults: DOMPostProcessingOptions = {
-		filter: {
-			emptyElements: true,
-
-			...(options.filter ?? {})
-		},
-		minify: true,
-
-		...options
-	};
-
+export function postProcessDOM(
+	domRoot: Element,
+	options: DOMPostProcessingOptions,
+	isActionableElement: (elementNode: Element) => boolean
+): void {
 	// Remove elements that became empty
-	if (optionsWithDefaults.filter?.emptyElements ?? []) {
+	if (options.filter?.emptyElements) {
 		let hasRemovedElement: boolean;
 
 		do {
@@ -176,7 +299,7 @@ export function postProcessDOM(domRoot: Element, options: Partial<DOMPostProcess
 	}
 
 	// Minify
-	if (optionsWithDefaults.minify) {
+	if(options.minify) {
 		minifyDOM(domRoot);
 	}
 }

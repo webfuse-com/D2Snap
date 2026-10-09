@@ -19,7 +19,7 @@ await test("Validate raw DOM snapshot (>= 25K tokens)", async () => {
 await test("Take adaptive DOM snapshot (max 5K tokens)", async () => {
     const snapshot = await adaptiveD2Snap(WEBFUSE_HTML, 5000, 5, {
         debug: true,
-        attributeScoring: {
+        attributeScores: {
             class: 0
         },
         uniqueIDs: true
@@ -39,7 +39,7 @@ await test("Take adaptive DOM snapshot (max 5K tokens)", async () => {
     );
 
     assertIn(
-        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"597\">About us</a>"),
+        flattenDOMSnapshot("<a href=\"/about\" data-uid=\"641\">About us</a>"),
         flattenDOMSnapshot(snapshot.html),
         "Interactive element not preserved"
     );

@@ -73,67 +73,7 @@ A true favourite!
 
 ##
 
-### Integrate
-
-``` ts
-D2Snap.d2Snap(
-  dom: DOM,
-  rE: number, rA: number, rT: number,
-  options?: Options
-): Promise<{
-  dom: string;
-  innerHTML: string;  // alias: html
-  outerHTML: string;
-  meta: {
-    tokenEstimate: number;
-    originalSize: number;
-    sizeRatio: number;
-    snapshotSize: number;
-  };
-}>
-
-D2Snap.adaptiveD2Snap(
-  dom: DOM,
-  maxTokens: number = 4096,
-  maxIterations: number = 5,
-  options?: Options
-): Promise<{
-  dom: string;
-  html: string;
-  meta: {};
-  parameters: {};
-  adaptiveIterations: number;
-}>
-```
-
-``` ts
-type DOM = Document | Element | string;
-type Options = {
-  debug?: boolean;            // false
-  minify?: boolean;           // true
-  outerHTML?: boolean;        // false
-  uniqueIDs?: boolean;        // false
-  attributeScoring?: {        // compare src/var.ATTRIBUTE_SCORING.ts
-    [ name: string ]: number;
-  };
-  labelToText?: {
-    iconFonts?: boolean;       // false
-    tagNames?: string[];       // [ "IMG", "SVG" ]
-  }>;
-  skip?: {
-    markdown?: boolean;       // false
-    skipTextRank?: boolean;   // false
-  };
-};
-```
-
-> The attribute scoring lookup table supports wildcards for `aria` and `data` (`{aria-|data-}*`).
-
-#### Browser
-
-``` html
-<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
-```
+### Integration
 
 #### Module
 
@@ -149,6 +89,44 @@ npm install webfuse-com/D2Snap
 ``` js
 import * as D2Snap from "@webfuse-com/d2snap";
 ```
+
+#### Browser
+
+``` html
+<script src="https://cdn.jsdelivr.net/gh/webfuse-com/D2Snap@main/dist.browser/D2Snap.js"></script>
+```
+
+##
+
+### Usage
+
+``` ts
+D2Snap.d2Snap(
+  dom: DOM,
+  rE: number, rA: number, rT: number,
+  options?: Options
+): Promise<{
+  dom: string;
+  innerHTML: string;  // alias: html
+  outerHTML: string;
+  meta: object;
+}>
+
+D2Snap.adaptiveD2Snap(
+  dom: DOM,
+  maxTokens: number = 4096,
+  maxIterations: number = 5,
+  options?: Options
+): Promise<{
+  dom: string;
+  html: string;
+  meta: object;
+  parameters: object;
+  adaptiveIterations: number;
+}>
+```
+
+> Read the full [API Documentation](./DOCS.md).
 
 ##
 
@@ -173,18 +151,16 @@ npm run build
 npm run test
 ```
 
-##### Unit Test(s)
-
-``` console
-npm run test:unit
-npm run test:unit -- <test-name> # e.g., D2Snap.option.filters
+```
+npm run test:<SUITE> -- [<TEST-NAME=*> # e.g., D2Snap.options.filter] [<FLAG>*]
 ```
 
-##### Regression Tests
-
-``` console
-npm run test:regression
-```
+| Suite | Flags | Note |
+| :- | :- | :- |
+| `unit` | | |
+| `end-to-end` | |
+| `regression` | | |
+| `regression:syntax` | `--next-failure` | _Over 90 real-world web pages_ |
 
 #### Evaluate
 

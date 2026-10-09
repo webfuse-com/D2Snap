@@ -1,12 +1,62 @@
 import { JSDOM } from "jsdom";
 
-import { readTestFile, writeActual, readExpected, flattenDOMSnapshot } from "../test.util.js";
+import { readTestFile, writeActual, readExpected } from "../test.util.js";
 
-import { minifyDOM } from "../../dist.lib/util.dom.js";
+import { deepMerge } from "../../dist.lib/util.obj.js";
+import { minifyDOM, ensureDOM } from "../../dist.lib/util.dom.js";
 import { isVoidElement, isInlineElement, isRawTextElement, formatHTML } from "../../dist.lib/util.html.js";
 
 
 const PIZZA_HTML = await readTestFile("pizza/pizza");
+
+
+await test("Deep merge two objects", async () => {
+    assertEqual(
+        deepMerge({
+            a: 1,
+            b: 2,
+            c: {
+                a: 1,
+                b: 2,
+                c: {
+                    a: 1,
+                    b: 2
+                }
+            }
+        }, {
+            b: 3,
+            c: {
+                b: 3,
+                c: {
+                    b: 3
+                },
+                d: 4
+            },
+            d: {
+                a: 2
+            },
+            e: 5
+        }),
+        {
+            a: 1,
+            b: 3,
+            c: {
+                a: 1,
+                b: 3,
+                c: {
+                    a: 1,
+                    b: 3
+                },
+                d: 4
+            },
+            d: {
+                a: 2
+            },
+            e: 5
+        },
+        "Invalid deep-merged objects"
+    );
+});
 
 
 await test("Minify DOM reflected upon serialization", async () => {
@@ -36,6 +86,25 @@ await test("Minify DOM reflected upon serialization", async () => {
         htmlTrue,
         expectedTrue,
         "Invalid minified DOM"
+    );
+});
+
+await test("Ensure DOM value from equivalent input (HTML-string, element, document)", async () => {
+    assertTrue(
+        !!(await ensureDOM(PIZZA_HTML))?.body,
+        "Incorrectly ensured DOM (string)"
+    );
+    assertTrue(
+        !!(await ensureDOM(Buffer.from(PIZZA_HTML, "utf8")))?.body,
+        "Incorrectly ensured DOM (Buffer)"
+    );
+    assertTrue(
+        (await ensureDOM(new JSDOM(PIZZA_HTML).window.document))?.nodeType === 9,
+        "Incorrectly ensured DOM (Document)"
+    );
+    assertTrue(
+        (await ensureDOM(new JSDOM(PIZZA_HTML).window.document.body.firstChild))?.nodeType === 1,
+        "Incorrectly ensured DOM (Element)"
     );
 });
 

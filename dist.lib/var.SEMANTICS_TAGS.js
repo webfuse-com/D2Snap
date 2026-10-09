@@ -46,13 +46,27 @@ const INLINE_TAG_NAMES = /* @__PURE__ */ new Set([
   "BR"
 ]);
 const RAW_TEXT_TAG_NAMES = /* @__PURE__ */ new Set([
+  "IFRAME",
+  "NOSCRIPT",
   "SCRIPT",
   "STYLE",
   "TEXTAREA",
   "TITLE"
 ]);
+const NON_RENDERED_TAG_NAMES = /* @__PURE__ */ new Set([
+  "SCRIPT",
+  "STYLE",
+  "NOSCRIPT",
+  "TEMPLATE"
+]);
+const SVG_LABEL_TAG_NAMES = [
+  "title",
+  "desc"
+];
 export {
   INLINE_TAG_NAMES,
+  NON_RENDERED_TAG_NAMES,
   RAW_TEXT_TAG_NAMES,
+  SVG_LABEL_TAG_NAMES,
   VOID_TAG_NAMES
 };

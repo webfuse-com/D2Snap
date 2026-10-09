@@ -1,17 +1,6 @@
-export enum NodeFilter {
-    SHOW_ALL = 4294967295,
-    SHOW_ELEMENT = 1,
-    SHOW_ATTRIBUTE = 2,
-    SHOW_COMMENT = 128,
-    SHOW_TEXT = 4
+export type DeepPartial<T> = {
+	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
-
-export enum NodeType {
-    ELEMENT_NODE = 1,
-    ATTRIBUTE_NODE = 2,
-    TEXT_NODE = 3,
-    COMMENT_NODE = 8
-}
 
 
 export type TextNode = Node & {
@@ -24,7 +13,7 @@ export type TextNode = Node & {
 export type DOM = Document | Element;
 
 
-export interface HTMLElementWithDepth extends HTMLElement {
+export interface ElementWithDepth extends HTMLElement {
     depth: number;
 };
 
@@ -42,27 +31,30 @@ export interface TextRankOptions {
 export interface D2SnapOptions {
     attributeScores: AttributeScoring;
     attributeScoring?: AttributeScoring;    // deprecated (alias)
+    classification: {
+        actionableElements: string[];
+        textElements: string[];
+    };
     debug: boolean;
-    elementClasses: Partial<{
-        actionables: string[];
-        text: string[];
-    }> | undefined;
-    filter: Partial<{
+    filter: {
+        attributes: string[];
         dataURLs: boolean;
+        elements: string[];
         emptyElements: boolean;
-        tagNames: string[];
-    }> | undefined;
-    labelToText: Partial<{
-        iconFonts: boolean;
-        tagNames: string[];
-    }> | undefined;
-    minify: boolean;
-    skip: Partial<{
+    };
+    normalize: {
+        iconClasses: string[];
+        labelAttributes: string[];
+        svgToImg: boolean;
+    };
+    skip: {
         markdown: boolean;
         textRank: boolean;
-    }> | undefined;
-    textRankOptions: Partial<TextRankOptions> | undefined;
+    };
+    minify: boolean;
     uniqueIDs: boolean;
+
+    textRankOptions?: TextRankOptions;
 };
 
 export interface D2SnapResult {
@@ -75,6 +67,8 @@ export interface D2SnapResult {
         sizeRatio: number;
         snapshotSize: number;
         /** Per-pass wall-clock timings in ms. Only present when `debug: true`. */
-        timings?: { [ key: string ]: number; };
+        timings?: {
+            [ step: string ]: number;
+        };
     }
 };

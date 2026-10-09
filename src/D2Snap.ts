@@ -1,21 +1,33 @@
 import { transformWithTextRank } from "./TextRank.js";
 import { Turndown } from "./Turndown.js";
 import {
-	NodeFilter,
-	NodeType,
+	type DeepPartial,
 	type D2SnapOptions,
 	type D2SnapResult,
 	type DOM,
-	type HTMLElementWithDepth,
+	type ElementWithDepth,
 	type TextNode
 } from "./types.js";
+import { NodeType, NodeFilter } from "./enums.js";
 import { CONFIG } from "./var.CONFIG.js";
-import { DEFAULT_CLASS_ACTIONABLE_TAG_NAMES, DEFAULT_CLASS_TEXT_TAG_NAMES } from "./var.DEFAULTS_TAGS.js";
-import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES } from "./var.SEMANTICS_ATTRIBUTES.js";
-import { DEFAULT_ATTRIBUTE_SCORING } from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import {
+	DEFAULT_ATTRIBUTE_SCORES
+} from "./var.DEFAULTS_ATTRIBUTE_SCORES.js";
+import {
+	DEFAULT_FILTER_ATTRIBUTE_NAMES,
+	DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+	DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES
+} from "./var.DEFAULTS_ATTRIBUTES.js";
+import {
+	DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+	DEFAULT_CLASS_TEXT_TAG_NAMES,
+	DEFAULT_FILTER_TAG_NAMES
+} from "./var.DEFAULTS_TAGS.js";
+import { ACTIONABLE_ROLE_ATTRIBUTE_VALUES as ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY } from "./var.SEMANTICS_ATTRIBUTES.js";
 import { resolveDocument, resolveRoot, traverseDom } from "./util.dom.js";
-import { isVoidElement } from "./util.html.js";
+import { isInlineElement, isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./D2Snap.processing.js";
+import { deepMerge } from "./util.obj.js";
 
 
 const WHITESPACE_REGEX: RegExp = /^\s$/;
@@ -26,30 +38,72 @@ const WHITESPACE_REGEX: RegExp = /^\s$/;
 // negative lookahead spares real namespaced custom elements (`FB:LIKE`), whose
 // tail after `:` is a valid NCName.
 const COLON_SCHEME_TAG_REGEX: RegExp = /^[a-z][a-z0-9+.-]*:(?![a-z_][a-z0-9_.-]*$)/i;
-
+const ACTIONABLE_ROLE_ATTRIBUTE_VALUES: Set<string> = new Set(
+	ACTIONABLE_ROLE_ATTRIBUTE_VALUES_ARRAY.map(t => t.toLowerCase())
+);
 
 function validateUnitParameter(name: string, value: number) {
-	if(value < 0 || value > 1) {
+	if(!Number.isFinite(value) || value < 0 || value > 1) {
 		throw new RangeError(`Parameter ${name} expects value in [0, 1], got ${value}`);
 	}
 }
 
+function defineNonEnumerableProperty(obj: object, prop: string, value: unknown) {
+	Object.defineProperty(obj, prop, {
+		value,
+		writable: false,
+		configurable: true,
+		enumerable: false
+	});
+}
+
+
+export function getAttributeScore(attrName: string, attributeScores: Map<string, number> = new Map(
+	Object.entries(DEFAULT_ATTRIBUTE_SCORES)
+		.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
+)) {
+	let normalizedName: string = attrName.toLowerCase();
+
+	if(!attributeScores.has(normalizedName)) {
+		const nameParts = normalizedName.split("-");
+
+ 		for(let i = nameParts.length - 1; i > 0; i--) {
+			const wildcardName = `${nameParts.slice(0, i).join("-")}-*`;
+
+			if(attributeScores.has(wildcardName)) {
+				normalizedName = wildcardName;
+
+				break;
+			}
+		}
+	}
+
+	const attributeScore: number = attributeScores.get(normalizedName)
+		?? attributeScores.get(CONFIG.attributeScoresFallbackKey)
+		?? CONFIG.attributeScoresDefaultFallbackValue;
+
+	return attributeScore;
+}
 
 export function isActionableElement(
 	elementNode: Element,
-	actionableElementTagNames: Set<string>,
-	actionableRoleAttributeValues: Set<string>
+	actionableElementTagNames: Set<string> = new Set(DEFAULT_CLASS_ACTIONABLE_TAG_NAMES),
+	actionableRoleAttributeValues: Set<string> = ACTIONABLE_ROLE_ATTRIBUTE_VALUES
 ): boolean {
 	return (
 		actionableElementTagNames.has(elementNode.tagName.toUpperCase())
-		|| actionableRoleAttributeValues.has(elementNode.getAttribute("role")?.toLowerCase() ?? "")
+		|| actionableRoleAttributeValues.has(
+			elementNode.getAttribute("role")?.toLowerCase()
+			?? elementNode.role
+			?? ""
+		)
 	);
 }
 
 export function d2Snap(
 	dom: DOM,
 	rE: number, rA: number, rT: number,
-	options: Partial<D2SnapOptions> = {}
+	options: DeepPartial<D2SnapOptions> = {}
 ): D2SnapResult {
 	validateUnitParameter("rE", rE);
 	validateUnitParameter("rA", rA);
@@ -60,62 +114,60 @@ export function d2Snap(
 
 	const rootElement: Element = resolveRoot(dom)
 	const originalSize = rootElement.innerHTML.length;
-
-	const optionsWithDefaults: D2SnapOptions = {
-		debug: false,
-		filter: undefined,
-    	labelToText: undefined,
-		minify: true,
-		textRankOptions: undefined,
-		uniqueIDs: false,
-
-		...options,
-
-		attributeScores: {
-			...DEFAULT_ATTRIBUTE_SCORING,
-
-
-			...(options.attributeScoring ?? {}),	// deprecated
-			...(options.attributeScores ?? {})
+	const optionsWithDefaults: D2SnapOptions = deepMerge<D2SnapOptions, DeepPartial<D2SnapOptions>>({
+		attributeScores: DEFAULT_ATTRIBUTE_SCORES,
+		classification: {
+			actionableElements: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
+			textElements: DEFAULT_CLASS_TEXT_TAG_NAMES
 		},
-		elementClasses: {
-			actionables: DEFAULT_CLASS_ACTIONABLE_TAG_NAMES,
-			text: DEFAULT_CLASS_TEXT_TAG_NAMES,
-
-			...(options.elementClasses ?? {})
+		debug: false,
+		filter: {
+			attributes: DEFAULT_FILTER_ATTRIBUTE_NAMES,
+			dataURLs: true,
+			elements: DEFAULT_FILTER_TAG_NAMES,
+			emptyElements: true
+		},
+		minify: true,
+		normalize: {
+			iconClasses: DEFAULT_NORMALIZE_ATTRIBUTE_ICONFONT_VALUES,
+			labelAttributes: DEFAULT_NORMALIZE_LABEL_ATTRIBUTE_NAMES,
+			svgToImg: true
 		},
 		skip: {
 			markdown: false,
-			textRank: false,
+			textRank: false
+		},
+		uniqueIDs: false
+	}, options);
+	// Aliases
+	optionsWithDefaults.attributeScores = {
+ 		...DEFAULT_ATTRIBUTE_SCORES,
 
-			...(options.skip ?? {})
-		}
-	};
+ 		...(options.attributeScoring ?? {}),
+ 		...(options.attributeScores ?? {})
+ 	};
 
-	const attributeScoring: Map<string, number> = new Map(
+	const attributeScores: Map<string, number> = new Map(
 		Object.entries(optionsWithDefaults.attributeScores)
 			.map((entry: [ string, number ]) => [ entry[0].toLowerCase(), entry[1] ])
 	);
 
 	const actionableElementTagNames: Set<string> = new Set(
-		(optionsWithDefaults.elementClasses?.actionables ?? [])
+		(optionsWithDefaults.classification?.actionableElements ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
-	const actionableRoleAttributeValues: Set<string> = new Set(
-		ACTIONABLE_ROLE_ATTRIBUTE_VALUES.map(t => t.toLowerCase())
-	);
 	const textElementTagNames: Set<string> = new Set(
-		(optionsWithDefaults.elementClasses?.text ?? [])
+		(optionsWithDefaults.classification?.textElements ?? [])
 			.map((tagName: string) => tagName.toUpperCase())
 	);
 
 	const _isActionableElement = (elementNode: Element) => {
-		return isActionableElement(elementNode, actionableElementTagNames, actionableRoleAttributeValues);
+		return isActionableElement(elementNode, actionableElementTagNames);
 	};
 
 	const turndown: Turndown = new Turndown([ _isActionableElement ]);
 
-	function snapElementContainerNode(elementNode: HTMLElementWithDepth, rE: number) {
+	function snapElementContainerNode(elementNode: ElementWithDepth, rE: number) {
 		const considerContainerElement = (elementNode: Element) => {
 			if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return false;
 			if(_isActionableElement(elementNode)) return false;
@@ -132,8 +184,8 @@ export function d2Snap(
 		const isMergeLevel = (elementNode.depth > 1) && (Math.floor(elementNode.depth * ratio) > Math.floor((elementNode.depth - 1) * ratio));
 		if(!isMergeLevel) return;
 
-		const targetElement: HTMLElementWithDepth = elementNode.parentElement as HTMLElementWithDepth;
-		const sourceElement: HTMLElementWithDepth = elementNode;
+		const targetElement = elementNode.parentElement as ElementWithDepth;
+		const sourceElement: ElementWithDepth = elementNode;
 
 		while(sourceElement.childNodes.length) {
 			targetElement
@@ -153,20 +205,9 @@ export function d2Snap(
 
 		// Markdown
 		const markdown = turndown.translate(elementNode.outerHTML);
-		const markdownNodesFragment = resolveDocument(dom)!
+		const markdownNodesFragment = document
 			.createRange()
 			.createContextualFragment(markdown);
-
-		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
-
-		elementNode
-			  .replaceWith(...[document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ")]);
-
-		// Strip same-tag replacements before returning for re-traversal:
-		// Turndown passes some textFormatting elements through verbatim
-		// (e.g. <table> without <thead>), and re-visiting them would feed
-		// the same input back to Turndown forever.
-		const sourceTagName: string = elementNode.tagName.toLowerCase();
 
 		// Drop bogus `<scheme:>` elements the HTML parser synthesises from
 		// markdown autolinks before they enter the tree (and become containers).
@@ -189,6 +230,17 @@ export function d2Snap(
 		};
 		unwrapColonTaggedElements(markdownNodesFragment);
 
+		const replacingNodes: Node[] = [...markdownNodesFragment.childNodes];
+
+		elementNode
+			.replaceWith(...[ document.createTextNode(" "), ...replacingNodes, document.createTextNode(" ") ]);
+
+		// Strip same-tag replacements before returning for re-traversal:
+		// Turndown passes some textFormatting elements through verbatim
+		// (e.g. <table> without <thead>), and re-visiting them would feed
+		// the same input back to Turndown forever.
+		const sourceTagName: string = elementNode.tagName.toLowerCase();
+
 		return replacingNodes
 			.filter(n => (
 				(n.nodeType !== NodeType.ELEMENT_NODE)
@@ -199,7 +251,7 @@ export function d2Snap(
 	function snapTextNode(textNode: TextNode, rT: number) {
 		if(textNode.nodeType !== NodeType.TEXT_NODE) return;
 
-		const text: string | null = (textNode?.innerText ?? textNode.textContent);
+		const text: string | null = textNode.textContent;
 		if(!(text ?? "").trim().length) return;
 
 		const leadingSpace: string = WHITESPACE_REGEX.test(text.charAt(0)) ? " " : "";
@@ -216,18 +268,7 @@ export function d2Snap(
 		if(elementNode.nodeType !== NodeType.ELEMENT_NODE) return;
 
 		for(const attr of Array.from(elementNode.attributes)) {
-			let normalizedName: string = attr.name;
-
-			if(!attributeScoring.has(normalizedName)) {
-				if(normalizedName.includes("-")) {
-					normalizedName = `${normalizedName.split("-").slice(0, -1).join("-")}-*`;
-				}
-			}
-
-			const attributeScore: number = attributeScoring.get(normalizedName.toLowerCase())
-				?? attributeScoring.get(CONFIG.attributeScoringFallbackKey)
-				?? 0;
-			if(attributeScore >= rA) continue;
+			if(getAttributeScore(attr.name, attributeScores) >= rA) continue;
 
 			elementNode.removeAttribute(attr.name);
 		}
@@ -240,31 +281,65 @@ export function d2Snap(
 	let t0: number;
 	const timings: D2SnapResult["meta"]["timings"] = {};
 
+	if(optionsWithDefaults.uniqueIDs) {
+		let i: number = 0;
+		traverseDom<Node>(
+			rootElement,
+			NodeFilter.SHOW_ELEMENT,
+			(node: Node) => {
+				const elementNode = node as Element;
+
+				if(isInlineElement(elementNode.tagName) && isVoidElement(elementNode.tagName)) return;
+
+				elementNode.setAttribute(CONFIG.uniqueAttributeName, i.toString());
+
+				i++;
+			}
+		);
+	}
+
 	// Clone
 	t0 = t();
-	const virtualDom = rootElement.cloneNode(true) as HTMLElement;
+	const inertDoc: Document = document.implementation.createHTMLDocument("");
+	const rootElementClone: DOM = inertDoc.importNode(rootElement, true);
+	switch(rootElement.localName.toLowerCase()) {
+		case "html":
+			inertDoc.replaceChild(rootElementClone, inertDoc.documentElement);
+			break;
+		case "body":
+			inertDoc.documentElement.replaceChild(rootElementClone, inertDoc.body);
+			break;
+		default:
+			inertDoc.body.appendChild(rootElementClone);
+	}
+	// Wrap local DOM input (e.g., SECTIOn snippet) in BODY to allow destructive mutation
+	// of input DOM root.  
+	const virtualDOM = (rootElement.nodeType === NodeType.DOCUMENT_NODE)
+		? inertDoc.documentElement
+		: inertDoc.body;
 	timings.clone = t() - t0;
 
-	// Pre-process
+	// Pre-proces
 	t0 = t();
-	preProcessDOM(virtualDom, document, {
+	preProcessDOM(virtualDOM, inertDoc, {
 		filter: optionsWithDefaults.filter,
-		labelToText: optionsWithDefaults.labelToText,
-		uniqueIDs: optionsWithDefaults.uniqueIDs
-	});
+		normalize: optionsWithDefaults.normalize
+	}, _isActionableElement);
 	timings.preProcessing = t() - t0;
 
-	// Write depth per node
-	let domTreeHeight: number = 0;
-	traverseDom<Node>(
-		virtualDom,
+	// Write depth and role per node
+	// TODO: Write hidden or remove in post-processing step
+	t0 = t();
+	traverseDom<ElementWithDepth>(
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: Node) => {
-			const depth: number = ((node.parentNode as HTMLElementWithDepth).depth ?? 0) + 1;
+		(element: ElementWithDepth) => {
+			const depth: number = ((element?.parentNode as ElementWithDepth)?.depth ?? 0) + 1;
+			defineNonEnumerableProperty(element, "depth", depth);
 
-			(node as HTMLElementWithDepth).depth = depth;
-
-			domTreeHeight = Math.max(depth, domTreeHeight);
+			const role: string | null = element.getAttribute("role");
+			role
+				&& defineNonEnumerableProperty(element, "role", role);
 		}
 	);
 	timings.writeDepth = t() - t0;
@@ -272,7 +347,7 @@ export function d2Snap(
 	// Text nodes
 	t0 = t();
 	traverseDom<TextNode>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_TEXT,
 		(node: TextNode) => snapTextNode(node, rT)
 	);
@@ -281,27 +356,27 @@ export function d2Snap(
 	// Text formatting element nodes
 	t0 = t();
 	traverseDom<HTMLElement>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapElementTextFormattingNode(document, node),
+		(node: HTMLElement) => snapElementTextFormattingNode(inertDoc, node)
 	);
 	timings.textFormatting = t() - t0;
 
 	// Container element nodes
 	t0 = t();
-	traverseDom<HTMLElementWithDepth>(
-		virtualDom,
+	traverseDom<ElementWithDepth>(
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElementWithDepth) => snapElementContainerNode(node, rE),
+		(node: ElementWithDepth) => snapElementContainerNode(node, rE)
 	);
 	timings.containers = t() - t0;
 
 	// Attribute nodes
 	t0 = t();
 	traverseDom<HTMLElement>(
-		virtualDom,
+		virtualDOM,
 		NodeFilter.SHOW_ELEMENT,
-		(node: HTMLElement) => snapAttributeNode(node, rA)   // work on parent element
+		(node: HTMLElement) => snapAttributeNode(node, rA)
 	);
 	timings.attributes = t() - t0;
 
@@ -310,7 +385,7 @@ export function d2Snap(
 
 	// Dissolve toplevel tags for rE = 1 (allows full linearization)
 	if(rE === 1.0) {
-		[ ...virtualDom.querySelectorAll("*") ]
+		[ ...virtualDOM.querySelectorAll("*") ]
 			.filter((elementNode: Element) => !_isActionableElement(elementNode))
 			.forEach((element: Element) => {
 				element.replaceWith(...element.childNodes);
@@ -319,7 +394,7 @@ export function d2Snap(
 
 	// Post-process (DOM)
 	t0 = t();
-	postProcessDOM(virtualDom, {
+	postProcessDOM(virtualDOM, {
 		filter: optionsWithDefaults.filter,
 		minify: optionsWithDefaults.minify
 	}, _isActionableElement);
@@ -330,11 +405,13 @@ export function d2Snap(
 		outerHTML?: string;
 	} = {};
 	const getHTML = (property: "innerHTML" | "outerHTML"): string => {
-		if(serialisation[property]) return serialisation[property];
+		if(serialisation[property] !== undefined) {
+			return serialisation[property];
+		}
 
 		// Serialize
 		t0 = t();
-		let html = virtualDom[property];
+		let html = virtualDOM[property];
 		timings.serialize = t() - t0;
 
 		// Post-process (HTML)
@@ -350,7 +427,7 @@ export function d2Snap(
 	};
 
 	return {
-		dom: virtualDom,
+		dom: virtualDOM,
 		get html() {
 			return getHTML("innerHTML");
 		},
@@ -368,7 +445,9 @@ export function d2Snap(
 			get sizeRatio() {
 				return getHTML("innerHTML").length / originalSize
 			},
-			tokenEstimate: Math.round(getHTML("innerHTML").length / 4),	// according to https://platform.openai.com/tokenizer
+			get tokenEstimate() {
+				return Math.round(getHTML("innerHTML").length / 4)
+			},	// according to https://platform.openai.com/tokenizer
 
 			...(optionsWithDefaults.debug && { timings })
 		}

@@ -1,0 +1,4 @@
+import { type DeepPartial, type D2SnapOptions, type D2SnapResult, type DOM } from "./types.js";
+export declare function getAttributeScore(attrName: string, attributeScores?: Map<string, number>): number;
+export declare function isActionableElement(elementNode: Element, actionableElementTagNames?: Set<string>, actionableRoleAttributeValues?: Set<string>): boolean;
+export declare function d2Snap(dom: DOM, rE: number, rA: number, rT: number, options?: DeepPartial<D2SnapOptions>): D2SnapResult;
