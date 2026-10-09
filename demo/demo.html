@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>D2Snap | Demo</title>
+        <link rel="stylesheet" href="./demo.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/webfuse-com/dom-relief/styles/dom-relief.css">
+        <script src="https://cdn.jsdelivr.net/gh/webfuse-com/d2snap/dist.browser/D2Snap.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/webfuse-com/dom-relief/dist/browser/dom-relief.js"></script>
+    </head>
+    <body>
+        <header>
+            <h1>D2Snap &hairsp; | &hairsp; Demo</h1>
+            <nav>
+                <a class="button button--subtle" target="_blank" href="https://github.com/webfuse-com/D2Snap">
+                    <img src="./res/github-logo.webp" alt="GitHub">
+                </a>
+                <a class="button button--subtle" target="_blank" href="https://arxiv.org/abs/2508.04412">
+                    <img src="./res/arxiv-logo.webp" alt="arXiv">
+                </a>
+            </nav>
+        </header>
+        <main>
+            <section class="panel content">
+                <textarea name="html-input" placeholder="HTML input"></textarea>
+                <div class="card">
+                    <form name="downsampling-params">
+                        <section>
+                            <label for="downsampling-rE">
+                                <code
+                                    title="Element downsampling ratio – how much hierarchy to fold (relative; ratio)">
+                                    rE
+                                </code>
+                                <input type="range" min="0" max="1" step="0.1" value="0.5" name="downsampling-rE">
+                                <output for="downsampling-rE"></output>
+                            </label>
+                            <label for="downsampling-rT">
+                                <code
+                                    title="Text downsampling ratio – how much text to truncate at the sentence level (relative; ratio)">
+                                    rT
+                                </code>
+                                <input type="range" min="0" max="1" step="0.1" value="0.5" name="downsampling-rT">
+                                <output for="downsampling-rT"></output>
+                            </label>
+                            <label for="downsampling-rA">
+                                <code
+                                    title="Attribute downsampling ratio – which attributes remove based on relevance scores (absolute; threshold)">
+                                    rA
+                                </code>
+                                <input type="range" min="0" max="1" step="0.1" value="0.5" name="downsampling-rA">
+                                <output for="downsampling-rA"></output>
+                            </label>
+                            <small class="text-s text-dim">DOM pre-processing (filtering, normalisation) always applies.</small>
+                        </section>
+                        <section>
+                            <table>
+                                <tr>
+                                    <td>
+                                        <label for="downsampling-markdown" title="Whether to translate HTML text formatting to Markdown">
+                                            Markdown
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" name="downsampling-markdown">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="downsampling-textrank" title="Whether to apply the TextRank algorithm to text at the sentence level before truncation">
+                                            <a href="https://aclanthology.org/W04-3252/" target="_blank">TextRank</a>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" name="downsampling-textrank" checked>
+                                    </td>
+                                </tr>
+                            </table>
+                        </section>
+                    </form>
+                </div>
+            </section>
+            <div class="resizer" role="separator"></div>
+            <section class="panel content">
+                <div class="tabs">
+                    <div class="tabs-body">
+                        <div class="content">
+                            <textarea name="html-output" readonly></textarea>
+                            <div class="card">
+                                <div class="flex" id="dom-results">
+                                    <p class="nowrap">
+                                        <span data-key="originalNodes">n</span>
+                                        →
+                                        <span data-key="snapshotNodes">m</span> nodes
+                                    </p>
+                                    <div class="flex-space"></div>
+                                    <p class="flex flex--s">
+                                        <span class="text-primary text-l nowrap">
+                                            📦 &hairsp;
+                                            <b data-key="sizeRatio">x</b> %
+                                        </span>
+                                        <span class="nowrap">
+                                            (
+                                                <span class="text-primary"><span data-key="snapshotSize">y</span></span>
+                                                /
+                                                <span data-key="originalSize">z</span>
+                                            )
+                                        </span>
+                                        <span class="nowrap">
+                                            ~ <span data-key="tokenEstimate">T</span> Tokens
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="content">
+                            <textarea name="index-output" readonly></textarea>
+                        </div>
+                    </div>
+                    <div class="tabs-header">
+                        <button>HTML</button>
+                        <button>Index List</button>
+                    </div>
+                </div>
+            </section>
+            <div class="resizer" role="separator"></div>
+            <section class="panel content">
+                <div class="tabs">
+                    <div class="tabs-body">
+                        <div class="content">
+                            <canvas id="dom-relief"></canvas>
+                            <small class="float float--r text-dim no-select">Hold SHIFT to pan</small>
+                            <div class="flex float float--l">
+                                <label for="relief-flat">
+                                    <span class="no-select">Flat</span>
+                                    <input type="checkbox" name="relief-flat" autocomplete="off">
+                                </label>
+                                <label for="relief-ortho">
+                                    <span class="no-select">Ortho</span>
+                                    <input type="checkbox" name="relief-ortho" autocomplete="off">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="content">
+                            <iframe data-frame="input"></iframe>
+                            <hr>
+                            <iframe data-frame="output"></iframe>
+                        </div>
+                    </div>
+                    <div class="tabs-header">
+                        <button>3D Footprint</button>
+                        <button>GUI (no styles)</button>
+                    </div>
+            </section>
+        </main>
+        <footer>
+            <small class="text-dim">
+                &copy; 2025
+                &ensp; Thassilo M. Schiepanski
+                &ensp; | &ensp; Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents
+            </small>
+        </footer>
+        <script src="./demo.js"></script>
+    </body>
+</html>
