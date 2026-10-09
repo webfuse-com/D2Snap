@@ -393,8 +393,7 @@ hr {
 
 .card {
     padding: var(--space-s);
-    overflow-x: scroll;
-    overflow-y: hidden;
+    overflow: scroll;
 }
 
 .resizer {

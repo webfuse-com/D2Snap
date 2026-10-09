@@ -248,6 +248,8 @@
 
 		textareaHTMLInput.value ||= DEFAULT_HTML_INPUT;
 
+		renderResultFrames(textareaHTMLInput.value, null);
+
 		textareaHTMLInput.addEventListener("input", () => {
 			renderResultFrames(textareaHTMLInput.value, null);
 

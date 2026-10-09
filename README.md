@@ -11,6 +11,8 @@
 
 ### Example
 
+> Get an idea of how it works: try the 🧪 **[Interactive Demo](https://webfuse-com.github.io/D2Snap)**.
+
 ``` html
 <section class="container" tabindex="3" required="true" type="example">
   <div class="mx-auto" data-topic="products" required="false">
