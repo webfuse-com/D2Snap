@@ -72,4 +72,3 @@ await test("Get UTF-8 byte length", async () => {
     assertEqual(getByteLength("Döner"), 6, "Invalid byte length (2-byte character)");
     assertEqual(getByteLength("🌯"), 4, "Invalid byte length (4-byte character, 2 UTF-16 code units)");
 });
-

@@ -5,7 +5,7 @@ import { resolveDocument, resolveRoot, serializeSnapshotRoot, traverseDom } from
 import { isVoidElement } from "./util.html.js";
 import { postProcessDOM, postProcessHTML, preProcessDOM } from "./processing.js";
 import { deepMerge } from "./util.obj.js";
-import { getByteLength, transformWithRanking } from "./util.text.js";
+import { getByteLength, getSizeRatio, transformWithRanking } from "./util.text.js";
 import { snapTextBlocks } from "./D2Snap.text.js";
 import * as defaults from "./constants.defaults.js";
 import { assignUniqueIds } from "./options.normalizers.js";
@@ -310,9 +310,7 @@ function d2Snap(dom, ...args) {
         return getByteLength(getHTML("innerHTML"));
       },
       get sizeRatio() {
-        const snapshotSize = getByteLength(getHTML("innerHTML"));
-        if (originalSize === 0) return snapshotSize === 0 ? 1 : Infinity;
-        return snapshotSize / originalSize;
+        return getSizeRatio(getByteLength(getHTML("innerHTML")), originalSize);
       },
       get tokenEstimate() {
         return Math.round(getHTML("innerHTML").length / 4);

@@ -272,4 +272,3 @@ await test("Minify DOM (preformatted whitespace preserved)", async () => {
         "Invalid minified DOM (preformatted whitespace incl. nested markup preserved)"
     );
 });
-

@@ -181,8 +181,8 @@ function adaptiveD2Snap(
 | Parameter | Description | Range |
 | :-| :- | :- |
 | `domOrHTML` | Input DOM given as fully qualified document reference (tree), an element reference (subtree) or an equivalent HTML serialisation. | `Document`, `Element`, `string` |
-| `maxTokens` | Maximum estimated amount of tokens the HTML-serialised output DOM is allowed to have. The result aims for being close to the bound. Throws a `RangeError` if the constraint cannot be satisfied. | `[0, ∞)` |
-| `maxIterations` | Maximum amount of iterations to run to try satisfying the `maxTokens` constraint. | `[0, ∞)` |
+| `maxTokens` | Maximum estimated amount of tokens the HTML-serialised output DOM is allowed to have. The result aims for being close to the bound (within 5 % below it, as far as the snapshot steps allow). Throws a `RangeError` if the constraint cannot be satisfied (`error.meta.lastEstimate`: token estimate of the most reduced snapshot). | `[0, ∞)` |
+| `maxIterations` | Maximum amount of snapshots after the first (unreduced) one to try satisfying and approaching the `maxTokens` constraint. | `[0, ∞)` |
 | `options` | Specific configuration options (see below). | `D2SnapOptions` |
 
 #### Return Value
@@ -198,8 +198,18 @@ type AdaptiveD2SnapResult = D2SnapResult & {
 
 | Property | Description |
 | :-| :- |
-| `parameters` | Applied D2Snap downsampling parameters to satisfy the constraints. |
-| `adaptiveIterations` | Amount of iterations that ran until the constraints were satisfied. |
+| `parameters` | Applied D2Snap downsampling parameters to satisfy the constraints (`rE = rA = rT`). |
+| `adaptiveIterations` | Amount of snapshots taken after the first (unreduced) one. |
+
+The parameters are searched along a single ratio `r = rE = rA = rT`, as tokens fall (roughly linearly, in steps) with `r`:
+
+1. `r = 0`: if the unreduced snapshot satisfies the constraint, it is the closest possible result.
+2. `r = 1`: if the most reduced snapshot does not satisfy the constraint, no snapshot does (`RangeError`).
+3. In between, the bracket is narrowed with the ITP method (interpolate, truncate, project; [Oliveira & Takahashi, 2020](https://doi.org/10.1145/3423597)): as fast as interpolation on regular token curves, and never slower than bisection in the worst case. The search ends once a snapshot lies within 5 % below the bound, a snapshot leaves the bracket unchanged (plateau) while the closest snapshot lies within 15 % below the bound, the ratio is resolved to `0.001`, or the iterations are exhausted.
+
+The snapshot closest to the bound without exceeding it is returned. The DOM is pre-processed (normalized) only once: all snapshots of the search start from the same normalized DOM, which yields the same snapshots as individual `d2Snap()` calls.
+
+> The token estimate refers to the HTML serialisation, so formatting (`debug`) counts towards the bound.
 
 ### Options
 
@@ -704,6 +714,7 @@ import type { D2SnapOptions, D2SnapResult } from "@webfuse-com/d2snap";
 | `D2SnapOptions` | Options of `d2Snap()` and `adaptiveD2Snap()` (passed partially). |
 | `D2SnapResult` | Result of `d2Snap()`. |
 | `AdaptiveD2SnapResult` | Result of `adaptiveD2Snap()`. |
+| `AdaptiveD2SnapError` | Error thrown by `adaptiveD2Snap()` for an unsatisfiable token limit (`meta.lastEstimate`). |
 | `D2SnapRatios` | Downsampling ratios object of `d2Snap()`. |
 | `D2SnapArgs` | Argument forms of `d2Snap()` following the DOM (e.g., to pass all forms through a wrapper). |
 | `NormalizeDOMOptions` | Options of `normalizeDOM()` (passed partially). |
@@ -738,7 +749,7 @@ Calling D2Snap sits in the first step of the LLM-based agent loop: (1) taking a 
 ```
 (1) snapshot ⟵ D2Snap()
 
-(2) actions  ⟵ promptModel()
+(2) actions  ⟵ promptModel(snapshot)
 
 (3) driveActions(actions)
 ```

@@ -54,3 +54,10 @@ const TEXT_ENCODER: TextEncoder = new TextEncoder();
 export function getByteLength(text: string): number {
 	return TEXT_ENCODER.encode(text).length;
 }
+
+// Size ratio of a snapshot (empty from empty is unchanged: 1).
+export function getSizeRatio(snapshotSize: number, originalSize: number): number {
+	if(originalSize === 0) return (snapshotSize === 0) ? 1 : Infinity;
+
+	return snapshotSize / originalSize;
+}

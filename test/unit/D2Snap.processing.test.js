@@ -384,4 +384,3 @@ await test("Pre-process DOM for snapshot (attribute normalizers before element n
         "Invalid pre-processed DOM (data URL filtered before empty image check)"
     );
 });
-

@@ -133,4 +133,3 @@ await test("Translate markup to markdown via Turndown (images without source)", 
         "Turndown returns invalid results"
     );
 });
-

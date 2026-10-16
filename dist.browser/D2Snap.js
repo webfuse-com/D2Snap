@@ -1655,6 +1655,10 @@
   function getByteLength(text) {
     return TEXT_ENCODER.encode(text).length;
   }
+  function getSizeRatio(snapshotSize, originalSize) {
+    if (originalSize === 0) return snapshotSize === 0 ? 1 : Infinity;
+    return snapshotSize / originalSize;
+  }
 
   // src/D2Snap.text.ts
   var SENTENCE_BOUNDARY_REGEX = /(?<=\p{Sentence_Terminal})\s+/gu;
@@ -2935,9 +2939,7 @@
           return getByteLength(getHTML("innerHTML"));
         },
         get sizeRatio() {
-          const snapshotSize = getByteLength(getHTML("innerHTML"));
-          if (originalSize === 0) return snapshotSize === 0 ? 1 : Infinity;
-          return snapshotSize / originalSize;
+          return getSizeRatio(getByteLength(getHTML("innerHTML")), originalSize);
         },
         get tokenEstimate() {
           return Math.round(getHTML("innerHTML").length / 4);
@@ -2948,75 +2950,149 @@
     };
   }
 
-  // src/AdaptiveD2Snap.ts
-  function* generateHalton() {
-    const halton = (index, base) => {
-      let result = 0;
-      let f = 1 / base;
-      let i2 = index;
-      while (i2 > 0) {
-        result += f * (i2 % base);
-        i2 = Math.floor(i2 / base);
-        f /= base;
-      }
-      return result;
-    };
-    let i = 0;
-    while (true) {
-      i++;
-      yield [
-        halton(i, 2),
-        halton(i, 3),
-        halton(i, 5)
-      ];
+  // src/util.search.ts
+  function searchITP(f, bracket, options) {
+    let { a, fa, b, fb } = bracket;
+    let evaluations = 0;
+    if (fa !== 0 && Math.sign(fa) === Math.sign(fb)) {
+      throw new RangeError("Bracket does not enclose a sign change");
     }
+    if (fa === 0 || fb === 0) return { a, fa, b, fb, evaluations };
+    const width = b - a;
+    const k1 = options.k1 ?? 0.2 / width;
+    const k2 = options.k2 ?? 2;
+    const n0 = options.n0 ?? 1;
+    const nMax = Math.max(Math.ceil(Math.log2(width / (2 * options.epsilon))), 0) + n0;
+    const targetWidth = 2 * options.epsilon * (1 + 1e-12);
+    for (let j = 0; b - a > targetWidth; j++) {
+      if (evaluations >= options.maxEvaluations) break;
+      if (options.stop?.()) break;
+      const xHalf = (a + b) / 2;
+      const radius = options.epsilon * 2 ** (nMax - j) - (b - a) / 2;
+      const delta = k1 * (b - a) ** k2;
+      const xF = (fb * a - fa * b) / (fb - fa);
+      const sigma = Math.sign(xHalf - xF);
+      const xT = delta <= Math.abs(xHalf - xF) ? xF + sigma * delta : xHalf;
+      const x = Math.abs(xT - xHalf) <= radius ? xT : xHalf - sigma * radius;
+      const fx = f(x);
+      evaluations++;
+      if (fx === 0) return {
+        a: x,
+        fa: fx,
+        b: x,
+        fb: fx,
+        evaluations
+      };
+      if (Math.sign(fx) === Math.sign(fa)) {
+        a = x;
+        fa = fx;
+      } else {
+        b = x;
+        fb = fx;
+      }
+    }
+    return {
+      a,
+      fa,
+      b,
+      fb,
+      evaluations
+    };
   }
-  function adaptiveD2Snap(d2SnapFn, dom, maxTokens = 2 ** 15, maxIterations = 5, options = {}) {
-    const haltonGenerator = generateHalton();
-    const parameters = {
-      rE: 0,
-      rA: 0,
-      rT: 0
-    };
-    let aggressiveness = 0;
-    let snapshot;
-    for (let i = 0; i <= maxIterations; i++) {
-      const haltonPoint = haltonGenerator.next().value;
-      const jitter = (h) => 0.5 + 0.5 * h;
-      parameters.rE = Math.min(aggressiveness * jitter(haltonPoint[0]), 1);
-      parameters.rA = Math.min(aggressiveness * jitter(haltonPoint[1]), 1);
-      parameters.rT = Math.min(aggressiveness * jitter(haltonPoint[2]), 1);
-      snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
-      if (snapshot.meta.tokenEstimate <= maxTokens) {
-        return {
-          ...snapshot,
-          parameters,
-          adaptiveIterations: i
-        };
-      }
-      const overshoot = snapshot.meta.tokenEstimate / maxTokens;
-      if (i === 0) {
-        aggressiveness = Math.min(0.9, 1 - 1 / overshoot);
-        continue;
-      }
-      const logOver = Math.log2(overshoot);
-      const step = Math.max(0.05, 0.15 * logOver);
-      aggressiveness = Math.min(1, aggressiveness + step);
-    }
-    throw new RangeError(
-      `Unable to create snapshot below ${maxTokens} tokens (last estimate: ${snapshot?.meta.tokenEstimate})`
+
+  // src/AdaptiveD2Snap.ts
+  var TOKEN_TOLERANCE = 0.05;
+  var RATIO_RESOLUTION = 1e-3;
+  var ITP_K1 = 0.05;
+  var PLATEAU_TOKEN_SHARE = 0.85;
+  function throwTokenLimitError(maxTokens, tokenEstimate) {
+    const err = new RangeError(
+      `Unable to create snapshot below ${maxTokens} tokens (last estimate: ${tokenEstimate})`
     );
+    err.meta = {
+      lastEstimate: tokenEstimate
+    };
+    throw err;
+  }
+  function adaptiveD2Snap(dom, maxTokens = 2 ** 15, maxIterations = 5, options = {}) {
+    const originalSize = getByteLength(serializeSnapshotRoot(resolveRoot(dom)));
+    const normalizedDOM = normalizeDOM(dom, options).dom;
+    const snapshotOptions = {
+      ...options,
+      normalizers: [],
+      shadowDOM: false,
+      uniqueIDs: false
+    };
+    let snapshotCount = 0;
+    let closestSnapshot = null;
+    let closestRatio = 0;
+    let aboveTokenEstimate = -1;
+    let withinTokenEstimate = -1;
+    let isPlateau = false;
+    const snap = (r) => {
+      const snapshot = d2Snap(normalizedDOM, r, r, r, snapshotOptions);
+      const tokenEstimate = snapshot.meta.tokenEstimate;
+      snapshotCount++;
+      isPlateau = tokenEstimate === aboveTokenEstimate || tokenEstimate === withinTokenEstimate;
+      if (tokenEstimate > maxTokens) {
+        aboveTokenEstimate = tokenEstimate;
+      } else {
+        withinTokenEstimate = tokenEstimate;
+      }
+      if (tokenEstimate <= maxTokens && tokenEstimate > (closestSnapshot?.meta.tokenEstimate ?? -1)) {
+        closestSnapshot = snapshot;
+        closestRatio = r;
+      }
+      return tokenEstimate;
+    };
+    const isCloseTo = (share) => {
+      return closestSnapshot.meta.tokenEstimate >= maxTokens * share;
+    };
+    const unreducedTokenEstimate = snap(0);
+    if (!closestSnapshot) {
+      if (maxIterations < 1) throwTokenLimitError(maxTokens, unreducedTokenEstimate);
+      const reducedTokenEstimate = snap(1);
+      if (!closestSnapshot) throwTokenLimitError(maxTokens, reducedTokenEstimate);
+      searchITP(
+        (r) => snap(r) - maxTokens,
+        {
+          a: 0,
+          fa: unreducedTokenEstimate - maxTokens,
+          b: 1,
+          fb: reducedTokenEstimate - maxTokens
+        },
+        {
+          epsilon: RATIO_RESOLUTION / 2,
+          maxEvaluations: maxIterations - 1,
+          k1: ITP_K1,
+          stop: () => isCloseTo(1 - TOKEN_TOLERANCE) || isPlateau && isCloseTo(PLATEAU_TOKEN_SHARE)
+        }
+      );
+    }
+    const result = closestSnapshot;
+    result.parameters = {
+      rE: closestRatio,
+      rA: closestRatio,
+      rT: closestRatio
+    };
+    result.adaptiveIterations = snapshotCount - 1;
+    result.meta.originalSize = originalSize;
+    Object.defineProperty(result.meta, "sizeRatio", {
+      get: () => getSizeRatio(result.meta.snapshotSize, originalSize),
+      enumerable: true
+    });
+    return result;
   }
 
   // src/api.ts
   async function d2Snap2(domOrString, ...args) {
     return d2Snap(await ensureDOM(domOrString), ...args);
   }
-  async function adaptiveD2Snap2(domOrString, ...args) {
-    return adaptiveD2Snap(d2Snap, await ensureDOM(domOrString), ...args);
-  }
   async function normalizeDOM2(domOrString, ...args) {
     return normalizeDOM(await ensureDOM(domOrString), ...args);
+  }
+  async function adaptiveD2Snap2(domOrString, ...args) {
+    return adaptiveD2Snap(await ensureDOM(domOrString), ...args);
   }
 
   // src/api.browser.ts

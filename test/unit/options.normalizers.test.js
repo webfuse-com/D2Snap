@@ -369,4 +369,3 @@ await test("Normalize: label attributes (case-insensitive names, SVG)", () => {
         "Invalid normalization (normalizeTextLabelAttributesToContent, upper case label attribute names)"
     );
 });
-

@@ -87,4 +87,3 @@ await test("Format HTML (whitespace between inline elements kept)", async () => 
         "Incorrectly formatted HTML (not idempotent)"
     );
 });
-

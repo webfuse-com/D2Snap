@@ -1,0 +1,44 @@
+<main class="page" id="menu" data-track="main-view" style="padding: 1rem">
+  <!-- Seasonal menu, updated weekly -->
+  <script>window.dataLayer = [];</script>
+  <style>.card { border-radius: 8px; }</style>
+  <noscript>Please enable JavaScript.</noscript>
+  <template><p>Template content</p></template>
+  <header class="header">
+    <div class="wrapper">
+      <div class="inner">
+        <h1>Burger Bar</h1>
+        <a href="/order" class="cta" data-track="order-cta" title="Order online">Order now</a>
+      </div>
+    </div>
+  </header>
+  <section class="intro">
+    <div class="container">
+      <p>
+        Our burgers are made from fresh beef. Every patty is grilled over an open flame.
+        The buns are baked daily in our own bakery. We also serve vegetarian options.
+      </p>
+      <ul class="list">
+        <li><strong>Cheeseburger</strong> with <em>cheddar</em></li>
+        <li><strong>Veggie Burger</strong> with grilled halloumi</li>
+      </ul>
+    </div>
+  </section>
+  <section class="gallery">
+    <img src="data:image/png;base64,iVBORw0KGgo=" alt="Logo">
+    <img class="spacer">
+    <img src="/img/burger.jpg" alt="Cheeseburger">
+    <svg viewBox="0 0 24 24" class="icon"><title>Cart</title><path d="M0 0h24v24H0z"></path></svg>
+  </section>
+  <form class="order-form" action="/submit">
+    <div class="field">
+      <label for="size">Size</label>
+      <select id="size" name="size"><option value="m">Medium</option><option value="l">Large</option></select>
+    </div>
+    <div class="field">
+      <input type="text" name="name" placeholder="Your name">
+    </div>
+    <button type="submit" aria-label="Place order" class="btn"></button>
+  </form>
+  <div class="empty"><span></span></div>
+</main>

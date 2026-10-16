@@ -8,7 +8,10 @@ import {
 	type D2SnapOptions,
 	type D2SnapResult
 } from "./types.js";
-import { d2Snap } from "./D2Snap.js";
+import { resolveRoot, serializeSnapshotRoot } from "./util.dom.js";
+import { searchITP } from "./util.search.js";
+import { getByteLength, getSizeRatio } from "./util.text.js";
+import { d2Snap as _d2Snap, normalizeDOM as _normalizeDOM } from "./D2Snap.js";
 
 
 export interface AdaptiveParameters {
@@ -22,84 +25,131 @@ export type AdaptiveD2SnapResult = D2SnapResult & {
     adaptiveIterations: number;
 };
 
+export type AdaptiveD2SnapError = RangeError & {
+    meta: {
+        lastEstimate: number;
+    };
+};
 
-function* generateHalton() {
-	const halton = (index: number, base: number) => {
-		let result: number = 0;
-		let f: number = 1 / base;
-		let i: number = index;
 
-		while(i > 0) {
-			result += f * (i % base);
-			i = Math.floor(i / base);
-			f /= base;
-		}
+// Snapshots within this share below the token limit end the search.
+const TOKEN_TOLERANCE: number = 0.05;
+// Resolution of the ratio search (snapshots change in discrete steps).
+const RATIO_RESOLUTION: number = 1e-3;
+// ITP truncation scale (tuned to the near-linear token curves).
+const ITP_K1: number = 0.05;
+// On a plateau (unchanged tokens at a bracket end), snapshots this close to the token limit end the search.
+const PLATEAU_TOKEN_SHARE: number = 0.85;
 
-		return result;
+
+function throwTokenLimitError(maxTokens: number, tokenEstimate: number): never {
+	const err = new RangeError(
+		`Unable to create snapshot below ${maxTokens} tokens (last estimate: ${tokenEstimate})`
+	) as AdaptiveD2SnapError;
+
+	err.meta = {
+		lastEstimate: tokenEstimate
 	};
 
-	let i = 0;
-	while(true) {
-		i++;
-
-		yield [
-			halton(i, 2),
-			halton(i, 3),
-			halton(i, 5)
-		];
-	}
+	throw err;
 }
 
 
+// Search along r = rE = rA = rT: r = 0 and r = 1 bracket the token limit, ITP narrows the bracket.
 export function adaptiveD2Snap(
-	d2SnapFn: typeof d2Snap,
 	dom: DOM,
 	maxTokens: number = 2**15,	// 32768
 	maxIterations: number = 5,
 	options: DeepPartial<D2SnapOptions> = {}
 ): AdaptiveD2SnapResult {
-	const haltonGenerator = generateHalton();
-	const parameters: AdaptiveParameters = {
-		rE: 0, rA: 0, rT: 0
+	const originalSize: number = getByteLength(serializeSnapshotRoot(resolveRoot(dom)));
+
+	// Pre-process once (according to the options)
+	const normalizedDOM: Element = _normalizeDOM(dom, options).dom;
+	const snapshotOptions: DeepPartial<D2SnapOptions> = {
+		...options,
+
+		normalizers: [],
+		shadowDOM: false,
+		uniqueIDs: false
 	};
 
-	let aggressiveness: number = 0;  // grows from 0 toward 1 across iterations
-	let snapshot: D2SnapResult | undefined;
+	let snapshotCount: number = 0;
+	let closestSnapshot: D2SnapResult | null = null;
+	let closestRatio: number = 0;
+	// Bracket end tokens (above and within the limit), and whether the last snapshot left them unchanged
+	let aboveTokenEstimate: number = -1;
+	let withinTokenEstimate: number = -1;
+	let isPlateau: boolean = false;
 
-	for(let i = 0; i <= maxIterations; i++) {
-		const haltonPoint: number[] = haltonGenerator.next().value!;
+	const snap = (r: number) => {
+		const snapshot: D2SnapResult = _d2Snap(normalizedDOM, r, r, r, snapshotOptions);
+		const tokenEstimate: number = snapshot.meta.tokenEstimate;
 
-		const jitter = (h: number) => 0.5 + 0.5 * h;
+		snapshotCount++;
 
-		parameters.rE = Math.min(aggressiveness * jitter(haltonPoint[0]), 1);
-		parameters.rA = Math.min(aggressiveness * jitter(haltonPoint[1]), 1);
-		parameters.rT = Math.min(aggressiveness * jitter(haltonPoint[2]), 1);
+		isPlateau = (tokenEstimate === aboveTokenEstimate || tokenEstimate === withinTokenEstimate);
 
-		snapshot = d2SnapFn.call(null, dom, parameters.rE, parameters.rA, parameters.rT, options);
-
-		if(snapshot.meta.tokenEstimate <= maxTokens) {
-			return {
-				...snapshot,
-				parameters,
-				adaptiveIterations: i
-			};
+		if(tokenEstimate > maxTokens) {
+			aboveTokenEstimate = tokenEstimate;
+		} else {
+			withinTokenEstimate = tokenEstimate;
 		}
 
-		const overshoot: number = snapshot.meta.tokenEstimate / maxTokens; // > 1 means over budget
-
-		if(i === 0) {
-			aggressiveness = Math.min(0.9, 1 - 1 / overshoot);
-
-			continue;
+		if(tokenEstimate <= maxTokens && tokenEstimate > (closestSnapshot?.meta.tokenEstimate ?? -1)) {
+			closestSnapshot = snapshot;
+			closestRatio = r;
 		}
 
-		const logOver: number = Math.log2(overshoot);
-		const step: number = Math.max(0.05, 0.15 * logOver);
+		return tokenEstimate;
+	};
+	const isCloseTo = (share: number) => {
+		return closestSnapshot!.meta.tokenEstimate >= maxTokens * share;
+	};
 
-		aggressiveness = Math.min(1, aggressiveness + step);
+	// Unreduced snapshot within the limit: closest possible
+	const unreducedTokenEstimate: number = snap(0);
+
+	if(!closestSnapshot) {
+		if(maxIterations < 1) throwTokenLimitError(maxTokens, unreducedTokenEstimate);
+
+		// Most reduced snapshot beyond the limit: none within it
+		const reducedTokenEstimate: number = snap(1);
+
+		if(!closestSnapshot) throwTokenLimitError(maxTokens, reducedTokenEstimate);
+
+		searchITP(
+			(r: number) => snap(r) - maxTokens,
+			{
+				a: 0,
+				fa: unreducedTokenEstimate - maxTokens,
+				b: 1,
+				fb: reducedTokenEstimate - maxTokens
+			},
+			{
+				epsilon: RATIO_RESOLUTION / 2,
+				maxEvaluations: maxIterations - 1,
+				k1: ITP_K1,
+				stop: () => isCloseTo(1 - TOKEN_TOLERANCE) || (isPlateau && isCloseTo(PLATEAU_TOKEN_SHARE))
+			}
+		);
 	}
 
-	throw new RangeError(
-		`Unable to create snapshot below ${maxTokens} tokens (last estimate: ${snapshot?.meta.tokenEstimate})`
-	);
+	const result: AdaptiveD2SnapResult = closestSnapshot;
+
+	result.parameters = {
+		rE: closestRatio,
+		rA: closestRatio,
+		rT: closestRatio
+	};
+	result.adaptiveIterations = snapshotCount - 1;
+
+	// Sizes refer to the input DOM (not the normalized one)
+	result.meta.originalSize = originalSize;
+	Object.defineProperty(result.meta, "sizeRatio", {
+		get: () => getSizeRatio(result.meta.snapshotSize, originalSize),
+		enumerable: true
+	});
+
+	return result;
 }

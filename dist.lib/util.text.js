@@ -27,8 +27,13 @@ const TEXT_ENCODER = new TextEncoder();
 function getByteLength(text) {
   return TEXT_ENCODER.encode(text).length;
 }
+function getSizeRatio(snapshotSize, originalSize) {
+  if (originalSize === 0) return snapshotSize === 0 ? 1 : Infinity;
+  return snapshotSize / originalSize;
+}
 export {
   getByteLength,
+  getSizeRatio,
   tokenizeSentences,
   transformWithRanking
 };
