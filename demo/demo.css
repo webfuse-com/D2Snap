@@ -8,12 +8,17 @@
     --space-l: 3rem;
 
     --color-primary: #FFB400;
+    --color-primary-dim: #684F17;
     --color-bg: #080F0F;
     --color-bg-dim: #383B3B;
     --color-bg-light: #FFFFFF;
+    --color-bg-translucent: #080F0F40;
+    --color-bg-error: #473832;
     --color-fg: #FFFFFF;
     --color-fg-dark: #202222;
     --color-fg-dim: #C8CCCC;
+    --color-fg-error: #F5C5B5;
+    --color-fg-code: #C7EFCF;
 }
 
 
@@ -25,10 +30,6 @@
 
 *:focus, *:focus-visible {
     outline: none;
-}
-
-[title] {
-    cursor: help;
 }
 
 html,
@@ -89,8 +90,13 @@ main {
     flex: 1 1 0;
     min-width: 0;
     min-height: 0;
-    border-block: 1px solid var(--color-bg-dim);
+    border-block: 2px solid var(--color-bg-dim);
     transition: opacity 200ms;
+}
+
+section {
+    display: flex;
+    flex-direction: column;
 }
 
 h1, h2,
@@ -99,11 +105,20 @@ p {
 }
 
 h1 {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
     font-size: 1.125rem;
 }
 
 h2 {
     font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+p + p {
+    margin-top: var(--space-xs);
 }
 
 small {
@@ -115,6 +130,11 @@ a {
     text-decoration: none;
 }
 
+ul, ol {
+    margin: 0;
+    padding: 1em;
+}
+
 table {
     width: max-content;
     transform: translateY(-0.2em);
@@ -124,20 +144,23 @@ table td {
     min-width: max-content;
     white-space: nowrap;
     padding-right: var(--space-s);
+}
+
+table tr:not(:last-child) td {
     padding-bottom: var(--space-xs);
 }
 
 form {
     display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: space-between;
-    gap: var(--space-l);
+    gap: var(--space-m);
 }
 
-form > section {
-    display: flex;
-    flex-direction: column;
+form section {
     gap: var(--space-s);
 }
 
@@ -147,19 +170,13 @@ label {
     gap: var(--space-xs);
 }
 
-input, textarea {
+textarea, input {
     margin: 0;
     border: none;
     background-color: var(--color-bg-dim);
     color: var(--color-fg);
     font-family: "JetBrains Mono", monospace;
     font-size: inherit;
-}
-
-input {
-    padding: 0.25em 0.5em;
-    font-size: 1em;
-    line-height: 1;
 }
 
 textarea {
@@ -176,6 +193,16 @@ textarea {
 
 textarea:not([readonly]):focus {
     box-shadow: inset 0 0 0.5rem -0.25rem var(--color-primary);
+}
+
+textarea.error {
+    background-color: var(--color-bg-error);
+    color: var(--color-fg-error);
+}
+
+input {
+    padding: 0.25em 0.5em;
+    width: 7.5rem;
 }
 
 input[type="range"] {
@@ -215,7 +242,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 input[type="checkbox"] {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     width: 1.125rem;
@@ -223,11 +250,10 @@ input[type="checkbox"] {
     margin: 0;
     padding: 0;
     appearance: none;
-    border: 1px solid var(--color-primary);
+    border: 2px solid var(--color-primary);
     border-radius: 0.2rem;
     background-color: transparent;
     cursor: pointer;
-    vertical-align: middle;
 }
 
 input[type="checkbox"]:checked {
@@ -256,8 +282,25 @@ canvas {
 
 code,
 output {
+    color: var(--color-fg-code);
     font-family: "JetBrains Mono", monospace;
-    font-size: 0.975em;
+    font-size: 0.95em;
+}
+
+p code {
+    font-size: 0.925em;
+}
+
+hr {
+    margin: 0;
+    width: 100%;
+    height: 2px;
+    border: none;
+    background-color: var(--color-bg-dim);
+}
+
+iframe + hr {
+    margin: var(--space-xs) 0;
 }
 
 iframe {
@@ -265,14 +308,6 @@ iframe {
     height: 100%;
     border: none;
     background-color: var(--color-bg-light);
-}
-
-hr {
-    width: 100%;
-    height: 1px;
-    margin: var(--space-xs) 0;
-    border: none;
-    background-color: var(--color-bg-dim);
 }
 
 .no-select {
@@ -337,17 +372,20 @@ hr {
 }
 
 .button {
-    display: flex;
+    cursor: pointer;
+    display: inline-flex;
     flex-direction: row;
+    align-self: flex-start;
     align-items: center;
     gap: var(--space-xs);
     padding: 0.5em 1em;
+    background-color: var(--color-primary);
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--color-fg-dark);
     border: none;
     border-radius: 0.3em;
-    background-color: var(--color-primary);
-    color: var(--color-fg-dark);
-    font-size: 0.85em;
-    cursor: pointer;
+    outline: none;
 }
 
 .button:hover {
@@ -362,13 +400,13 @@ hr {
     font-size: 1em;
 }
 
-.button--light {
-    background-color: var(--color-fg);
+.button--dim {
+    background-color: var(--color-primary-dim);
+    color: var(--color-fg);
 }
 
-.button--dark {
-    background-color: var(--color-bg-dim);
-    color: var(--color-fg);
+.button--light {
+    background-color: var(--color-fg);
 }
 
 .button[data-snapshot]::before {
@@ -381,21 +419,28 @@ hr {
 }
 
 .tabs {
+    flex: 1 1 0;
     display: flex;
-    flex: 1 0 0;
     flex-direction: column;
+    gap: 0;
+    min-width: 10rem;
+    min-height: 0;
+}
+
+.tabs--outline {
+    border: 2px solid var(--color-bg-dim);
 }
 
 .tabs-header {
     display: flex;
-    border-top: 1px solid var(--color-bg-dim);
+    border-top: 2px solid var(--color-bg-dim);
 }
 
 .tabs-header button {
-    margin: 0.25rem;
-    padding: 0.5rem 1rem;
+    margin: 0.25em;
+    padding: 0.5em 1em;
     border: none;
-    border-radius: 0.3rem;
+    border-radius: 0.3em;
     background-color: transparent;
     color: var(--color-fg);
     font-size: 1rem;
@@ -407,46 +452,48 @@ hr {
     background-color: var(--color-bg-dim);
 }
 
+.tabs--s .tabs-header button {
+    font-size: 0.9rem;
+}
+
 .tabs-body {
     position: relative;
     display: flex;
-    flex: 1 1 0;
+    flex: 1 0 auto;
     flex-direction: column;
     min-width: 0;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
+    min-height: min-content;
+    height: auto;
+    overflow: auto;
 }
 
 .tabs-body > *:not(.active) {
     display: none !important;
 }
 
-.content {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
 .panel {
     min-width: 0;
     min-height: 0;
     max-height: 100%;
+    border: 2px solid var(--color-bg-dim);
     overflow: hidden;
-    border: 1px solid var(--color-bg-dim);
+}
+
+.content {
+    position: relative;
+    height: 100%;
+}
+
+.content--split {
+    display: flex;
+    flex-direction: column !important;
+    flex: 1 0 auto;
 }
 
 .card {
+    flex: 0 0 auto;
     padding: var(--space-s);
     overflow: auto;
-}
-
-.textarea-wrapper {
-    position: relative;
-    display: flex;
-    flex: 1 1 0;
-    min-height: 0;
 }
 
 .copy-button, .clear-button {
@@ -463,11 +510,118 @@ hr {
     bottom: 0;
 }
 
-textarea:hover + .copy-button,
-textarea:hover + .clear-button,
+.close-button {
+    cursor: pointer;
+    position: relative;
+    margin-left: auto;
+    padding: 0;
+    flex: 0 0 auto;
+    width: 0.75rem;
+    height: 0.75rem;
+    background-color: transparent;
+    color: var(--color-fg-dim);
+    border: none;
+    outline: none;
+}
+
+.close-button::before,
+.close-button::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1rem;
+    height: 2px;
+    background-color: currentColor;
+}
+
+.close-button::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-button::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.close-button:hover {
+    color: var(--color-primary);
+}
+
+*:hover + .copy-button,
+*:hover + .clear-button,
 .copy-button:hover,
 .clear-button:hover {
     opacity: 1;
+}
+
+.tooltip {
+    cursor: help;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.85em;
+    height: 0.85em;
+    color: var(--color-fg-dim);
+    text-align: center;
+    border: 0.75px solid var(--color-fg-dim);
+    border-radius: 100%;
+}
+
+.tooltip:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.tooltip--highlight {
+    animation-name: blink;
+    animation-duration: 1500ms;
+    animation-iteration-count: 3;
+}
+
+.tooltip::before {
+    content: "i";
+    font-size: 0.5em;
+    font-weight: 700;
+    line-height: 1;
+}
+
+@keyframes blink {
+    0%, 100% {
+        color: var(--color-fg-dim);
+        border-color: var(--color-fg-dim);
+        transform: scale(1);
+    }
+    50% {
+        background-color: var(--color-primary);
+        color: var(--color-bg);
+        border-color: var(--color-primary);
+        transform: scale(1.35);
+    }
+}
+
+.tooltip-content {
+    cursor: default;
+    white-space: normal;
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    max-width: 33rem;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-size: 1rem;
+    font-weight: 400;
+    text-align: left;
+    text-align: justify;
+    line-height: 1.5;
+    border: 1px solid var(--color-primary);
+}
+
+.tooltip-content::backdrop {
+    background-color: var(--color-bg-translucent);
+    backdrop-filter: blur(1px);
+    pointer-events: none;
 }
 
 .resizer {
@@ -490,14 +644,22 @@ textarea:hover + .clear-button,
 }
 
 .resizer:hover::before {
-    width: 3px;
     background-color: var(--color-primary);
+}
+
+.hide {
+    display: none !important;
+}
+
+.hide-l {
+    display: none !important;
 }
 
 
 @media (max-width: 920px) {
     html {
         overflow-y: auto;
+        font-size: 12px;
     }
 
     body {
@@ -517,22 +679,71 @@ textarea:hover + .clear-button,
         overflow: visible;
     }
 
+    textarea,
+    canvas {
+        flex: 1 1 auto;
+        min-height: 60vh;
+        height: 100%;
+    }
+
+    form {
+        flex-direction: column;
+        gap: var(--space-s);
+    }
+
+    iframe {
+        min-height: 40vh;
+    }
+
+    .button {
+        justify-content: center;
+    }
+
+    .tabs {
+        min-height: auto;
+    }
+
     .panel {
-        flex: 0 0 auto;
+        display: block;
         width: 100%;
-        height: 90dvh;
-        min-height: 90dvh;
         max-height: none;
         overflow: hidden;
     }
 
-    .panel textarea {
-        flex: 1 1 auto;
-        min-height: 0;
-        height: 100%;
+    .content {
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+    }
+
+    .content::after {
+        content: "";
+        display: block;
+        width: var(--space-m);
+        background-color: var(--color-bg-dim);
+        background-image: radial-gradient(circle, var(--color-bg) 1px, transparent 1px);
+        background-position: center;
+        background-size: 4px 4px;
+    }
+
+    .tooltip {
+        width: 1em;
+        height: 1em;
+    }
+
+    .tooltip::before {
+        font-size: 0.75em;
     }
 
     .resizer {
         display: none;
+    }
+
+    .hide-s {
+        display: none !important;
+    }
+
+    .hide-l {
+        display: block !important;
     }
 }

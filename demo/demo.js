@@ -27,15 +27,25 @@
 	const MAX_INDEX_LIST_TEXT_LENGTH = 100;
 	const MIN_PANEL_WIDTH_FRACTION = 0.2;
 	const LARGE_INPUT_SIZE_THRESHOLD = 100 * 2**10;	// 100 kB
-	// Frames never load styles (nor scripts, fonts, or nested frames) – only images – for a fair before/after comparison
 	const FRAME_CONTENT_SECURITY_POLICY = "default-src 'none'; img-src * data: blob:";
-
+	const TOOLTIP_OFFSET = 5;
+	const TOOLTIP_SHOW_TIMEOUT_MS = 200;
+	const TOOLTIP_HIDE_TIMEOUT_MS = 150;
+	const SCREEN_S_MEDIA_QUERY = "(max-width: 920px)";
 
 	const textareaHTMLInput = document.querySelector("textarea[name='html-input']");
 	const textareaHTMLOutput = document.querySelector("textarea[name='html-output']");
 	const textareaA11yTreeOutput = document.querySelector("textarea[name='a11y-tree-output']");
 	const textareaIndexOutput = document.querySelector("textarea[name='index-output']");
 	const textareaIndexJSONOutput = document.querySelector("textarea[name='index-json-output']");
+	const outputTextareas = [
+		textareaHTMLOutput,
+		textareaA11yTreeOutput,
+		textareaIndexOutput,
+		textareaIndexJSONOutput
+	];
+	const adaptiveParametersElement = document.querySelector("[data-adaptive-parameters]");
+	const exportButton = document.querySelector("button[data-export]");
 	const outputTabs = textareaHTMLOutput.closest(".tabs");
 	const inputFrame = document.querySelector("[data-frame='input']");
 	const outputFrame = document.querySelector("[data-frame='output']");
@@ -52,16 +62,13 @@
 		[ ...document.querySelectorAll("form[name='downsampling-params'] output") ]
 			.map(output => [ output.htmlFor, output ])
 	);
-
 	const snapshotButtons = [ ...document.querySelectorAll("button[data-snapshot]") ];
-
-	const reliefInputs = {
-		flat: document.querySelector("input[name='relief-flat']"),
-		ortho: document.querySelector("input[name='relief-ortho']")
-	};
-
-	const domRelief = new DOMRelief.DOMRelief();
-
+	const copyButtons = [ ...document.querySelectorAll("button[data-copy]") ];
+	const clearButtons = [ ...document.querySelectorAll("button[data-clear]") ];
+	const closeButtons = [ ...document.querySelectorAll("button[data-close]") ];
+	const ratioButtons = [ ...document.querySelectorAll("button[data-ratios]") ];
+	const tooltips = [ ...document.querySelectorAll(".tooltip") ];
+	const parameterTabButtons = [ ...document.querySelectorAll("form[name='downsampling-params'] .tabs-header > button") ];
 	const downsamplingInputs = {
 		rE: document.querySelector("input[name='downsampling-rE']"),
 		rA: document.querySelector("input[name='downsampling-rA']"),
@@ -70,10 +77,24 @@
 		normalizers: document.querySelector("input[name='downsampling-normalizers']"),
 		prose: document.querySelector("input[name='downsampling-prose']"),
 		textRanker: document.querySelector("input[name='downsampling-text-ranker']"),
-		uniqueIDs: document.querySelector("input[name='downsampling-unique-ids']")
+		uniqueIDs: document.querySelector("input[name='downsampling-unique-ids']"),
+		maxTokens: document.querySelector("input[name='downsampling-max-tokens']"),
+		maxIterations: document.querySelector("input[name='downsampling-max-iterations']")
+	};
+	const reliefInputs = {
+		flat: document.querySelector("input[name='relief-flat']"),
+		ortho: document.querySelector("input[name='relief-ortho']")
 	};
 
-	// Text formatting elements count as actionables (preserved as HTML)
+	const domRelief = new DOMRelief.DOMRelief();
+
+	const state = {
+		isConstraintsMode: false,
+		originalSize: 0,
+		updateCount: 0
+	};
+
+
 	const isActionableOrTextElement = element => {
 		return D2Snap.defaults.classifiers.isActionableElement(element)
 			|| D2Snap.defaults.classifiers.isTextElement(element);
@@ -165,33 +186,45 @@
 			.join("\n");
 	}
 
-	const state = {
-		originalSize: 0
-	};
+	function getAPICallSnippet() {
+		const args = state.isConstraintsMode
+			? [
+				`${parseInt(downsamplingInputs.maxTokens.value)}, // maxTokens`,
+				`${parseInt(downsamplingInputs.maxIterations.value)}, // maxIterations`
+			]
+			: [
+				`${parseFloat(downsamplingInputs.rE.value)}, // rE`,
+				`${parseFloat(downsamplingInputs.rA.value)}, // rA`,
+				`${parseFloat(downsamplingInputs.rT.value)}, // rT`,
+			];
+		const options = [
+			[ "markdown", downsamplingInputs.markdown.checked, true ],
+			[ "prose", downsamplingInputs.prose.checked, false ],
+			[ "filterEmptyElements", downsamplingInputs.normalizers.checked, true ],
+			[ "uniqueIDs", downsamplingInputs.uniqueIDs.checked, false ],
+			[ "normalizers", downsamplingInputs.normalizers.checked, true, "D2Snap.defaults.NORMALIZERS", "[]" ],
+			[ "sentenceRanker", downsamplingInputs.textRanker.checked, true, "D2Snap.defaults.SENTENCE_RANKER", "null" ]
+		]
+			.filter(([ , checked, isDefaultChecked ]) => checked !== isDefaultChecked)
+			.map(([ key, checked, , checkedValue = "true", uncheckedValue = "false" ]) => `${key}: ${checked ? checkedValue : uncheckedValue}`);
 
-	function updateMeta(meta) {
-		for(const [key, value] of Object.entries(meta)) {
-			const span = metaElements[key];
-
-			if(!span) continue;
-
-			span.textContent = value;
-		}
-	}
-
-	function updateSizeMeta() {
-		const textarea = outputTabs.querySelector(".tabs-body > .active textarea");
-
-		if(!textarea || !state.originalSize) return;
-
-		const size = textarea.value.length;
-
-		updateMeta({
-			tokenEstimate: formatNumber(Math.round(size / 4)),
-			sizeRatio: Math.round(size / state.originalSize * 100),
-			originalSize: formatBytes(state.originalSize),
-			snapshotSize: formatBytes(size)
-		});
+		const indent = " ".repeat(2);
+		return [
+			`await D2Snap.${state.isConstraintsMode ? "adaptiveD2Snap" : "d2Snap"}(`,
+			`${indent}input,`,
+			...args
+				.map(arg => `${indent}${arg}`),
+			...(options.length
+				? [
+					`${indent}{`,
+					options
+						.map(option => `${indent.repeat(2)}${option}`)
+						.join(",\n"),
+					`${indent}}`
+				]
+				: []),
+			");"
+		].join("\n");
 	}
 
 	function renderResult3D(htmlInput, htmlOutput) {
@@ -229,15 +262,35 @@
 		}
 	}
 
-	let updateCount = 0;
+	function updateMeta(meta) {
+		for(const [key, value] of Object.entries(meta)) {
+			const span = metaElements[key];
+
+			if(!span) continue;
+
+			span.textContent = value;
+		}
+	}
+
+	function updateSizeMeta() {
+		const textarea = outputTabs.querySelector(".tabs-body > .active textarea");
+
+		if(!textarea || !state.originalSize) return;
+
+		const size = textarea.value.length;
+
+		updateMeta({
+			tokenEstimate: formatNumber(Math.round(size / 4)),
+			sizeRatio: Math.round(size / state.originalSize * 100),
+			originalSize: formatBytes(state.originalSize),
+			snapshotSize: formatBytes(size)
+		});
+	}
 
 	async function updateState() {
-		const id = ++updateCount;
+		const id = ++state.updateCount;
 		const htmlInput = textareaHTMLInput.value;
 
-		const rE = parseFloat(downsamplingInputs.rE.value);
-		const rA = parseFloat(downsamplingInputs.rA.value);
-		const rT = parseFloat(downsamplingInputs.rT.value);
 		const options = {
 			debug: true,
 			minify: false,	// Input is minified and formatted upon paste
@@ -253,16 +306,57 @@
 				: null
 		};
 
+		const { isConstraintsMode } = state;
+
+		let result;
+		let ratios;
+
 		const start = performance.now();
-		const result = await D2Snap.d2Snap(
-			htmlInput,
-			rE, rA, rT,
-			options
-		);
+		try {
+			if(isConstraintsMode) {
+				result = await D2Snap.adaptiveD2Snap(
+					htmlInput,
+					parseInt(downsamplingInputs.maxTokens.value),
+					parseInt(downsamplingInputs.maxIterations.value),
+					options
+				);
+
+				ratios = result.parameters;
+			} else {
+				const rE = parseFloat(downsamplingInputs.rE.value);
+				const rA = parseFloat(downsamplingInputs.rA.value);
+				const rT = parseFloat(downsamplingInputs.rT.value);
+
+				result = await D2Snap.d2Snap(
+					htmlInput,
+					rE, rA, rT,
+					options
+				);
+
+				ratios = { rE, rA, rT };
+			}
+		} catch(err) {
+			if(id != state.updateCount) return;
+
+			outputTextareas.forEach(textarea => {
+				textarea.value = err;
+
+				textarea.classList.add("error");
+			});
+
+			adaptiveParametersElement.textContent = "";
+
+			return;
+		}
+
+		outputTextareas.forEach(textarea => {
+			textarea.classList.remove("error");
+		});
+
 		const duration = performance.now() - start;
 		const resultPreservedTextFormattingElements = await D2Snap.d2Snap(
 			htmlInput,
-			rE, rA, rT,
+			ratios.rE, ratios.rA, ratios.rT,
 			{
 				...options,
 
@@ -272,7 +366,18 @@
 			}
 		);
 
-		if(id != updateCount) return;
+		if(id != state.updateCount) return;
+
+		adaptiveParametersElement.textContent = isConstraintsMode
+			? [
+				[
+					`rE = ${ratios.rE.toFixed(1)}`,
+					`rA = ${ratios.rA.toFixed(1)}`,
+					`rT = ${ratios.rT.toFixed(1)}`
+				].join(" · "),
+				`(${result.adaptiveIterations} iteration${(result.adaptiveIterations > 1) ? "s" : ""})`
+			].join(" ")
+			: "";
 
 		textareaHTMLOutput.value = result.html;
 		textareaA11yTreeOutput.value = getAccessibilityTreeRepresentation(result.dom);
@@ -345,7 +450,7 @@
 	}
 
 	function setupCopyButtons() {
-		document.querySelectorAll("button[data-copy]")
+		copyButtons
 			.forEach(button => {
 				const textarea = document.querySelector(`textarea[name='${button.dataset.copy}']`);
 				const label = button.textContent;
@@ -364,7 +469,7 @@
 	}
 
 	function setupClearButtons() {
-		document.querySelectorAll("button[data-clear]")
+		clearButtons
 			.forEach(button => {
 				const textarea = document.querySelector(`textarea[name='${button.dataset.clear}']`);
 
@@ -378,7 +483,16 @@
 			});
 	}
 
-	// Notation of snapshots (minified, formatted) without any reduction, so input and output compare.
+	function setupCloseButtons() {
+		closeButtons
+			.forEach(button => {
+				button
+					.addEventListener("click", () => {
+						button.parentElement.classList.add("hide");
+				});
+			});
+	}
+
 	async function normalizeInput() {
 		const { html } = await D2Snap.d2Snap(
 			textareaHTMLInput.value,
@@ -397,7 +511,8 @@
 
 	function setupRatioSliders() {
 		const isDeferredUpdate = input => {
-			return (input.type === "range" && textareaHTMLInput.value.length > LARGE_INPUT_SIZE_THRESHOLD);
+			return [ "range", "number" ].includes(input.type)
+				&& textareaHTMLInput.value.length > LARGE_INPUT_SIZE_THRESHOLD;
 		};
 
 		Object.values(downsamplingInputs)
@@ -439,7 +554,7 @@
 	}
 
 	function setupRatioButtons() {
-		document.querySelectorAll("button[data-ratios]")
+		ratioButtons
 			.forEach(button => {
 				button
 					.addEventListener("click", () => {
@@ -453,6 +568,33 @@
 
 						updateState();
 					});
+			});
+	}
+
+	function setupConstraints() {
+		parameterTabButtons
+			.forEach((button, i) => {
+				button
+					.addEventListener("click", () => {
+						state.isConstraintsMode = (i == 1);
+
+						updateState();
+					});
+			});
+	}
+
+	function setupExportButton() {
+		const label = exportButton.textContent;
+
+		exportButton
+			.addEventListener("click", async () => {
+				await navigator.clipboard.writeText(getAPICallSnippet());
+
+				exportButton.textContent = "Copied";
+
+				setTimeout(() => {
+					exportButton.textContent = label;
+				}, 1500);
 			});
 	}
 
@@ -507,6 +649,81 @@
 			textNodes: true,
 			autoRotate: true
 		});
+	}
+
+	function setupTooltips() {
+		tooltips
+			.forEach(tooltip => {
+				const content = tooltip.querySelector(".tooltip-content");
+
+				let timeout;
+
+				const show = (delay = 0) => {
+					clearTimeout(timeout);
+
+					if(content.matches(":popover-open")) return;
+
+					timeout = setTimeout(() => {
+						const isScreenS = matchMedia(SCREEN_S_MEDIA_QUERY).matches;
+
+						content.style.width = isScreenS
+							? `${document.documentElement.clientWidth - 2 * TOOLTIP_OFFSET}px`
+							: "";
+						content.style.maxWidth = isScreenS
+							? "none"
+							: "";
+
+						content.showPopover();
+
+						const rect = tooltip.getBoundingClientRect();
+						const top = Math.min(rect.top, innerHeight - TOOLTIP_OFFSET - content.offsetHeight);
+						const left = isScreenS
+							? TOOLTIP_OFFSET
+							: (rect.right + TOOLTIP_OFFSET + content.offsetWidth > innerWidth)
+								? rect.left - TOOLTIP_OFFSET - content.offsetWidth
+								: rect.right + TOOLTIP_OFFSET;
+
+						content.style.top = `${Math.max(TOOLTIP_OFFSET, top)}px`;
+						content.style.left = `${Math.max(TOOLTIP_OFFSET, left)}px`;
+					}, delay);
+				};
+
+				const hide = (delay = 0) => {
+					clearTimeout(timeout);
+
+					timeout = setTimeout(() => {
+						content.matches(":popover-open")
+							&& content.hidePopover();
+					}, delay);
+				};
+
+				tooltip
+					.addEventListener("pointerenter", e => {
+						if(e.pointerType !== "mouse") return;
+
+						show(TOOLTIP_SHOW_TIMEOUT_MS);
+					});
+				tooltip
+					.addEventListener("pointerleave", e => {
+						if(e.pointerType !== "mouse") return;
+
+						hide(TOOLTIP_HIDE_TIMEOUT_MS);
+					});
+				tooltip
+					.addEventListener("pointerup", e => {
+						if(e.pointerType === "mouse" || content.contains(e.target)) return;
+
+						content.matches(":popover-open")
+							? hide()
+							: show();
+					});
+				document
+					.addEventListener("pointerdown", e => {
+						if(e.pointerType === "mouse" || tooltip.contains(e.target)) return;
+
+						hide();
+					});
+			});
 	}
 
 	function setupResizers() {
@@ -576,15 +793,19 @@
 	}
 
 
-	setupIframes();
 	setupTabs();
-	setupSizeMeta();
 	setupCopyButtons();
 	setupClearButtons();
+	setupCloseButtons();
 	setupRatioSliders();
 	setupRatioButtons();
+	setupConstraints();
+	setupExportButton();
 	setupSnapshots();
+	setupSizeMeta();
 	setupRelief();
+	setupIframes();
+	setupTooltips();
 	setupResizers();
 
 	textareaHTMLInput.value ||= DEFAULT_HTML_INPUT;
