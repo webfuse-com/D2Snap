@@ -11,7 +11,6 @@
         <meta property="og:url" content="https://webfuse-com.github.io/D2Snap/">
         <meta property="og:image" content="https://webfuse-com.github.io/D2Snap/res/preview.png">
         <title>D2Snap | Demo</title>
-        <link rel="icon" href="https://webfuse-com.github.io/D2Snap/">
         <link rel="stylesheet" href="./demo.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/webfuse-com/dom-relief/styles/dom-relief.css">
         <script src="https://cdn.jsdelivr.net/gh/webfuse-com/dom-relief/dist/browser/dom-relief.js"></script>
@@ -20,7 +19,41 @@
     </head>
     <body>
         <header>
-            <h1>D2Snap &hairsp; | &hairsp; Demo</h1>
+            <h1>
+                D2Snap &hairsp; | &hairsp; Demo
+                <div class="tooltip tooltip--highlight">
+                    <div class="tooltip-content" popover="manual">
+                        <p>
+                            Downsampling is a technique to reduce data through local, lossy consolidation, such that encoded features are largely preserved.
+                            A digital image can be locally consolidated by averaging an <i>n</i>-tile of pixels – the depicted object would remain recognisable.
+                            We transfer this principle to the DOM: it can analogously be locally consolidated by merging <i>n</i>-subtrees of nodes into a single ‘average’ node.
+                        </p>
+                        <p>
+                            <a href="https://arxiv.org/abs/2508.04412" target="_blank">D2Snap</a> is an algorithm to downsample the DOM, designed for use with LLM-based web agents.
+                            It consolidates user interface (UI) features.
+                            At reduced size, the DOM (in serialised form: HTML) shall facilitate eliciting targeted action suggestions from LLMs to progress a specified task.
+                            For instance: <i>"Add a Pizza Margherita to a delivery order".</i>
+                        </p>
+                        <p>
+                            Downsampling is the inverse of quality, governed by ratios: <code>0</code>: no downsampling. <code>1</code>: maximum downsampling, i.e., the DOM in its most compressed form at potential cost of certain UI features. D2Snap provides three different downsampling ratios:
+                        </p>
+                        <ul>
+                            <li>
+                                <code>rE</code>: Element downsampling ratio – folding elements in the DOM into each other.
+                            </li>
+                            <li>
+                                <code>rT</code>: Text downsampling ratio – truncating text at the ranked sentence level.
+                            </li>
+                            <li>
+                                <code>rA</code>: Attribute downsampling threshold – removing attributes by UI-relevance score. With the default attribute scores, which are distributed over UI-relevance and use-frequency, this threshold latently represents an absolute ratio (idempotent).
+                            </li>
+                        </ul>
+                        <p>
+                            Actionable elements and minimal text are preserved throughout.
+                        </p>
+                    </div>
+                </div>
+            </h1>
             <nav>
                 <a class="button button--l button--light" target="_blank" href="https://github.com/webfuse-com/D2Snap">
                     <img src="./res/github-logo.webp" alt="GitHub">
@@ -31,54 +64,192 @@
             </nav>
         </header>
         <main>
-            <section class="panel content">
-                <div class="textarea-wrapper">
+            <section class="panel">
+                <div class="card hide-l">
+                    <h2>Input</h2>
+                </div>
+                <div class="content">
                     <textarea name="html-input" placeholder="HTML input"></textarea>
                     <button type="button" class="button clear-button" data-clear="html-input">Clear</button>
                 </div>
+                <div class="card flex flex--s" data-examples>
+                    <button class="button button--dim" type="button" data-snapshot="google">
+                        google.com
+                    </button>
+                    <button class="button button--dim" type="button" data-snapshot="wikipedia">
+                        wikipedia.org
+                    </button>
+                    <button class="button button--dim" type="button" data-snapshot="cnn">
+                        cnn.com
+                    </button>
+                    <button type="button" class="close-button" data-close aria-label="Close"></button>
+                </div>
+                <hr>
                 <div class="card">
                     <form name="downsampling-params">
-                        <section>
-                            <label for="downsampling-rE">
-                                <code
-                                    title="Element downsampling ratio – how much hierarchy to fold (relative; ratio)">
-                                    rE
-                                </code>
-                                <input type="range" min="0" max="1" step="0.1" value="0.5" name="downsampling-rE">
-                                <output for="downsampling-rE"></output>
-                            </label>
-                            <label for="downsampling-rT">
-                                <code
-                                    title="Text downsampling ratio – how much text to truncate at the sentence level (relative; ratio)">
-                                    rT
-                                </code>
-                                <input type="range" min="0" max="1" step="0.1" value="0" name="downsampling-rT">
-                                <output for="downsampling-rT"></output>
-                            </label>
-                            <label for="downsampling-rA">
-                                <code
-                                    title="Attribute downsampling ratio – which attributes remove based on relevance scores (absolute; threshold)">
-                                    rA
-                                </code>
-                                <input type="range" min="0" max="1" step="0.1" value="0" name="downsampling-rA">
-                                <output for="downsampling-rA"></output>
-                            </label>
-                            <div class="flex flex--xs flex--between">
-                                <button type="button" class="button button--s" data-ratios="0"
-                                    title="Set all ratios to 0 (minimum downsampling)">
-                                    Min
-                                </button>
-                                <button type="button" class="button button--s" data-ratios="1"
-                                    title="Set all ratios to 1 (maximum downsampling)">
-                                    Max
-                                </button>
+                        <section class="tabs tabs--s tabs--outline">
+                            <div class="tabs-body">
+                                <section class="card">
+                                    <label for="downsampling-rE">
+                                        <div class="tooltip">
+                                            <div class="tooltip-content" popover="manual">
+                                                <p>
+                                                    <code>rE</code> is the element downsampling ratio.
+                                                    It controls how much of the DOM's hierarchy to fold.
+                                                </p>
+                                                <p>
+                                                    <strong>Example:</strong>
+                                                    Consider an input DOM with height 10 (longest path in the DOM tree).
+                                                    It would result in an output DOM with height 5 for <code>rE = 0.5</code> or height 2 for <code>rE = 0.8</code>.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <code>
+                                            rE
+                                        </code>
+                                        <input type="range" min="0" max="1" step="0.1" value="0.5" name="downsampling-rE">
+                                        <output for="downsampling-rE"></output>
+                                    </label>
+                                    <label for="downsampling-rT">
+                                        <div class="tooltip">
+                                            <div class="tooltip-content" popover="manual">
+                                                <p>
+                                                    <code>rT</code> is the text downsampling ratio.
+                                                    It controls how much of the DOM's text to truncate.
+                                                    It works at the ranked sentence level: Every text node is split into sentences, which are then ranked, e.g., by centrality, and truncated. The default sentence ranker applies the <a href="https://aclanthology.org/W04-3252/" target="_blank">TextRank</a> algorithm.
+                                                </p>
+                                                <p>
+                                                    <strong>Example:</strong>
+                                                    Consider a text node in the input DOM with 10 sentences (split at regular sentence delimiters).
+                                                    It would result in a text node with 5 sentences for <code>rT = 0.5</code> or 2 sentences for <code>rT = 0.8</code>.
+                                                    Ranking aims for preserving high-relevance sentences, whilst emitted to the output DOM in the original order.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <code>
+                                            rT
+                                        </code>
+                                        <input type="range" min="0" max="1" step="0.1" value="0" name="downsampling-rT">
+                                        <output for="downsampling-rT"></output>
+                                    </label>
+                                    <label for="downsampling-rA">
+                                        <div class="tooltip">
+                                            <div class="tooltip-content" popover="manual">
+                                                <p>
+                                                    <code>rA</code> is the attribute downsampling ratio.
+                                                    It controls which of the DOM's attributes to remove.
+                                                    Removal is matched against provided attribute score heuristics.
+                                                    Unlike <code>rE</code> and <code>rT</code>, <code>rA</code> is an absolute threshold.
+                                                    The default attribute score heuristics are, however, distributed over UI-relevance and use-frequency, which renders <code>rA</code> a latent absolute ratio.
+                                                </p>
+                                                <p>
+                                                    <strong>Example:</strong>
+                                                    Consider an attribute in the input DOM with score 0.6.
+                                                    It would be preserved in the output DOM for <code>rA = 0.5</code> or removed for <code>rA = 0.8</code>.
+                                                </p>
+                                                <p>
+                                                    The default D2Snap DOM normalizers recover anti-patterns, but perform no clean-up, such as pruning non-interactive subtrees. Removing attributes at a high threshold is thus volatile to semantic changes (e.g., when <code>aria-hidden</code> attributes are removed).
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <code>
+                                            rA
+                                        </code>
+                                        <input type="range" min="0" max="1" step="0.1" value="0" name="downsampling-rA">
+                                        <output for="downsampling-rA"></output>
+                                    </label>
+                                    <div class="flex flex--xs flex--between">
+                                        <div class="flex flex--xs">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Set all ratios to 0 for minimum downsampling.
+                                                        Without applying any extra option, the output DOM is identical to the input DOM.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="button button--s" data-ratios="0">
+                                                Min
+                                            </button>
+                                        </div>
+                                        <div class="flex flex--xs">
+                                            <button type="button" class="button button--s" data-ratios="1">
+                                                Max
+                                            </button>
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Set all ratios to 1 for maximum downsampling.
+                                                        By design, this reduces the input DOM to a minimal, syntactically correct output DOM which still carries atomic actionability features.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section class="card">
+                                    <table>
+                                        <tr>
+                                            <td>
+                                                <label for="downsampling-max-tokens">
+                                                    <div class="tooltip">
+                                                        <div class="tooltip-content" popover="manual">
+                                                            <p>
+                                                                Maximum count of estimated LLM input tokens of the output DOM.
+                                                                Optimal downsampling parameters are therefore approximated by an iterative search strategy.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <code>
+                                                        maxTokens
+                                                    </code>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <input type="number" min="0" step="1000" value="128000" name="downsampling-max-tokens">
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <label for="downsampling-max-iterations">
+                                                    <div class="tooltip">
+                                                        <div class="tooltip-content" popover="manual">
+                                                            <p>
+                                                                Maximum amount of iterations to run during approximation of the downsampling parameters to meet the <code>maxTokens</code> constraint.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <code>
+                                                        maxIterations
+                                                    </code>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <input type="number" min="0" max="20" step="1" value="5" name="downsampling-max-iterations">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <span class="text-dim nowrap" data-adaptive-parameters></span>
+                                </section>
+                            </div>
+                            <div class="tabs-header">
+                                <button type="button">Ratios</button>
+                                <button type="button">Constraints</button>
                             </div>
                         </section>
                         <section>
                             <table>
                                 <tr>
                                     <td>
-                                        <label for="downsampling-text-ranker" title="Whether to rank text at the sentence level before truncation (TextRank) – otherwise, the leading sentences are kept">
+                                        <label for="downsampling-text-ranker">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Whether to use the default sentence ranker applying the <a href="https://aclanthology.org/W04-3252/" target="_blank">TextRank</a> algorithm.
+                                                        If disabled, leading sentences are preserved regardless of centrality (high-level relevance).
+                                                    </p>
+                                                </div>
+                                            </div>
                                             <a href="https://aclanthology.org/W04-3252/" target="_blank">TextRank</a>
                                         </label>
                                     </td>
@@ -88,8 +259,15 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <label for="downsampling-prose"
-                                            title="Whether to group consecutive sibling text nodes for text downsampling">
+                                        <label for="downsampling-prose">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Whether to apply text downsampling at once to consecutive sibling text nodes (assuming continuous prose).
+                                                        If enabled, text reductions will be more significant, whilst resulting in merged text nodes in the output DOM.
+                                                    </p>
+                                                </div>
+                                            </div>
                                             Prose
                                         </label>
                                     </td>
@@ -99,8 +277,15 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <label for="downsampling-markdown"
-                                            title="Whether to translate HTML text formatting to Markdown">
+                                        <label for="downsampling-markdown">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Whether to translate text formatting elements to Markdown.
+                                                        By design, Markdown is a more space-efficient equivalent of basic HTML text formatting syntax.
+                                                    </p>
+                                                </div>
+                                            </div>
                                             Markdown
                                         </label>
                                     </td>
@@ -110,9 +295,44 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <label for="downsampling-normalizers"
-                                            title="Whether to pre-process the DOM with the default normalizers (filtering, normalisation) before downsampling">
-                                            Normalizers
+                                        <label for="downsampling-normalizers">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Whether to pre-process the input DOM by filtering irrelevant features and normalizing the input so the downsampling algorithm works on (more) idiomatic syntax.
+                                                    </p>
+                                                    <p>
+                                                        Default normalisation includes:
+                                                    </p>
+                                                    <ul>
+                                                        <li>
+                                                            Filtering: remove comments.
+                                                        </li>
+                                                        <li>
+                                                            Filtering: remove elements that are noise (e.g., <code>LINK</code> or <code>SCRIPT</code>).
+                                                        </li>
+                                                        <li>
+                                                            Filtering: remove empty elements (cascading up).
+                                                        </li>
+                                                        <li>
+                                                            Filtering: remove images that have neither a <code>src</code> nor an <code>alt</code> attribute (empty images).
+                                                        </li>
+                                                        <li>
+                                                            Filtering: remove data URL attribute values.
+                                                        </li>
+                                                        <li>
+                                                            Normalisation: convert <code>SVG</code> elements to <code>IMG</code> elements to obtain uniform image elements.
+                                                        </li>
+                                                        <li>
+                                                            Normalisation: convert icon-font elements (via <code>class</code> attribute like <code>"fa fa-arrow"</code>) to images to obtain uniform image elements.
+                                                        </li>
+                                                        <li>
+                                                            Normalisation: promote an expressive text-label attribute value (e.g., from <code>aria-label</code> or <code>title</code>) to text of empty elements.
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            Normalisation
                                         </label>
                                     </td>
                                     <td>
@@ -121,8 +341,17 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <label for="downsampling-unique-ids"
-                                            title="Whether to assign unique IDs to elements (data-uid attribute) – traceable to the input DOM">
+                                        <label for="downsampling-unique-ids">
+                                            <div class="tooltip">
+                                                <div class="tooltip-content" popover="manual">
+                                                    <p>
+                                                        Whether to assign unique IDs to every element in the input and output DOM (only reflected on output in the demo). The ID is an incremental integer written to the <code>data-uid</code> attribute.
+                                                        If enabled, LLM-elicited actions targeting elements in the output DOM via such ID can be traced back to the (live) input DOM.
+                                                        The output DOM is inflated by the encoded IDs.
+                                                        A non-invasive approach could implement a client-side-only source map.
+                                                    </p>
+                                                </div>
+                                            </div>
                                             Unique IDs
                                         </label>
                                     </td>
@@ -131,26 +360,18 @@
                                     </td>
                                 </tr>
                             </table>
-                        </section>
-                        <section>
-                            <button class="button button--dark" type="button" data-snapshot="google"
-                                title="Example: snapshot from https://google.com">
-                                google.com
-                            </button>
-                            <button class="button button--dark" type="button" data-snapshot="wikipedia"
-                                title="Example: snapshot from https://wikipedia.org/wiki/Downsampling_(signal_processing)">
-                                wikipedia.org
-                            </button>
-                            <button class="button button--dark" type="button" data-snapshot="cnn"
-                                title="Example: snapshot from https://edition.cnn.com">
-                                cnn.com
+                            <button type="button" class="button button--dim hide-s" data-export>
+                                Copy API Call
                             </button>
                         </section>
                     </form>
                 </div>
             </section>
             <div class="resizer" role="separator"></div>
-            <section class="panel content">
+            <section class="panel">
+                <div class="card hide-l">
+                    <h2>Output</h2>
+                </div>
                 <div class="tabs">
                     <div class="tabs-body">
                         <div class="content">
@@ -169,25 +390,35 @@
                             <textarea name="index-output" readonly></textarea>
                             <button type="button" class="button copy-button" data-copy="index-output">Copy</button>
                         </div>
-                        <div class="content">
-                            <textarea name="index-output" readonly></textarea>
-                            <button type="button" class="button copy-button" data-copy="index-output">Copy</button>
-                        </div>
                     </div>
                     <div class="card">
-                        <div class="flex" id="dom-results">
-                            <p class="nowrap"
-                                title="Total downsampling duration">
-                                ⏱️ &hairsp;
-                                <span data-key="duration">t</span> ms
-                            </p>
+                        <div class="card-wrapper flex" data-results>
+                            <div class="flex flex--xs hide-s">
+                                <p class="nowrap">
+                                    ⏱️ &hairsp;
+                                    <span data-key="duration">t</span> ms
+                                </p>
+                                <div class="tooltip">
+                                    <div class="tooltip-content" popover="manual">
+                                        <p>
+                                            Total downsampling duration in milliseconds.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="flex-space"></div>
-                            <p class="flex flex--xs">
-                                <span class="text-primary text-l nowrap"
-                                    title="Result size compared to original size (raw bytes)">
+                            <div class="flex flex--xs">
+                                <span class="text-primary text-l nowrap">
                                     📦 &hairsp;
                                     <b data-key="sizeRatio">x</b> %
                                 </span>
+                                <div class="tooltip">
+                                    <div class="tooltip-content" popover="manual">
+                                        <p>
+                                            Output DOM size percentage compared to input DOM size (per raw bytes).
+                                        </p>
+                                    </div>
+                                </div>
                                 <span class="nowrap">
                                     (
                                         <span class="text-primary"><span data-key="snapshotSize">y</span></span>
@@ -195,28 +426,34 @@
                                         <span data-key="originalSize">z</span>
                                     )
                                 </span>
-                                <span class="nowrap"
-                                    title="Estimated LLM input tokens">
+                                <span class="nowrap">
                                     ~ <span data-key="tokenEstimate">T</span> Tokens
                                 </span>
-                            </p>
+                                <div class="tooltip">
+                                    <div class="tooltip-content" popover="manual">
+                                        <p>
+                                            Estimated LLM input token count of the output DOM.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="tabs-header">
-                        <button>HTML</button>
-                        <button>Accessibility Tree</button>
-                        <button>Index JSON</button>
-                        <button>Index List</button>
+                        <button type="button">HTML</button>
+                        <button type="button">Accessibility Tree</button>
+                        <button type="button">Index JSON</button>
+                        <button type="button">Index List</button>
                     </div>
                 </div>
             </section>
             <div class="resizer" role="separator"></div>
-            <section class="panel content">
+            <section class="panel">
                 <div class="tabs">
                     <div class="tabs-body">
                         <div class="content">
                             <canvas id="dom-relief"></canvas>
-                            <small class="float float--r text-dim no-select">Hold SHIFT to translate</small>
+                            <small class="float float--r text-dim no-select hide-s">Hold SHIFT to translate</small>
                             <div class="flex flex--s float float--l">
                                 <label for="relief-flat">
                                     <span class="no-select">Flat</span>
@@ -228,15 +465,15 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="content">
+                        <div class="content content--split">
                             <iframe data-frame="input"></iframe>
                             <hr>
                             <iframe data-frame="output"></iframe>
                         </div>
                     </div>
                     <div class="tabs-header">
-                        <button>3D Footprint</button>
-                        <button>GUI (no styles)</button>
+                        <button type="button">3D Footprint</button>
+                        <button type="button">GUI (no styles)</button>
                     </div>
                 </div>
             </section>
@@ -244,7 +481,9 @@
         <footer>
             <small class="text-dim">
                 &copy; 2025
-                &ensp; | &ensp; Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents
+                <br class="hide-l">
+                <span class="hide-s"> &ensp; | &ensp;</span>
+                Beyond Pixels: Exploring DOM Downsampling for LLM-Based Web Agents
             </small>
         </footer>
         <script>
@@ -275,7 +514,7 @@
 
                         break;
                     } catch {
-                        console.info(`D2Snap not available from ${src}`);
+                        /* silent cascade */
                     }
                 }
 
