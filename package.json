@@ -4,7 +4,7 @@
   "author": "Thassilo M. Schiepanski",
   "type": "module",
   "main": "./dist.lib/api.js",
-  "types": "./dist.lib/types",
+  "types": "./dist.lib/types/api.d.ts",
   "scripts": {
     "prepare": "husky",
     "clean": "rm -rf ./dist.lib/ && rm -rf ./dist.browser/",
